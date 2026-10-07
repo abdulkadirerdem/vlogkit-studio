@@ -2,6 +2,13 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Sürümleme: [SemVer](https://semver.org/).
 
+## [0.14.1] - 2026-10-07
+
+### Değişti
+- **Kurulum iki adım:** Terminal'deki satır artık yalnız Stüdyo'yu kurar (uv, vlogkit, Python: ~150 MB, şifre sormaz) ve tarayıcıda açar. Apple geliştirici araçları ve Homebrew, video ve ses araçları, konuşma modeli, müzik kütüphanesi ve ajan Stüdyo'nun kurulum ekranından kurulur: her satırda boyut, arka planda ilerleme, **Hepsini kur**. Geliştirici araçları yoksa vlogkit git yerine sürüm arşivinden iner; araçlar gelince kopya kendiliğinden git'e bağlanır ve güncellemeler aynı yoldan sürer (git yokken yeni sürüm ve notlar GitHub'dan okunur).
+- **Masaüstü uygulamasının ikonu:** macOS 26'da derlenmiş varsayılan betik ikonu (`Assets.car`) bizimkinin önüne geçiyordu; kısayol artık onu kaldırıp paketi yeniden imzalıyor, "vk" ikonu görünüyor. Güncelleme masaüstündeki uygulamayı da yeniler.
+- **Herkese açık sayfa:** Logo, Stüdyo ekran görüntüsü, kısa tanıtım, iki adımlı kurulum ve bilgisayara neyin, ne boyutta kurulduğu tablosu (`docs/public/README.md`, yayında README olur). `KURULUM.md` sadeleşti. Marka görselleri `scripts/brand.py` ile üretilir (`assets/brand/`).
+
 ## [0.14.0] - 2026-10-07
 
 ### Eklendi

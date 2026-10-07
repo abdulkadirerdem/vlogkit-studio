@@ -131,6 +131,10 @@ def filter_snapshot(snap: Path, version: str, repo_url: str) -> list[str]:
     with (snap / ".gitignore").open("a", encoding="utf-8") as f:
         f.write(IGNORE_EXTRA)
     shutil.copy2(snap / "scripts" / "install.sh", snap / "install.sh")
+    public = snap / "docs" / "public"  # the release repo's front page (logo, install, sizes)
+    if (public / "README.md").exists():
+        shutil.move(public / "README.md", snap / "README.md")
+        shutil.rmtree(public)
     (snap / ".release").write_text(json.dumps({"repo": repo_url, "version": version}) + "\n")
     return names
 

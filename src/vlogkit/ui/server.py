@@ -577,15 +577,23 @@ def make_handler(app: App) -> type[BaseHTTPRequestHandler]:
                     from vlogkit.ui import setup
 
                     fresh = (q.get("fresh") or ["0"])[0] == "1"
+                    if update.channel():  # developer tools arrived with Homebrew: updates via git
+                        with contextlib.suppress(Exception):
+                            update.adopt()
                     return self._json(
                         {
                             "agents": setup.agents(fresh),
-                            "basics": setup.basics(),
+                            "steps": setup.steps(),
                             "models": setup.models(),
                             "tasks": dict(setup.tasks),
                             "release": bool(update.channel()),
                         }
                     )
+                case ("POST", ["setup", "step"]):
+                    from vlogkit.ui import setup
+
+                    setup.run_step(str(self._body().get("id") or ""))
+                    return self._json({"ok": True})
                 case ("POST", ["setup", "agent"]):
                     from vlogkit.ui import setup
 

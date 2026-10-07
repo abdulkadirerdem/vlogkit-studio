@@ -21,6 +21,7 @@ import re
 import shutil
 import subprocess
 import time
+import urllib.request
 from pathlib import Path
 
 from vlogkit import __version__
@@ -30,6 +31,12 @@ RELEASE_FILE = REPO_ROOT / ".release"
 STATE = BUILD_DIR / "ui" / "update.json"
 CHECK_EVERY = 6 * 3600.0
 _VERSION = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
+
+
+REFRESH_SHORTCUT = (
+    "from vlogkit.ui.launcher import APP_NAME, DESKTOP, create_shortcut\n"
+    "if (DESKTOP / f'{APP_NAME}.app').exists(): create_shortcut(DESKTOP)"
+)
 
 
 class UpdateError(RuntimeError):
@@ -73,19 +80,55 @@ def _git(*args: str, timeout: float = 60) -> str:
     return r.stdout
 
 
+def has_git() -> bool:
+    """Apple's developer tools are installed. Without them /usr/bin/git is only a stub that pops
+    up an install dialog, so it is never called before this says yes."""
+    try:
+        return subprocess.run(["xcode-select", "-p"], capture_output=True).returncode == 0
+    except OSError:
+        return False
+
+
 def remote_tags(repo: str) -> list[str]:
-    out = subprocess.run(
-        ["git", "ls-remote", "--tags", "--refs", repo],
-        capture_output=True,
-        text=True,
-        timeout=30,
-        env=GIT_ENV,
-    )
-    if out.returncode != 0:
-        raise UpdateError("güncelleme sunucusuna ulaşılamadı")
-    return [
-        line.rsplit("refs/tags/", 1)[-1] for line in out.stdout.splitlines() if "refs/tags/" in line
-    ]
+    if has_git():
+        out = subprocess.run(
+            ["git", "ls-remote", "--tags", "--refs", repo],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            env=GIT_ENV,
+        )
+        if out.returncode != 0:
+            raise UpdateError("güncelleme sunucusuna ulaşılamadı")
+        return [
+            ln.rsplit("refs/tags/", 1)[-1] for ln in out.stdout.splitlines() if "refs/tags/" in ln
+        ]
+    m = re.match(r"https://github\.com/([^/]+/[^/]+?)(?:\.git)?$", repo)
+    if not m:
+        raise UpdateError("güncellemeyi görmek için Apple geliştirici araçları gerekli")
+    try:  # no git yet (installed before the developer tools): GitHub's public API
+        with urllib.request.urlopen(
+            f"https://api.github.com/repos/{m.group(1)}/tags", timeout=20
+        ) as r:
+            return [t["name"] for t in json.load(r)]
+    except (OSError, ValueError, KeyError) as e:
+        raise UpdateError("güncelleme sunucusuna ulaşılamadı") from e
+
+
+def adopt() -> bool:
+    """A copy unpacked from a tarball (install.sh ran before the developer tools were there)
+    becomes a git clone of its own version once git works, so updates can move it. The files are
+    not touched: the index is set to the tag the copy was made from. True when it is a clone."""
+    ch = channel()
+    if (REPO_ROOT / ".git").exists():
+        return True
+    if not ch or not has_git():
+        return False
+    _git("init", "--quiet", "-b", "main")
+    _git("remote", "add", "origin", ch["repo"])
+    _git("fetch", "--quiet", "--tags", "origin", timeout=300)
+    _git("reset", "--quiet", f"v{ch.get('version') or __version__}")
+    return True
 
 
 def notes(changelog: str, current: str, target: str) -> str:
@@ -100,6 +143,19 @@ def notes(changelog: str, current: str, target: str) -> str:
         if keep:
             out.append(line)
     return "\n".join(out).strip()
+
+
+def _changelog(repo: str, version: str) -> str:
+    """CHANGELOG.md of a tag: from git, or from GitHub before git is installed."""
+    if (REPO_ROOT / ".git").exists():
+        _git("fetch", "--quiet", "--tags", "origin", timeout=120)
+        return _git("show", f"v{version}:CHANGELOG.md")
+    m = re.match(r"https://github\.com/([^/]+/[^/]+?)(?:\.git)?$", repo)
+    if not m:
+        raise UpdateError("notlar okunamadı")
+    url = f"https://raw.githubusercontent.com/{m.group(1)}/v{version}/CHANGELOG.md"
+    with urllib.request.urlopen(url, timeout=20) as r:
+        return r.read().decode("utf-8")
 
 
 def check(force: bool = False) -> dict:
@@ -122,11 +178,8 @@ def check(force: bool = False) -> dict:
     info = {"latest": latest, "checked": time.time(), "current": __version__, "notes": ""}
     info["available"] = bool(latest and (parse(latest) or ()) > (parse(__version__) or ()))
     if info["available"]:
-        try:  # the notes come with the tag
-            _git("fetch", "--quiet", "--tags", "origin", timeout=120)
-            info["notes"] = notes(_git("show", f"v{latest}:CHANGELOG.md"), __version__, latest)
-        except (UpdateError, subprocess.TimeoutExpired):
-            pass
+        with contextlib.suppress(UpdateError, subprocess.TimeoutExpired, OSError, ValueError):
+            info["notes"] = notes(_changelog(ch["repo"], latest), __version__, latest)
     STATE.parent.mkdir(parents=True, exist_ok=True)
     STATE.write_text(json.dumps(info))
     return {**base, **info}
@@ -151,6 +204,8 @@ def apply(version: str, log=print) -> str:
     if not parse(version):
         raise UpdateError(f"sürüm: {version}")
     tag = f"v{version.lstrip('v')}"
+    if not adopt():
+        raise UpdateError("güncelleme için önce Kurulum'daki ilk adımı (Homebrew) tamamla")
     log("Sürüm indiriliyor…")
     _git("fetch", "--quiet", "--tags", "origin", timeout=300)
     old = _git("rev-parse", "HEAD").strip()
@@ -186,6 +241,13 @@ def apply(version: str, log=print) -> str:
         )
     except (OSError, subprocess.TimeoutExpired):
         notes.append("Bazı kütüphane dosyaları inmedi; sonra `vlogkit assets fetch`.")
+    with contextlib.suppress(OSError, subprocess.TimeoutExpired):  # the desktop app, if it is
+        subprocess.run(  # there, is made again: a new icon or launcher arrives with the update
+            [_uv(), "run", "--frozen", "python", "-c", REFRESH_SHORTCUT],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            timeout=120,
+        )
     STATE.unlink(missing_ok=True)
     return " ".join([f"{version} kuruldu.", *notes])
 

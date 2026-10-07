@@ -126,11 +126,13 @@
 <div class="welcome" id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle" hidden>
   <div class="welcome-card">
     <h2 id="welcomeTitle">vlogkit'e hoş geldin</h2>
-    <p class="hint">Kurguyu bir yapay zekâ ajanı yapar. Aboneliğin hangisindeyse onu kur ve giriş yap; biri yeter.</p>
+    <p class="hint">Stüdyo hazır. Kurguya başlamadan birkaç parçayı kuralım; her birinin boyutu yanında yazıyor.</p>
+    <ol class="setup" id="setupSteps"></ol>
+    <div class="agents-head"><b>Yapay zekâ ajanı</b><small>Aboneliğin hangisindeyse onu kur ve giriş yap; biri yeter.</small></div>
     <div class="agents" id="welcomeAgents"></div>
-    <div class="basics" id="welcomeBasics" hidden></div>
     <div class="welcome-acts">
       <button class="pop-btn" id="welcomeLater" type="button">Şimdilik geç</button>
+      <button class="pop-btn" id="setupAll" type="button" hidden>Hepsini kur</button>
       <button class="pop-btn primary" id="welcomeGo" type="button" hidden>Başla</button>
     </div>
   </div>

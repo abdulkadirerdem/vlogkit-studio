@@ -128,6 +128,14 @@ def create_shortcut(dest_dir: Path = DESKTOP, name: str = APP_NAME) -> Path:
         cmd += ["-e", line]
     subprocess.run(cmd, check=True, capture_output=True)
     _icns(app / "Contents" / "Resources" / "applet.icns")
+    # macOS 26 draws the compiled asset catalog (the script icon) before the .icns: drop it and
+    # its Info.plist key, then sign the bundle again (ad hoc) since its resources changed
+    (app / "Contents" / "Resources" / "Assets.car").unlink(missing_ok=True)
+    plist = str(app / "Contents" / "Info.plist")
+    subprocess.run(
+        ["/usr/libexec/PlistBuddy", "-c", "Delete :CFBundleIconName", plist], capture_output=True
+    )
+    subprocess.run(["codesign", "--force", "--sign", "-", str(app)], capture_output=True)
     subprocess.run(["touch", str(app)], check=False)  # make Finder pick up the new icon
     return app
 

@@ -1304,33 +1304,49 @@ function syncTitle() {
 document.addEventListener("visibilitychange", () => { if (!document.hidden) { finishedUnseen = false; syncTitle(); } });
 
 /* ------------------------------------------------------------------ first run, models, updates */
-// Welcome: shown while no agent is installed and signed in (or a basic tool is missing). Each
-// agent row says what to do next; signing in opens Terminal. The screen polls until one is ready.
+// Setup: install.sh only puts the studio on the Mac; the heavy parts are installed from here,
+// each with its size (Homebrew needs Terminal for the Mac password, the rest runs in the
+// background with progress). Then an agent: install and sign in. Shown until all is ready.
 const AGENTS = { claude: { name: "Claude Code", plan: "Claude Pro ya da Max aboneliği" }, codex: { name: "Codex", plan: "ChatGPT Plus ya da Pro aboneliği" } };
 let welcomeTimer = 0, wasReady = null;
+const setupDone = (d) => d.steps.every((x) => x.done) && Object.values(d.agents).some((a) => a.ready);
 async function checkSetup(fresh = false) {
   let d;
   try { d = await api(`/api/setup${fresh ? "?fresh=1" : ""}`); } catch { return null; }
   S.setup = d;
-  const ready = Object.values(d.agents).some((a) => a.ready);
-  const missing = d.basics.filter((b) => !b.ok);
-  if (wasReady === null && (ready && !missing.length || sessionStorage.getItem("welcomeLater"))) { wasReady = ready; drawModels(); return d; }
-  wasReady = wasReady ?? ready;
-  drawWelcome(d, ready, missing);
+  const ready = setupDone(d);
+  if (wasReady === null) wasReady = ready;
+  drawWelcome(d, ready);
   drawModels();
   return d;
 }
-function drawWelcome(d, ready, missing) {
+function stepState(x) {
+  const t = x.task || {};
+  if (x.done) return [el("span", { class: "state ok", text: "Kurulu" })];
+  if (t.status === "running") return [el("span", { class: "state run", text: `%${Math.round((t.progress || 0) * 100)}` })];
+  const go = (label) => el("button", { class: `pop-btn${x.ready ? " primary" : ""}`, type: "button", text: label, disabled: !x.ready,
+    title: x.ready ? "" : "Önce bir önceki adım", onclick: () => stepAction(x.id) });
+  if (x.terminal) return x.admin ? [go("Terminal'de kur")] : [el("span", { class: "state bad", text: "Yönetici hesabı gerekli" })];
+  const out = [go(x.id === "speech" || x.id === "library" ? "İndir" : "Kur")];
+  if (t.status === "error") out.unshift(el("span", { class: "state bad", text: "Olmadı", title: t.error || "" }));
+  return out;
+}
+function drawWelcome(d, ready) {
   const box = $("#welcome");
-  if (box.hidden && (ready && !missing.length || sessionStorage.getItem("welcomeLater"))) return;
+  if (box.hidden && (ready || sessionStorage.getItem("welcomeLater"))) return;
   box.hidden = false;
-  const rows = Object.entries(AGENTS).map(([id, meta]) => {
+  $("#setupSteps").replaceChildren(...d.steps.map((x) => el("li", { class: `step-row${x.done ? " ok" : ""}` },
+    el("div", { class: "s-text" }, el("b", { text: x.label }), el("small", { text: x.detail })),
+    el("span", { class: "s-size", text: x.size }), el("div", { class: "s-act" }, ...stepState(x)))));
+  $("#welcomeAgents").replaceChildren(...Object.entries(AGENTS).map(([id, meta]) => {
     const a = d.agents[id], task = d.tasks[`agent:${id}`];
     let state, act = null;
     if (task && task.status === "running") state = "Kuruluyor…";
     else if (!a.installed) {
-      state = task && task.status === "error" ? `Kurulamadı: ${task.error}` : "Kurulu değil";
-      act = el("button", { class: "pop-btn", type: "button", text: "Kur", onclick: () => agentAction(id, "install") });
+      state = task && task.status === "error" ? "Kurulamadı" : "Kurulu değil";
+      const needsBrew = id === "codex" && !d.steps[0].done;
+      act = el("button", { class: "pop-btn", type: "button", text: "Kur", disabled: needsBrew,
+        title: needsBrew ? "Codex Homebrew ile kurulur: önce ilk adım" : "", onclick: () => agentAction(id, "install") });
     } else if (!a.ready) {
       state = "Giriş yapılmadı";
       act = el("button", { class: "pop-btn primary", type: "button", text: "Giriş yap", title: "Terminal açılır; tarayıcıda hesabınla onayla", onclick: () => agentAction(id, "login") });
@@ -1338,17 +1354,24 @@ function drawWelcome(d, ready, missing) {
     return el("div", { class: `agent${a.ready ? " ok" : ""}` },
       el("div", {}, el("b", { text: meta.name }), el("small", { text: meta.plan })),
       el("span", { class: "state", text: state }), act);
-  });
-  $("#welcomeAgents").replaceChildren(...rows);
-  const basics = $("#welcomeBasics");
-  basics.hidden = !missing.length;
-  basics.replaceChildren(el("p", { class: "hint", text: "Eksik araçlar (kurulumu yeniden çalıştırınca gelir):" }),
-    ...missing.map((b) => el("div", { class: "basic" }, el("span", { text: b.label }), el("code", { text: b.fix }))));
+  }));
+  const running = d.steps.some((x) => x.task && x.task.status === "running") || Object.values(d.tasks).some((t) => t.status === "running");
+  const canRun = d.steps.some((x) => !x.done && x.ready && !x.terminal && !(x.task && x.task.status === "running"));
+  $("#setupAll").hidden = !canRun;
   $("#welcomeGo").hidden = !ready;
   clearTimeout(welcomeTimer);
-  if (!ready) welcomeTimer = setTimeout(() => { if (!$("#welcome").hidden) checkSetup(true); }, 3000);
-  else if (wasReady === false) { wasReady = true; toast("Hazır: ilk işini yazabilirsin"); }
+  const agentReady = Object.values(d.agents).some((a) => a.ready);
+  if (!ready || running) welcomeTimer = setTimeout(() => { if (!$("#welcome").hidden) checkSetup(!agentReady); }, running ? 1500 : 3000);
+  if (ready && wasReady === false) { wasReady = true; toast("Hazır: ilk işini yazabilirsin"); }
 }
+async function stepAction(id) {
+  try {
+    await post("/api/setup/step", { id });
+    if (id === "homebrew") toast("Terminal açıldı: Mac şifreni yaz, bitince buraya dön");
+    setTimeout(() => checkSetup(), 600);
+  } catch (e) { toast(e.message); }
+}
+$("#setupAll").onclick = () => stepAction("all");
 async function agentAction(id, action) {
   try {
     await post("/api/setup/agent", { name: id, action });

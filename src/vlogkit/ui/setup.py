@@ -93,29 +93,194 @@ def agents(fresh: bool = False) -> dict[str, dict]:
     return out
 
 
-def basics() -> list[dict]:
+# --------------------------------------------------------------------------- setup steps
+# install.sh only puts the studio on the Mac (uv, vlogkit, Python: ~150 MB, a minute or two). The
+# heavy parts come from the studio's setup screen, each with its size, one click each or all.
+BREW_PACKAGES = ("ffmpeg-full", "whisper-cpp", "aubio", "terminal-notifier")
+HOMEBREW_INSTALL = (
+    '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+    " && (grep -qs 'brew shellenv' ~/.zprofile || echo 'eval \"$(/opt/homebrew/bin/brew shellenv)\"'"
+    ' >> ~/.zprofile) && echo && echo "Bitti: vlogkit Stüdyo\'ya dönebilirsin."'
+)
+WHISPER_URL = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin"
+
+
+def is_admin() -> bool:
+    import getpass
+
+    r = subprocess.run(
+        ["dseditgroup", "-o", "checkmember", "-m", getpass.getuser(), "admin"], capture_output=True
+    )
+    return r.returncode == 0
+
+
+def _library_done() -> tuple[int, int]:
+    from vlogkit import assets
+
+    m = assets.manifest()
+    return sum(a.path.exists() for a in m.values()), len(m)
+
+
+def steps() -> list[dict]:
+    """The setup checklist in order; each says whether it is done and what installing it takes."""
     t = tools()
+    have, total = _library_done()
     rows = [
-        ("ffmpeg", "ffmpeg (ffmpeg-full)", bool(t.ffmpeg), "brew install ffmpeg-full"),
-        ("whisper", "whisper (konuşmayı yazıya döker)", bool(t.whisper_cli), "brew install whisper-cpp"),
-        ("whisper-model", "whisper modeli", t.whisper_model.exists(), "kurulumu yeniden çalıştır"),
-        ("aubio", "aubio (müzik vuruşları)", bool(t.aubio), "brew install aubio"),
-    ]  # fmt: skip
-    return [{"id": i, "label": label, "ok": ok, "fix": fix} for i, label, ok, fix in rows]
+        {
+            "id": "homebrew",
+            "label": "Apple geliştirici araçları ve Homebrew",
+            "detail": "Video araçlarının kurulduğu yer. Terminal açılır, Mac şifren sorulur.",
+            "size": "~2 GB",
+            "done": bool(_brew()),
+            "terminal": True,
+            "admin": is_admin(),
+        },
+        {
+            "id": "tools",
+            "label": "Video ve ses araçları",
+            "detail": "ffmpeg, whisper, aubio (bağımlılıklarıyla ~115 paket)",
+            "size": "~1,5 GB",
+            "done": bool(t.ffmpeg and t.whisper_cli and t.aubio),
+            "needs": "homebrew",
+        },
+        {
+            "id": "speech",
+            "label": "Konuşma modeli",
+            "detail": "Konuşmayı internetsiz yazıya döker (whisper large-v3-turbo)",
+            "size": "1,5 GB",
+            "done": t.whisper_model.exists(),
+        },
+        {
+            "id": "library",
+            "label": "Müzik ve ses kütüphanesi",
+            "detail": f"Lisanslı müzik ve efektler ({have}/{total})",
+            "size": "~90 MB",
+            "done": have == total,
+            "needs": "tools",
+        },
+    ]
+    done = {r["id"]: r["done"] for r in rows}
+    for r in rows:
+        r["ready"] = not r.get("needs") or done[r["needs"]]
+        task = tasks.get(f"step:{r['id']}")
+        r["task"] = {k: task.get(k) for k in ("status", "progress", "error")} if task else None
+    return rows
+
+
+def _brew_total() -> int:
+    """How many formulae the tools step pours (for its progress)."""
+    brew = _brew()
+    r = subprocess.run([brew, "deps", "--union", *BREW_PACKAGES], capture_output=True, text=True)
+    return len(r.stdout.split()) + len(BREW_PACKAGES)
+
+
+def _download(name: str, url: str, dest: Path) -> None:
+    """A big file with progress; .part first, so an interrupted one never counts as done."""
+    import urllib.request
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    part = dest.with_name(dest.name + ".part")
+    with urllib.request.urlopen(url, timeout=60) as r, part.open("wb") as f:
+        total = int(r.headers.get("Content-Length") or 0)
+        got = 0
+        while chunk := r.read(1 << 20):
+            f.write(chunk)
+            got += len(chunk)
+            if total:
+                with _lock:
+                    tasks[name]["progress"] = min(0.99, got / total)
+    part.replace(dest)
+
+
+def run_step(step: str) -> None:
+    """Start one setup step in the background ("all": every step that can run now, in order)."""
+    import sys
+
+    from vlogkit.config import REPO_ROOT
+
+    rows = {r["id"]: r for r in steps()}
+    if step == "all":
+        if not rows["speech"]["done"]:
+            run_step("speech")
+        if rows["tools"]["ready"] and not rows["tools"]["done"]:
+            _start_tools(then_library=not rows["library"]["done"])
+        elif rows["library"]["ready"] and not rows["library"]["done"]:
+            run_step("library")
+        return
+    row = rows.get(step)
+    if row is None:
+        raise ValueError(f"bilinmeyen adım: {step}")
+    if not row["ready"]:
+        raise RuntimeError("önce bir önceki adımı tamamla")
+    if step == "homebrew":
+        if not row["admin"]:
+            raise RuntimeError("Homebrew için bu Mac'te yönetici hesabı gerekli")
+        _terminal(HOMEBREW_INSTALL)
+    elif step == "tools":
+        _start_tools(then_library=False)
+    elif step == "speech":
+        dest = tools().whisper_model
+        _run_task("step:speech", [], after=lambda: _download("step:speech", WHISPER_URL, dest))
+    elif step == "library":
+        _, total = _library_done()
+        cmd = [sys.executable, "-m", "vlogkit.cli", "assets", "fetch"]
+        _run_task(
+            "step:library",
+            [cmd],
+            cwd=REPO_ROOT,
+            progress=lambda: _library_done()[0] / max(1, total),
+        )
+
+
+def _start_tools(then_library: bool) -> None:
+    brew = _brew()
+    if not brew:
+        raise RuntimeError("Homebrew yok: önce ilk adım")
+    total = _brew_total()
+
+    def pours(line: str) -> None:
+        if line.startswith("==> Pouring"):
+            with _lock:
+                t = tasks["step:tools"]
+                t["poured"] = t.get("poured", 0) + 1
+                t["progress"] = min(0.99, t["poured"] / max(1, total))
+
+    after = (lambda: run_step("library")) if then_library else None
+    _run_task("step:tools", [[brew, "install", *BREW_PACKAGES]], after=after, on_line=pours)
+
+
+def _terminal(command: str) -> None:
+    """Run a command in a new Terminal window (it needs the user: a password, a browser)."""
+    cmd = command.replace("\\", "\\\\").replace('"', '\\"')
+    subprocess.run(
+        [
+            "osascript",
+            "-e",
+            'tell application "Terminal" to activate',
+            "-e",
+            f'tell application "Terminal" to do script "{cmd}"',
+        ],
+        check=True,
+        capture_output=True,
+    )
 
 
 # --------------------------------------------------------------------------- background tasks
-def _run_task(name: str, steps: list[list[str]], after=None, progress=None) -> None:
+def _run_task(
+    name: str, steps: list[list[str]], after=None, progress=None, on_line=None, cwd=None
+) -> None:
     def work():
         log: list[str] = []
         try:
             for cmd in steps:
                 proc = subprocess.Popen(
-                    cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+                    cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=cwd
                 )
                 assert proc.stdout
                 for line in proc.stdout:
                     log.append(line.rstrip())
+                    if on_line:
+                        on_line(line)
                     with _lock:
                         tasks[name]["log"] = "\n".join(log[-12:])
                 if proc.wait() != 0:
@@ -169,18 +334,7 @@ def login_command(name: str) -> str:
 
 def open_login(name: str) -> None:
     """Terminal with the login command (it opens the browser); the screen polls until done."""
-    cmd = login_command(name).replace("\\", "\\\\").replace('"', '\\"')
-    subprocess.run(
-        [
-            "osascript",
-            "-e",
-            'tell application "Terminal" to activate',
-            "-e",
-            f'tell application "Terminal" to do script "{cmd}"',
-        ],
-        check=True,
-        capture_output=True,
-    )
+    _terminal(login_command(name))
     _auth_cache.pop(name, None)
 
 
