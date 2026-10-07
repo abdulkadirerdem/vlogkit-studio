@@ -631,6 +631,24 @@ def make_handler(app: App) -> type[BaseHTTPRequestHandler]:
                 case ("POST", ["update"]):
                     app.start_update(str(self._body().get("version") or ""))
                     return self._json({"ok": True})
+                case ("GET", ["uninstall"]):
+                    from vlogkit import uninstall
+
+                    mode = (q.get("mode") or ["app"])[0]
+                    return self._json({"allowed": uninstall.allowed(), **uninstall.plan(mode)})
+                case ("POST", ["uninstall"]):
+                    from vlogkit import uninstall
+
+                    if store.busy():
+                        raise RuntimeError("çalışan iş varken kaldırılmaz: önce durdur")
+                    app.not_upgrading()
+                    mode = str(self._body().get("mode") or "")
+                    if mode not in uninstall.MODES:
+                        raise ValueError(f"kaldırma: {mode}")
+                    backup = uninstall.start(mode)
+                    self._json({"ok": True, "backup": str(backup)})
+                    app.shutdown()
+                    return None
                 case ("POST", ["shutdown"]):
                     self._json({"ok": True})
                     app.shutdown()

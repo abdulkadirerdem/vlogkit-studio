@@ -29,7 +29,7 @@ from vlogkit.config import BUILD_DIR, REPO_ROOT
 
 RELEASE_FILE = REPO_ROOT / ".release"
 STATE = BUILD_DIR / "ui" / "update.json"
-CHECK_EVERY = 6 * 3600.0
+CHECK_EVERY = 3600.0  # an open studio sees a new version within the hour
 _VERSION = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
 
 

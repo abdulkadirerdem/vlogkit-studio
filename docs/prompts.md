@@ -1,6 +1,6 @@
 # vlogkit Prompt Rehberi
 
-<!-- meta: vlogkit=0.14.2; updated=2026-10-06; artifact=https://claude.ai/artifact/WQakjmnPnJ95AJ1kyQPdPW -->
+<!-- meta: vlogkit=0.15.0; updated=2026-10-06; artifact=https://claude.ai/artifact/WQakjmnPnJ95AJ1kyQPdPW -->
 
 Yeni bir vlog'u Claude'a vlogkit ile kurgulatırken kullanacağın hazır prompt'lar. Hepsi vlogkit'in bugünkü yeteneklerine göre yazıldı. vlogkit geliştikçe bu dosya da güncellenir: kaynak `docs/prompts.md`, sayfa `scripts/build_prompts_page.py` ile üretilip artifact olarak yayınlanır. Aynı dosya `vlogkit ui` arayüzündeki görev listesini de besler: arayüzde bir görevi seçince prompt buradan gelir ve seçtiğin video ile formdaki bağlam bilgileri doldurulur.
 
@@ -486,7 +486,7 @@ Herhangi bir prompt'un sonuna ekleyebileceğin kısa talimatlar. Tıklayınca ko
 - **Sonradan elle düzenleme:** Altyazı ve grafikler final videoya gömülüdür, kalite için öyle kalır. `vlogkit resolve` aynı kurgunun katmanlı bir kopyasını DaVinci Resolve'a verir: her plan, her altyazı ve grafik ayrı klip; sesler ayrı izlerde; altyazıların düzenlenebilir metin kopyası üstte kapalı durur. Bir kelimeyi değiştirmek için ya o metni açarsın ya da Claude'a söylersin, sadece değişen adım yeniden derlenir.
 - **Geliştirme önerileri:** Claude bir işte vlogkit'e eklenmeye değer bir şey görürse son mesajda tek satır "Öneri:" yazar, kendiliğinden eklemez. Beğenirsen "Öneriyi uygula" prompt'uyla ya da "Öneriyi uygula" diye yanıt vererek ekletirsin.
 - **Oran ve kalite:** Claude kaynağı kırpmayı ya da büyütmeyi planda ayrı madde olarak yazar. Düşük çözünürlüklü kaynakta önce sorar. İstemiyorsan "Oranı ve çözünürlüğü koru" ekini kullan.
-- **Codex:** Stüdyoda "⋯ > Ajan" menüsünden Claude Code yerine Codex (ChatGPT aboneliği) seçilebilir. Prompt'lar aynı. Güvenli modda Codex commit atamaz (`.git` sandbox'ta salt okunur). Commit için "Tam yetki" gerekir.
+- **Codex:** Stüdyoda yazma kutusundaki "⋯ > Ajan" menüsünden Claude Code yerine Codex (ChatGPT aboneliği) seçilebilir. Prompt'lar aynı. Güvenli modda Codex commit atamaz (`.git` sandbox'ta salt okunur). Commit için "Tam yetki" gerekir.
 - **Kurulum ve güncelleme:** vlogkit başka bir Mac'e tek satırla kurulur (`KURULUM.md`). Kurulu kopyada yeni sürüm çıkınca Stüdyo'nun sol altında "Güncelleme var" yazar; projeler ve videolar güncellemeden etkilenmez.
 - **Lisanslar:** Videoda kütüphaneden müzik ya da efekt varsa videonun yanında `.lisans.md` dosyası ve Stüdyo'nun sağ üstünde Lisanslar kartı olur. Platform telif talebi gönderirse "İtiraz metnini kopyala" yeter.
 - **Yerel video modeli:** Ayarlar > Yerel video modeli. Mac'in belleğine uyan boyutu (2B, 4B, 9B) kur ve seç; şart değil.
@@ -495,8 +495,8 @@ Herhangi bir prompt'un sonuna ekleyebileceğin kısa talimatlar. Tıklayınca ko
 - **İş sürerken yazmak:** Claude Code çalışırken yazdığın mesaj hemen iletilir; Claude onu bir sonraki adımda alır, işi bitirmeyi beklemez. Codex'te mesaj sıraya girer ve adım bitince gider.
 - **Mesajı düzenlemek:** Gönderdiğin bir mesajın yanındaki "Düzenle" ile değiştirip gönderirsin; sonrası ayrılır ve konuşma oradan devam eder. Dosya değişiklikleri geri alınmaz, Claude'a hangi dosyaların değiştiği söylenir.
 - **Müzik seçimi:** Claude müziği dinleyemez; telifsiz müzik gerektiğinde 3-5 aday çıkarıp sahnenin altında dinletir, seçimi sen yaparsın.
-- **Disk:** Derlemeler büyük ara dosyalar yazar (4K'da 4 dakikaya ~27 GB). "⋯ > Ara dosyalar"dan eskileri temizlersin ya da 7/14/30 gün seçersin; teslim videoları kalır. Yer yetmeyecekse derleme hiç başlamaz.
-- **Geçmiş:** İşler stüdyo kapansa da kalır, varsayılan olarak hiç silinmez. "⋯ > Geçmiş" menüsünden 3, 7 ya da 30 gün seçilebilir. Sabitlenen işler hiç silinmez. Silinen işin özeti video klasöründeki `VLOGKIT-NOTLAR.md` dosyasına yazılır.
+- **Disk:** Derlemeler büyük ara dosyalar yazar (4K'da 4 dakikaya ~27 GB). "Ayarlar > Depolama"dan eskileri temizlersin ya da 7/14/30 gün seçersin; teslim videoları kalır. Yer yetmeyecekse derleme hiç başlamaz.
+- **Geçmiş:** İşler stüdyo kapansa da kalır, varsayılan olarak hiç silinmez. "Ayarlar > Depolama > Geçmiş" menüsünden 3, 7 ya da 30 gün seçilebilir. Sabitlenen işler hiç silinmez. Silinen işin özeti video klasöründeki `VLOGKIT-NOTLAR.md` dosyasına yazılır.
 - **Emoji:** Shorts altyazılarında en fazla üç altyazıda bir emoji olur, uzun videonun konuşma altyazısında hiç olmaz. Kural aşılırsa derleme uyarı verir. Hiç istemiyorsan "Emoji kullanma." ekini kullan.
 - **Arka plan ve mimik:** `background` kişiyi Apple Vision ile ayırır; hızlı el hareketinde kolun çevresinde koyu kenar, ince saç tellerinde düzleşme olabilir. `face` yüzün yakın planını yerel modele gösterir; ifadeyi görür ama sesi duymaz, anların saniyeleri yaklaşıktır.
 - **Zaman çizelgesi ve kelimeden kesme:** Stüdyo'da her videonun altında planlar ve yazılar izler hâlinde durur. Bir ana tıklayıp "Bu ana yorum" dersen mesaja zaman ve plan eklenir; "Kelimeler"den kesilecek kelimeleri seçip "Seçileni kes" dersin. Değişikliği Claude projede yapar ve yeniden derler.

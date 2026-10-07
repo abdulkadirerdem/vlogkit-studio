@@ -97,6 +97,40 @@ def model_dir(repo: str) -> Path:
     return _hf_hub() / f"models--{repo.replace('/', '--')}"
 
 
+def _real_files(model_root: Path) -> set[Path]:
+    """The files a cached model really uses: its blobs can be links into a shared store."""
+    out = set()
+    for p in model_root.rglob("*"):
+        try:
+            real = p.resolve()
+        except OSError:
+            continue
+        if real.is_file():
+            out.add(real)
+    return out
+
+
+def model_size(repo: str) -> int:
+    return sum(f.stat().st_size for f in _real_files(model_dir(repo)) if f.exists())
+
+
+def remove_model_files(repo: str) -> None:
+    """Delete a cached model and the shared-store files only it uses (another model's are kept)."""
+    import shutil
+
+    root = model_dir(repo)
+    if not root.exists():
+        return
+    others = set()
+    for d in _hf_hub().glob("models--*"):
+        if d != root:
+            others |= _real_files(d)
+    for f in _real_files(root) - others:
+        if root not in f.parents:  # in the shared store
+            f.unlink(missing_ok=True)
+    shutil.rmtree(root, ignore_errors=True)
+
+
 def model_cached(model: str | None = None) -> bool:
     model = model or current()
     if not model:

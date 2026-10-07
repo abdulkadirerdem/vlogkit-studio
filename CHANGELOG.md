@@ -2,6 +2,18 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Sürümleme: [SemVer](https://semver.org/).
 
+## [0.15.0] - 2026-10-07
+
+### Eklendi
+- **Ayarlar paneli (sol alt):** Kurulum (araçlar, konuşma modeli, kütüphane, ajan; kurulum ekranıyla aynı satırlar), Yerel model, Depolama (geçmiş, ara dosyalar) ve Sürüm ve kaldırma (sürüm, güncelleme, prompt rehberi). Yazma kutusundaki ⋯ artık yalnız iş ayarları (ajan, izinler, model, efor, ek talimatlar). Sürüm numarası sol altta görünür; "Prompt rehberi" bağlantısı Ayarlar'a taşındı.
+- **Kaldırma (`vlogkit/uninstall.py`):** "Uygulamayı kaldır" (vlogkit klasörü ve masaüstü uygulaması) ve "Uygulamayı ve kurulan paketleri kaldır" (ayrıca Homebrew paketleri ve kullanılmayan bağımlılıkları, konuşma modeli, yerel video modelleri, mlx-vlm). Önce silinecekler boyutlarıyla gösterilir; projeler, iş geçmişi, sözlük ve yerel manifest `~/yt-vlogs/vlogkit-yedek-<tarih>`'e yedeklenir. Videolar, Homebrew, Apple geliştirici araçları, uv, Claude Code ve Codex kalır. Geliştirici kopyasında kapalı.
+
+### Değişti
+- Açık bir Stüdyo yeni sürüme saatte bir bakar (önce 6 saatte bir).
+
+### Düzeltildi
+- **Yerel model kaldırınca yer açılmıyordu:** Hugging Face model dosyalarını ortak bir depoda tutup model klasörüne bağlantı koyuyor; yalnız klasör siliniyordu. Artık o modelin kullandığı (başka modelle paylaşılmayan) dosyalar da silinir ve boyut doğru gösterilir.
+
 ## [0.14.2] - 2026-10-07
 
 ### Düzeltildi

@@ -328,7 +328,7 @@ async function loadLibrary() {
 }
 $("#videoBtn").onclick = (e) => { loadLibrary(); showPop($("#videoPop"), e.currentTarget); };
 $("#taskBtn").onclick = (e) => showPop($("#taskPop"), e.currentTarget);
-$("#moreBtn").onclick = (e) => { showPop($("#morePop"), e.currentTarget); loadDisk(); checkSetup(); };
+$("#moreBtn").onclick = (e) => showPop($("#morePop"), e.currentTarget);
 // Agent: Claude Code or Codex. Each keeps its own model and permission choice.
 const PERMS = {
   claude: [{ id: "acceptEdits", label: "Güvenli: izin listesi" }, { id: "auto", label: "Otomatik: auto mode" }],
@@ -419,7 +419,7 @@ async function loadDisk() {
   };
 }
 setInterval(loadDisk, 5 * 60 * 1000);
-$("#diskWarn").onclick = (e) => { showPop($("#morePop"), e.currentTarget); loadDisk(); };
+$("#diskWarn").onclick = () => openSettings("storage");
 $("#cleanDays").onchange = async (e) => {
   try { await post("/api/settings", { clean_days: +e.target.value }); toast(CLEAN_LABEL(+e.target.value)); loadDisk(); }
   catch (err) { toast(err.message); }
@@ -1175,6 +1175,8 @@ async function loadStatus() {
   try {
     const st = await api("/api/status");
     S.release = !!st.release;
+    S.version = st.vlogkit;
+    $("#verLabel").textContent = `v${st.vlogkit}`;
     const ok = !!st.claude_version;
     const cx = (st.engines || []).find((x) => x.id === "codex");
     h.className = `health ${ok ? "good" : "bad"}`;
@@ -1317,7 +1319,9 @@ async function checkSetup(fresh = false) {
   const ready = setupDone(d);
   if (wasReady === null) wasReady = ready;
   drawWelcome(d, ready);
+  if (!$("#settings").hidden) drawSettingsSetup(d);
   drawModels();
+  pollSetup(d, ready);
   return d;
 }
 function stepState(x) {
@@ -1331,14 +1335,11 @@ function stepState(x) {
   if (t.status === "error") out.unshift(el("span", { class: "state bad", text: "Olmadı", title: t.error || "" }));
   return out;
 }
-function drawWelcome(d, ready) {
-  const box = $("#welcome");
-  if (box.hidden && (ready || sessionStorage.getItem("welcomeLater"))) return;
-  box.hidden = false;
-  $("#setupSteps").replaceChildren(...d.steps.map((x) => el("li", { class: `step-row${x.done ? " ok" : ""}` },
+function setupRows(d) {
+  const steps = d.steps.map((x) => el("li", { class: `step-row${x.done ? " ok" : ""}` },
     el("div", { class: "s-text" }, el("b", { text: x.label }), el("small", { text: x.detail })),
-    el("span", { class: "s-size", text: x.size }), el("div", { class: "s-act" }, ...stepState(x)))));
-  $("#welcomeAgents").replaceChildren(...Object.entries(AGENTS).map(([id, meta]) => {
+    el("span", { class: "s-size", text: x.size }), el("div", { class: "s-act" }, ...stepState(x))));
+  const agents = Object.entries(AGENTS).map(([id, meta]) => {
     const a = d.agents[id], task = d.tasks[`agent:${id}`];
     let state, act = null;
     if (task && task.status === "running") state = "Kuruluyor…";
@@ -1354,15 +1355,29 @@ function drawWelcome(d, ready) {
     return el("div", { class: `agent${a.ready ? " ok" : ""}` },
       el("div", {}, el("b", { text: meta.name }), el("small", { text: meta.plan })),
       el("span", { class: "state", text: state }), act);
-  }));
-  const running = d.steps.some((x) => x.task && x.task.status === "running") || Object.values(d.tasks).some((t) => t.status === "running");
+  });
+  return { steps, agents };
+}
+const setupBusy = (d) => d.steps.some((x) => x.task && x.task.status === "running") || Object.values(d.tasks).some((t) => t.status === "running");
+function drawWelcome(d, ready) {
+  const box = $("#welcome");
+  if (box.hidden && (ready || sessionStorage.getItem("welcomeLater"))) return;
+  box.hidden = false;
+  const { steps, agents } = setupRows(d);
+  $("#setupSteps").replaceChildren(...steps);
+  $("#welcomeAgents").replaceChildren(...agents);
   const canRun = d.steps.some((x) => !x.done && x.ready && !x.terminal && !(x.task && x.task.status === "running"));
   $("#setupAll").hidden = !canRun;
   $("#welcomeGo").hidden = !ready;
-  clearTimeout(welcomeTimer);
-  const agentReady = Object.values(d.agents).some((a) => a.ready);
-  if (!ready || running) welcomeTimer = setTimeout(() => { if (!$("#welcome").hidden) checkSetup(!agentReady); }, running ? 1500 : 3000);
   if (ready && wasReady === false) { wasReady = true; toast("Hazır: ilk işini yazabilirsin"); }
+}
+// one poll for both places that show the setup (the welcome screen, Ayarlar > Kurulum)
+function pollSetup(d, ready) {
+  clearTimeout(welcomeTimer);
+  const shown = !$("#welcome").hidden || (!$("#settings").hidden && S.pane === "setup");
+  if (!shown) return;
+  const busy = setupBusy(d), agentReady = Object.values(d.agents).some((a) => a.ready);
+  if (!ready || busy) welcomeTimer = setTimeout(() => checkSetup(!agentReady), busy ? 1500 : 3000);
 }
 async function stepAction(id) {
   try {
@@ -1423,6 +1438,7 @@ async function checkUpdate(force = false) {
   let u;
   try { u = await api(`/api/update${force ? "?force=1" : ""}`); } catch { return; }
   S.update = u;
+  if (!$("#settings").hidden) drawAbout();
   const b = $("#updateBtn");
   b.hidden = !u.available && !(u.upgrading && u.upgrading.status);
   b.textContent = u.upgrading && u.upgrading.status === "running" ? "Güncelleniyor…" : `Güncelleme var · ${u.latest}`;
@@ -1435,10 +1451,10 @@ $("#updateBtn").onclick = (e) => {
   $("#updateGo").disabled = false;
   showPop($("#updatePop"), e.currentTarget);
 };
-$("#updateGo").onclick = async () => {
+async function runUpdate(btn, stepEl) {
   const u = S.update || {};
   try { await post("/api/update", { version: u.latest }); } catch (e) { return toast(e.message); }
-  $("#updateGo").disabled = true;
+  btn.disabled = true;
   const poll = async () => {
     try {
       // the restarted server has a new access token: the page reads it from "/" and reloads
@@ -1447,12 +1463,87 @@ $("#updateGo").onclick = async () => {
       if (m && m[1] !== TOKEN) return location.reload();
       const v = await api("/api/update");
       const g = v.upgrading || {};
-      if (g.status === "error") { $("#updateStep").textContent = `Olmadı: ${g.error}`; $("#updateGo").disabled = false; return; }
-      $("#updateStep").textContent = g.step || "Güncelleniyor…";
-    } catch { $("#updateStep").textContent = "Yeniden başlatılıyor…"; }
+      if (g.status === "error") { stepEl.textContent = `Olmadı: ${g.error}`; btn.disabled = false; return; }
+      stepEl.textContent = g.step || "Güncelleniyor…";
+    } catch { stepEl.textContent = "Yeniden başlatılıyor…"; }
     setTimeout(poll, 1200);
   };
   poll();
+}
+$("#updateGo").onclick = () => runUpdate($("#updateGo"), $("#updateStep"));
+
+/* ------------------------------------------------------------------ settings */
+// Ayarlar: installs (the setup steps and the agent), the local model, storage (history, build
+// intermediates), and the version with updates and removal. Opened from the bottom left.
+S.pane = "setup";
+function openSettings(pane = S.pane) {
+  closePop();
+  $("#settings").hidden = false;
+  showPane(pane);
+  checkSetup();
+  loadDisk();
+  drawAbout();
+}
+function closeSettings() { $("#settings").hidden = true; clearTimeout(welcomeTimer); }
+function showPane(pane) {
+  S.pane = pane;
+  for (const b of document.querySelectorAll(".settings-nav button")) b.classList.toggle("on", b.dataset.pane === pane);
+  for (const sec of document.querySelectorAll(".settings .pane")) sec.hidden = sec.dataset.pane !== pane;
+  if (pane === "setup" && S.setup) pollSetup(S.setup, setupDone(S.setup));
+}
+function drawSettingsSetup(d) {
+  const { steps, agents } = setupRows(d);
+  $("#setStepsList").replaceChildren(...steps);
+  $("#setAgents").replaceChildren(...agents);
+}
+function versionText() {
+  const u = S.update || {};
+  if (!S.release) return "Geliştirici kopyası";
+  if (u.available) return `Güncelleme var: ${u.latest}`;
+  return u.error ? "Güncelleme kontrol edilemedi" : "Güncel";
+}
+function drawAbout() {
+  $("#aboutVersion").textContent = S.version || "";
+  $("#setVersion").textContent = `Sürüm ${S.version || "?"} · ${versionText()}`;
+  $("#aboutUpdate").textContent = versionText();
+  const u = S.update || {};
+  $("#aboutUpdateBtn").hidden = !u.available;
+  $("#aboutUpdateBtn").textContent = `${u.latest} sürümüne güncelle`;
+  const devCopy = !S.release;
+  for (const b of document.querySelectorAll(".u-acts button")) b.disabled = devCopy;
+  $("#uninstallNote").textContent = devCopy
+    ? "Bu bir geliştirici kopyası (git ile yönetiliyor): buradan kaldırılmaz."
+    : "Videoların ve teslim dosyaların kalır; projelerin ve iş geçmişin önce yedeklenir.";
+}
+$("#settingsBtn").onclick = () => openSettings();
+$("#settingsClose").onclick = closeSettings;
+$("#settings").addEventListener("click", (e) => { if (e.target === e.currentTarget) closeSettings(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#settings").hidden) closeSettings(); });
+for (const b of document.querySelectorAll(".settings-nav button")) b.onclick = () => showPane(b.dataset.pane);
+$("#aboutUpdateBtn").onclick = () => runUpdate($("#aboutUpdateBtn"), $("#aboutUpdate"));
+// removal: the plan first (what goes, what stays, where the backup goes), then one confirmation
+const GBs = (n) => (n >= 1e9 ? `${(n / 1e9).toFixed(1)} GB` : `${Math.max(1, Math.round(n / 1e6))} MB`);
+for (const b of document.querySelectorAll(".u-acts button")) b.onclick = async () => {
+  const box = $("#uninstallPlan");
+  let p;
+  try { p = await api(`/api/uninstall?mode=${b.dataset.mode}`); } catch (e) { return toast(e.message); }
+  const total = p.remove.reduce((n, x) => n + (x.size || 0), 0);
+  box.hidden = false;
+  box.replaceChildren(
+    el("b", { text: b.dataset.mode === "all" ? "Uygulama ve kurulan paketler kaldırılacak" : "Uygulama kaldırılacak" }),
+    el("ul", { class: "u-list" }, p.remove.map((x) => el("li", {}, el("span", { text: x.label }), x.size ? el("small", { text: GBs(x.size) }) : ""))),
+    el("small", { class: "hint", text: `Toplam yaklaşık ${GBs(total)}. Kalanlar: ${p.keep.join("; ")}.` }),
+    el("small", { class: "hint", text: `Yedek: ${p.backup}` }),
+    el("div", { class: "u-confirm" },
+      el("button", { class: "pop-btn", type: "button", text: "Vazgeç", onclick: () => { box.hidden = true; } }),
+      el("button", { class: "pop-btn danger", type: "button", text: "Kaldır", onclick: async () => {
+        let r;
+        try { r = await post("/api/uninstall", { mode: b.dataset.mode }); } catch (e) { return toast(e.message); }
+        document.body.replaceChildren(el("div", { class: "bye" },
+          el("span", { class: "wordmark", text: "vlogkit" }),
+          el("p", { text: "vlogkit kaldırılıyor. Bu pencereyi kapatabilirsin." }),
+          el("small", { text: `Projelerin ve iş geçmişin: ${r.backup}` })));
+      } })));
 };
 
 async function boot() {
@@ -1468,6 +1559,6 @@ async function boot() {
   setInterval(() => refreshJobs().catch(() => {}), 4000);
   checkSetup();
   checkUpdate();
-  setInterval(() => checkUpdate(), 6 * 3600 * 1000);
+  setInterval(() => checkUpdate(), 3600 * 1000);  // an open studio sees a new version within the hour
 }
 boot();

@@ -388,3 +388,44 @@ code, pre, kbd { font-family: var(--mono); }
 .update-pop { width: min(380px, calc(100vw - 32px)); display: grid; gap: 8px; }
 .update-title { margin: 0; font-weight: 600; }
 .update-notes { max-height: 40vh; overflow: auto; font-size: 13px; }
+/* ---------------------------------------------------------------- settings */
+.settings-btn { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; color: var(--dim); font-size: 13px; padding: 4px 6px; border-radius: 8px; margin-right: auto; }
+.settings-btn:hover { color: var(--ink); background: var(--raise); }
+.ver { font: 500 11.5px var(--mono); color: var(--faint); }
+.settings { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 16px; background: color-mix(in srgb, var(--bg) 70%, transparent); backdrop-filter: blur(2px); }
+.settings-card { width: min(780px, 100%); height: min(620px, calc(100vh - 32px)); display: grid; grid-template-rows: auto minmax(0, 1fr); background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 16px 48px rgba(0, 0, 0, .25); overflow: hidden; }
+.settings-head { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.settings-ver { display: grid; margin-right: auto; }
+.settings-ver b { font-size: 14px; }
+.settings-ver small { color: var(--faint); font-size: 12px; }
+.settings-body { display: grid; grid-template-columns: 180px minmax(0, 1fr); min-height: 0; }
+.settings-nav { display: grid; align-content: start; gap: 2px; padding: 12px 8px; border-right: 1px solid var(--line); }
+.settings-nav button { text-align: left; border: 0; background: none; padding: 8px 10px; border-radius: 8px; font-size: 13.5px; color: var(--dim); }
+.settings-nav button:hover { color: var(--ink); background: var(--raise); }
+.settings-nav button.on { color: var(--ink); background: var(--raise); font-weight: 600; }
+.pane { overflow: auto; padding: 16px 18px 20px; display: grid; align-content: start; gap: 12px; }
+.pane .hint { margin: 0; color: var(--dim); font-size: 13px; }
+.pane .field { padding: 0; }
+.about { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; }
+.about-ver { display: grid; }
+.about-ver b { font-size: 15px; }
+.about-ver small { color: var(--faint); font-size: 12.5px; }
+.about .pop-btn { flex: none; padding: 7px 14px; }
+.links { margin: 0; font-size: 13px; }
+.links a { color: var(--accent-text); }
+.uninstall { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.u-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.u-acts .pop-btn { flex: none; padding: 7px 12px; }
+.u-acts .pop-btn[disabled] { opacity: .45; cursor: not-allowed; }
+.u-plan { display: grid; gap: 6px; padding: 12px 14px; border: 1px solid var(--bad); border-radius: 12px; }
+.u-list { margin: 0; padding-left: 18px; display: grid; gap: 3px; font-size: 13px; }
+.u-list li small { color: var(--faint); margin-left: 6px; font-family: var(--mono); }
+.u-confirm { display: flex; justify-content: flex-end; gap: 8px; }
+.u-confirm .pop-btn { flex: none; padding: 7px 14px; }
+.bye { height: 100vh; display: grid; place-content: center; justify-items: center; gap: 10px; text-align: center; color: var(--dim); }
+.bye .wordmark { font-size: 2.2rem; }
+@media (max-width: 640px) {
+  .settings-body { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  .settings-nav { display: flex; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+  .settings-nav button { white-space: nowrap; }
+}

@@ -1029,7 +1029,7 @@ class JobStore:
                         job,
                         {
                             "kind": "system",
-                            "text": f"Diskte {disk.gb(free)} kaldı: ⋯ menüsünde Ara dosyalar > "
+                            "text": f"Diskte {disk.gb(free)} kaldı: sol alttaki Ayarlar > Depolama > "
                             "Temizle eski derlemelerin ara dosyalarını siler.",
                         },
                     )

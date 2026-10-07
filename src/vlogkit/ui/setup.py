@@ -422,7 +422,7 @@ def remove_model(key: str) -> None:
     if tasks.get(f"model:{key}", {}).get("status") == "running":
         raise RuntimeError("model kuruluyor: bitmesini bekle")
     was = localvlm.chosen() == key
-    shutil.rmtree(localvlm.model_dir(c.repo), ignore_errors=True)
+    localvlm.remove_model_files(c.repo)
     if was:  # the next best installed one, or none
         nxt = next(
             (

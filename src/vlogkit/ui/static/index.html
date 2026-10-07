@@ -18,10 +18,11 @@
     <button class="new" id="newJob" type="button"><span aria-hidden="true">＋</span> Yeni iş</button>
     <nav class="history" id="history" aria-label="İşler"></nav>
     <div class="side-foot">
-      <span class="health" id="health" title="">●</span>
-      <button class="disk-warn" id="diskWarn" type="button" aria-haspopup="true" title="Ara dosyaları temizle" hidden></button>
       <button class="update-btn" id="updateBtn" type="button" aria-haspopup="true" hidden></button>
-      <a id="guideLink" href="#" target="_blank" rel="noopener">Prompt rehberi</a>
+      <button class="disk-warn" id="diskWarn" type="button" title="Ara dosyaları temizle" hidden></button>
+      <button class="settings-btn" id="settingsBtn" type="button"><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M6.9 1h2.2l.4 1.9c.4.1.8.3 1.2.5l1.6-1 1.5 1.5-1 1.6c.2.4.4.8.5 1.2l1.9.4v2.2l-1.9.4c-.1.4-.3.8-.5 1.2l1 1.6-1.5 1.5-1.6-1c-.4.2-.8.4-1.2.5L9.1 15H6.9l-.4-1.9c-.4-.1-.8-.3-1.2-.5l-1.6 1-1.5-1.5 1-1.6c-.2-.4-.4-.8-.5-1.2L1 9.1V6.9l1.9-.4c.1-.4.3-.8.5-1.2l-1-1.6 1.5-1.5 1.6 1c.4-.2.8-.4 1.2-.5zM8 5.6a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8z"/></svg>Ayarlar</button>
+      <span class="ver" id="verLabel"></span>
+      <span class="health" id="health" title="">●</span>
       <button class="icon-btn" id="quit" type="button" title="Stüdyoyu kapat">⏻</button>
     </div>
   </aside>
@@ -47,7 +48,7 @@
             <button class="tool" id="taskBtn" type="button" aria-haspopup="true">Görev</button>
             <button class="tool toggle" id="planBtn" type="button" aria-pressed="true" title="Derlemeden önce planı göstersin">Önce plan</button>
             <button class="tool" id="cutBtn" type="button" aria-haspopup="true" title="Kesim sertliği, altyazı/müzik/efekt, ince kesim notu: yeni işlere eklenir">Kurgu</button>
-            <button class="tool" id="moreBtn" type="button" aria-haspopup="true" title="Ayarlar">⋯</button>
+            <button class="tool" id="moreBtn" type="button" aria-haspopup="true" title="İş ayarları: ajan, model, efor, ek talimatlar">⋯</button>
             <label class="tool sel" id="effortTool" title="Çalışan işte de değişir: Claude bir sonraki adımda, Codex sonraki turda alır" hidden>Efor <select id="jobEffort" aria-label="Efor"></select></label>
           </div>
           <div class="send">
@@ -103,18 +104,59 @@
     <select id="effort"></select>
   </label>
   <div class="field">Ek talimatlar<div class="checks" id="addons"></div></div>
-  <label class="field">Geçmiş
-    <select id="retention"></select>
-    <small class="hint">Sabitlenen işler hep kalır. Silinen işin özeti video klasöründeki VLOGKIT-NOTLAR.md dosyasına yazılır.</small>
-  </label>
-  <div class="field">Yerel video modeli
-    <div class="models" id="models"></div>
-    <small class="hint" id="modelsHint">Ham çekimdeki hareketi izler (log --vlm, ask, face). Şart değil: kurulu değilse de her şey çalışır.</small>
-  </div>
-  <div class="field">Ara dosyalar
-    <select id="cleanDays" aria-label="Ara dosyalar"></select>
-    <small class="hint" id="diskInfo">Derlemenin base.mov gibi büyük ara dosyaları. Teslim videosu kalır; varyant yeniden derlenince geri gelir.</small>
-    <button class="pop-btn" id="cleanBtn" type="button" hidden></button>
+</div>
+<div class="settings" id="settings" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" hidden>
+  <div class="settings-card">
+    <header class="settings-head">
+      <span class="wordmark">vlogkit</span>
+      <div class="settings-ver"><b id="settingsTitle">Ayarlar</b><small id="setVersion"></small></div>
+      <button class="icon-btn" id="settingsClose" type="button" aria-label="Kapat" title="Kapat (Esc)">✕</button>
+    </header>
+    <div class="settings-body">
+      <nav class="settings-nav" aria-label="Ayar bölümleri">
+        <button type="button" data-pane="setup" class="on">Kurulum</button>
+        <button type="button" data-pane="model">Yerel model</button>
+        <button type="button" data-pane="storage">Depolama</button>
+        <button type="button" data-pane="about">Sürüm ve kaldırma</button>
+      </nav>
+      <section class="pane" data-pane="setup">
+        <p class="hint">vlogkit'in kullandığı araçlar ve yapay zekâ ajanı. Eksik olanı buradan kur.</p>
+        <ol class="setup" id="setStepsList"></ol>
+        <div class="agents-head"><b>Yapay zekâ ajanı</b><small>Aboneliğin hangisindeyse; biri yeter.</small></div>
+        <div class="agents" id="setAgents"></div>
+      </section>
+      <section class="pane" data-pane="model" hidden>
+        <p class="hint" id="modelsHint">Ham çekimdeki hareketi izler (log --vlm, ask, face). Şart değil: kurulu değilse de her şey çalışır.</p>
+        <div class="models" id="models"></div>
+      </section>
+      <section class="pane" data-pane="storage" hidden>
+        <label class="field">Geçmiş
+          <select id="retention"></select>
+          <small class="hint">Sabitlenen işler hep kalır. Silinen işin özeti video klasöründeki VLOGKIT-NOTLAR.md dosyasına yazılır.</small>
+        </label>
+        <div class="field">Ara dosyalar
+          <select id="cleanDays" aria-label="Ara dosyalar"></select>
+          <small class="hint" id="diskInfo">Derlemenin base.mov gibi büyük ara dosyaları. Teslim videosu kalır; varyant yeniden derlenince geri gelir.</small>
+          <button class="pop-btn" id="cleanBtn" type="button" hidden></button>
+        </div>
+      </section>
+      <section class="pane" data-pane="about" hidden>
+        <div class="about">
+          <div class="about-ver"><b>vlogkit <span id="aboutVersion"></span></b><small id="aboutUpdate"></small></div>
+          <button class="pop-btn primary" id="aboutUpdateBtn" type="button" hidden>Güncelle</button>
+        </div>
+        <p class="links"><a id="guideLink" href="#" target="_blank" rel="noopener">Prompt rehberi</a></p>
+        <div class="uninstall">
+          <b>Kaldır</b>
+          <p class="hint" id="uninstallNote">Videoların ve teslim dosyaların kalır; projelerin ve iş geçmişin önce yedeklenir.</p>
+          <div class="u-acts">
+            <button class="pop-btn" type="button" data-mode="app">Uygulamayı kaldır</button>
+            <button class="pop-btn" type="button" data-mode="all">Uygulamayı ve kurulan paketleri kaldır</button>
+          </div>
+          <div class="u-plan" id="uninstallPlan" hidden></div>
+        </div>
+      </section>
+    </div>
   </div>
 </div>
 <div class="pop update-pop" id="updatePop" hidden>
