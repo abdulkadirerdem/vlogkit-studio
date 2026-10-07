@@ -112,7 +112,13 @@ def create_shortcut(dest_dir: Path = DESKTOP, name: str = APP_NAME) -> Path:
     uv = shutil.which("uv") or "/opt/homebrew/bin/uv"
     app = dest_dir / f"{name}.app"
     if app.exists():
-        shutil.rmtree(app)
+        try:
+            shutil.rmtree(app)
+        except PermissionError as e:  # macOS protects an app another process made
+            raise RuntimeError(
+                f"{app.name} değiştirilemedi (macOS uygulama koruması): masaüstündekini çöpe at, "
+                "sonra tekrar `uv run vlogkit shortcut`"
+            ) from e
     # an installed copy runs exactly its release's lock (a rewritten uv.lock would look like a
     # hand edit to the updater)
     frozen = " --frozen" if (REPO_ROOT / ".release").exists() else ""

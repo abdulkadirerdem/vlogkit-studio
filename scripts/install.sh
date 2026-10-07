@@ -51,7 +51,8 @@ uv sync --frozen --quiet
 
 # 3. Masaüstü uygulaması ve ilk açılış
 step "Masaüstüne 'vlogkit Stüdyo' ekleniyor"
-uv run --frozen --quiet vlogkit shortcut >/dev/null
+uv run --frozen --quiet vlogkit shortcut >/dev/null \
+  || echo "  Masaüstündeki eski uygulama değiştirilemedi: onu çöpe at, sonra bu satırı tekrar çalıştır."
 uv run --frozen --quiet vlogkit open >/dev/null
 printf '\n\033[32mvlogkit Stüdyo kuruldu ve tarayıcıda açıldı.\033[0m Kalan parçaları oradaki kurulum ekranından kur.\n'
 printf 'Sonraki seferlerde masaüstündeki "vlogkit Stüdyo"ya çift tıkla. Videolarını %s içine koy.\n' "$ROOT"

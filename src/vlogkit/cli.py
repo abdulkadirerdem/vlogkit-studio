@@ -1174,7 +1174,11 @@ def shortcut(
     """Masaüstüne çift tıkla açılan 'vlogkit Stüdyo' uygulaması (macOS) oluştur."""
     from vlogkit.ui.launcher import DESKTOP, create_shortcut
 
-    typer.echo(f"✅ {create_shortcut(dest or DESKTOP)}")
+    try:
+        typer.echo(f"✅ {create_shortcut(dest or DESKTOP)}")
+    except RuntimeError as e:
+        typer.echo(f"✗ {e}", err=True)
+        raise typer.Exit(1) from e
 
 
 @assets_app.command("list")

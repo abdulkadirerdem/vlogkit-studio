@@ -1,6 +1,6 @@
 [project]
 name = "vlogkit"
-version = "0.14.1"
+version = "0.14.2"
 description = "Vlog kurgu araç setimiz: analiz, altyazı/grafik, ses ve Shorts/uzun video export'u (ffmpeg + Pillow)."
 readme = "README.md"
 license = "LicenseRef-PolyForm-Noncommercial-1.0.0"

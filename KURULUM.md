@@ -56,6 +56,7 @@ Yeni sürüm çıkınca Stüdyo'nun sol altında **Güncelleme var** yazar. Tık
 
 - **Stüdyo açılmıyor:** Terminal'de `cd ~/yt-vlogs/vlogkit && uv run vlogkit open`. Günlük: `~/yt-vlogs/vlogkit/build/ui/server.log`.
 - **Neyin eksik olduğunu gör:** `cd ~/yt-vlogs/vlogkit && uv run vlogkit doctor`.
+- **Masaüstü uygulaması eski ikonla duruyor ya da yenilenemedi:** macOS onu korur; çöpe at ve kurulum satırını tekrar çalıştır.
 - **Bir adım yarıda kaldı:** Kurulum ekranında aynı düğmeye tekrar bas; ilk satır için kurulum komutunu tekrar çalıştırmak da güvenli.
 - **Disk doluyor:** Ayarlar (⋯) > **Ara dosyalar** eski derlemelerin büyük ara dosyalarını siler; teslim videoların kalır.
 

@@ -2,6 +2,11 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Sürümleme: [SemVer](https://semver.org/).
 
+## [0.14.2] - 2026-10-07
+
+### Düzeltildi
+- **Masaüstü uygulaması yenilenemeyince kurulum duruyordu.** macOS, başka bir işlemin oluşturduğu uygulamayı değiştirmeye izin vermiyor (uygulama koruması); kurulum satırı tekrar çalıştırılınca kısayol adımı hata verip kurulumu durduruyordu. Artık açık bir mesaj verir ("çöpe at, sonra tekrar") ve kurulum sürer.
+
 ## [0.14.1] - 2026-10-07
 
 ### Değişti
