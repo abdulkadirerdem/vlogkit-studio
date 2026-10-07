@@ -40,13 +40,13 @@ Stüdyo ilk açıldığında kurulum ekranı çıkar. Her satırda ne olduğu ve
 
 ## İsteğe bağlı: yerel video modeli
 
-Sol alttaki **Ayarlar** > **Yerel model**. Ham çekimi parça parça izleyip ajanın doğru anı bulmasına yardım eder; kurulu olmasa da her şey çalışır. Ekran Mac'inin belleğine hangisinin uyduğunu gösterir:
+Sol alttaki **Ayarlar** > **Yerel model**. Ham çekimi parça parça izleyip ajanın doğru anı bulmasına yardım eder; kurulu olmasa da her şey çalışır. Mac'inin belleğine uymayan model kurulamaz; uygun olanın yanında **önerilen** yazar:
 
-| Model | Disk | Bellek |
+| Model | Disk | En az bellek |
 |---|---|---|
 | Qwen3.5 2B | ~2,4 GB | 8 GB |
 | Qwen3.5 4B | ~3,7 GB | 16 GB |
-| Qwen3.5 9B | ~6,6 GB | 16 GB (24 GB rahat) |
+| Qwen3.5 9B | ~6,6 GB | 16 GB (24 GB'tan önerilen) |
 
 ## Güncellemeler
 

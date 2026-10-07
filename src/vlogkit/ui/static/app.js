@@ -1418,13 +1418,15 @@ function drawModels() {
       if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Emin misin?"; return; }
       modelAction(c.id, "remove");
     } });
-    else extra = el("button", { class: "m-act", type: "button", text: "Kur", title: c.fits ? "" : `Bu Mac'in belleği (${m.memory_gb} GB) bu model için az`,
+    else if (c.blocked) extra = el("span", { class: "m-no", text: "Kurulamaz" });
+    else extra = el("button", { class: "m-act", type: "button", text: "Kur",
       onclick: (e) => { e.preventDefault(); modelAction(c.id, "install"); } });
-    const sub = `${c.size_gb} GB · ${c.note}${c.fits ? "" : " · bu Mac için ağır"}${t && t.status === "error" ? ` · hata: ${t.error}` : ""}`;
+    const sub = [c.recommended && "önerilen", `${c.size_gb} GB`, c.note, c.blocked,
+      t && t.status === "error" && `hata: ${t.error}`].filter(Boolean).join(" · ");
     rows.push(mk(c.id, c.label, sub, c.installed, c.selected, extra));
   }
   box.replaceChildren(...rows);
-  $("#modelsHint").textContent = `Bu Mac: ${m.memory_gb} GB bellek. Ham çekimdeki hareketi izler (log --vlm, ask, face). Şart değil: kurulu değilse de her şey çalışır.`;
+  $("#modelsHint").textContent = `${m.memory_gb ? `Bu Mac: ${m.memory_gb} GB bellek; uymayan model kurulamaz. ` : ""}Ham çekimdeki hareketi izler (log --vlm, ask, face). Şart değil: kurulu değilse de her şey çalışır.`;
   clearTimeout(modelTimer);
   if (busy) modelTimer = setTimeout(() => checkSetup(), 1500);
 }

@@ -47,7 +47,7 @@ Videoların bilgisayarından çıkmaz: aboneliğindeki yapay zekâya yalnız yaz
 | Claude Code ya da Codex | kurguyu yapan ajan | ~0,2 GB | Kurulum ekranı |
 | **Toplam** | | **~5,5 GB** | (geliştirici araçları varsa ~3,5 GB) |
 
-İsteğe bağlı **yerel video modeli** (ham çekimi parça parça izler; Ayarlar > Yerel model): Qwen3.5 2B ~2,4 GB, 4B ~3,7 GB, 9B ~6,6 GB.
+İsteğe bağlı **yerel video modeli** (ham çekimi parça parça izler; Ayarlar > Yerel model): Qwen3.5 2B ~2,4 GB, 4B ~3,7 GB, 9B ~6,6 GB. Mac'inin belleğine uymayan kurulamaz; uygun olanın yanında "önerilen" yazar.
 
 **Çalışırken:** Yapay zekâ bulutta, aboneliğinle çalışır; bilgisayarını yoran kısım video derlemesidir. Derleme sırasında işlemci ve ekran kartı tam yükte çalışır ve büyük ara dosyalar yazılır (4K'da 4 dakikalık bir video için ~30 GB). Ayarlar > **Depolama** eskilerini siler. Bellek: Stüdyo ~0,2 GB, konuşma tanıma ~2 GB, yerel model 3-10 GB (boyutuna göre).
 

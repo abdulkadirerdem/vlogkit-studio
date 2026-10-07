@@ -12,7 +12,8 @@ wheels/
 build/
 
 # Third-party media: fetched with `vlogkit assets fetch` (see assets/manifest.toml)
-assets/library/
+# no trailing slash: a worktree links it to the main checkout (a symlink is a file to git)
+/assets/library
 
 # Never commit footage / renders
 *.mp4

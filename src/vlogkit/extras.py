@@ -103,23 +103,25 @@ def install(name: str) -> str:
 
 
 def _install_vlm(uv: str) -> str:
-    """mlx-vlm in its own tool environment, then the model weights (~6 GB) into the HF cache."""
+    """mlx-vlm in its own tool environment, then the model weights into the HF cache: the pick,
+    else the biggest one this Mac runs comfortably."""
     from vlogkit.analysis import localvlm
 
     if platform.system() != "Darwin" or platform.machine() != "arm64":
         raise RuntimeError("yerel video modeli (MLX) sadece Apple silicon Mac'te çalışır")
+    repo = localvlm.current() or localvlm.CHOICES[localvlm.recommended() or "qwen3.5-9b"].repo
+    key = next((k for k, c in localvlm.CHOICES.items() if c.repo == repo), None)
+    if key and (why := localvlm.unfit(key)):
+        raise RuntimeError(f"{localvlm.CHOICES[key].label} bu Mac'te çalışmaz: {why}")
     if not localvlm.tool_python():
         subprocess.run([uv, "tool", "install", "mlx-vlm"], check=True)
     py = localvlm.tool_python()
     if not py:
         raise RuntimeError("mlx-vlm kuruldu ama python'u bulunamadı")
-    repo = localvlm.current() or localvlm.CHOICES["qwen3.5-9b"].repo
     if not localvlm.model_cached(repo):
         subprocess.run(download_cmd(py, repo), check=True)
-    if not localvlm.chosen():  # asked for a local model: use this one (also after "Yok")
-        key = next((k for k, c in localvlm.CHOICES.items() if c.repo == repo), None)
-        if key:
-            localvlm.choose(key)
+    if key and not localvlm.chosen():  # asked for a local model: use this one (also after "Yok")
+        localvlm.choose(key)
     found = find("vlm")
     if not found:
         raise RuntimeError("model indirilemedi")

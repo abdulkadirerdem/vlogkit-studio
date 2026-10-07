@@ -21,22 +21,16 @@ import threading
 import time
 from pathlib import Path
 
+from vlogkit import disk
 from vlogkit.config import tools
 
 CLAUDE_INSTALL = "set -o pipefail; curl -fsSL https://claude.ai/install.sh | bash"  # offline: fails
 AUTH_TTL = 30.0  # s: signed-in answers are reused this long (the screen polls)
+MODEL_SPARE = 5e9  # bytes left free after a model download (and the engine on the first one)
 
 _lock = threading.Lock()
 tasks: dict[str, dict] = {}  # name -> {"status": running|done|error, "log": str, "progress": float}
 _auth_cache: dict[str, tuple[float, dict]] = {}
-
-
-def memory_gb() -> int:
-    try:
-        r = subprocess.run(["sysctl", "-n", "hw.memsize"], capture_output=True, text=True)
-        return round(int(r.stdout.strip()) / 2**30)
-    except (OSError, ValueError):
-        return 0
 
 
 def _brew() -> str | None:
@@ -350,14 +344,36 @@ def _dir_size(path: Path) -> int:
     return total
 
 
+def blocked(key: str, mem: int | None = None) -> str | None:
+    """Why this Mac cannot take the model: too little memory, or too little disk for the
+    download plus room left for macOS and the builds. None = it can be installed."""
+    from vlogkit.analysis import localvlm
+
+    c = localvlm.CHOICES[key]
+    if why := localvlm.unfit(key, mem):
+        return why
+    need = c.size + MODEL_SPARE
+    if disk.free_bytes(localvlm.model_dir(c.repo)) < need:
+        return f"diskte {need / 1e9:.0f} GB boş yer ister"
+    return None
+
+
 def models() -> dict:
     from vlogkit.analysis import localvlm
 
-    mem = memory_gb()
+    mem = localvlm.memory_gb()
     pick = localvlm.chosen()
+    best = localvlm.recommended(mem)
     rows = []
     for key, c in localvlm.CHOICES.items():
         task = tasks.get(f"model:{key}", {})
+        installed = localvlm.model_cached(c.repo)
+        if task.get("status") == "running":
+            why = None  # its own download eats the disk
+        elif installed:  # from an older install: stays usable, the row says it is too big
+            why = localvlm.unfit(key, mem)
+        else:
+            why = blocked(key, mem)
         rows.append(
             {
                 "id": key,
@@ -365,8 +381,9 @@ def models() -> dict:
                 "note": c.note,
                 "size_gb": round(c.size / 1e9, 1),
                 "ram": c.ram,
-                "fits": not mem or mem >= c.ram,
-                "installed": localvlm.model_cached(c.repo),
+                "blocked": why,
+                "recommended": key == best,
+                "installed": installed,
                 "selected": key == pick,
                 "task": {k: task.get(k) for k in ("status", "progress", "error")} if task else None,
             }
@@ -385,6 +402,8 @@ def install_model(key: str) -> None:
     c = localvlm.CHOICES.get(key)
     if c is None:
         raise ValueError(f"bilinmeyen model: {key}")
+    if why := blocked(key):
+        raise RuntimeError(f"{c.label} bu Mac'e kurulmaz: {why}")
     if any(k.startswith("model:") and t.get("status") == "running" for k, t in tasks.items()):
         raise RuntimeError("bir model zaten kuruluyor: bitmesini bekle")
     uv = shutil.which("uv") or next(

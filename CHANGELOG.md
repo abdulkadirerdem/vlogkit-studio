@@ -2,6 +2,11 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Sürümleme: [SemVer](https://semver.org/).
 
+## [0.15.1] - 2026-10-07
+
+### Değişti
+- **Yerel model donanıma göre:** Mac'in belleğine uymayan model artık kurulamaz (2B 8 GB, 4B ve 9B 16 GB ister; önce yalnız "ağır" uyarısı vardı), diskte indirme + 5 GB boş yer yoksa da kurulmaz; satırda nedeni yazar. Rahat çalışan en büyük model "önerilen" diye işaretlenir (9B 24 GB'tan itibaren). Daha önce kurulmuş, belleğe uymayan model kullanılabilir kalır, satırı uyarır. `vlogkit extras install vlm` de aynı kuralla seçili ya da önerilen modeli kurar.
+
 ## [0.15.0] - 2026-10-07
 
 ### Eklendi

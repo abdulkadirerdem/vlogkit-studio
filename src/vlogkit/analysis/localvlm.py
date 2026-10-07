@@ -39,16 +39,17 @@ class Choice:
     repo: str  # Hugging Face id (MLX, 4-bit)
     label: str
     size: float  # bytes to download
-    ram: int  # GB of memory it needs to run with the clips
+    ram: int  # GB of memory it needs with the clips; below that the Mac swaps or kills it
+    comfy: int  # GB from which it runs beside the studio and a browser: the one to recommend
     note: str
 
 
 # The same model family in three sizes (same worker, same prompts); the studio installs and picks
 # one in its settings. Bigger watches better: the 2B sees what is there but confuses more.
 CHOICES = {
-    "qwen3.5-2b": Choice("mlx-community/Qwen3.5-2B-MLX-4bit", "Qwen3.5 2B", 1.75e9, 8, "8 GB Mac için; kaba"),
-    "qwen3.5-4b": Choice("mlx-community/Qwen3.5-4B-MLX-4bit", "Qwen3.5 4B", 3.06e9, 16, "dengeli"),
-    "qwen3.5-9b": Choice("mlx-community/Qwen3.5-9B-MLX-4bit", "Qwen3.5 9B", 5.98e9, 16, "en iyisi; 24 GB rahat"),
+    "qwen3.5-2b": Choice("mlx-community/Qwen3.5-2B-MLX-4bit", "Qwen3.5 2B", 1.75e9, 8, 8, "hafif; kaba"),
+    "qwen3.5-4b": Choice("mlx-community/Qwen3.5-4B-MLX-4bit", "Qwen3.5 4B", 3.06e9, 16, 16, "dengeli"),
+    "qwen3.5-9b": Choice("mlx-community/Qwen3.5-9B-MLX-4bit", "Qwen3.5 9B", 5.98e9, 16, 24, "en iyisi"),
 }  # fmt: skip
 SETTINGS = BUILD_DIR / "vlm.json"  # {"model": choice id | "none"}
 WORKER = REPO_ROOT / "tools" / "vlm" / "worker.py"
@@ -140,6 +141,28 @@ def model_cached(model: str | None = None) -> bool:
         (s / "config.json").exists() and any(s.glob("*.safetensors"))
         for s in (snaps.iterdir() if snaps.is_dir() else [])
     )
+
+
+def memory_gb() -> int:
+    """This Mac's memory in GB; 0 when it cannot be read (then no model is held back)."""
+    try:
+        r = subprocess.run(["sysctl", "-n", "hw.memsize"], capture_output=True, text=True)
+        return round(int(r.stdout.strip()) / 2**30)
+    except (OSError, ValueError):
+        return 0
+
+
+def unfit(key: str, mem: int | None = None) -> str | None:
+    """Why this Mac cannot run the choice (too little memory), or None."""
+    c = CHOICES[key]
+    mem = memory_gb() if mem is None else mem
+    return f"en az {c.ram} GB bellek ister" if mem and mem < c.ram else None
+
+
+def recommended(mem: int | None = None) -> str | None:
+    """The biggest choice this Mac runs comfortably (None when its memory is unknown)."""
+    mem = memory_gb() if mem is None else mem
+    return next((k for k in reversed(CHOICES) if mem >= CHOICES[k].comfy), None) if mem else None
 
 
 def pick() -> str | None:
