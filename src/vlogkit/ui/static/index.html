@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="vlogkit-token" content="{{TOKEN}}">
+<title>vlogkit Stüdyo</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231b1d1f'/%3E%3Cpath d='M16 18h9l7 20 7-20h9L37 48h-10z' fill='%23ffcf40'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Montserrat:wght@900&display=swap">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><span class="wordmark">vlogkit</span></div>
+    <button class="new" id="newJob" type="button"><span aria-hidden="true">＋</span> Yeni iş</button>
+    <nav class="history" id="history" aria-label="İşler"></nav>
+    <div class="side-foot">
+      <span class="health" id="health" title="">●</span>
+      <button class="disk-warn" id="diskWarn" type="button" aria-haspopup="true" title="Ara dosyaları temizle" hidden></button>
+      <button class="update-btn" id="updateBtn" type="button" aria-haspopup="true" hidden></button>
+      <a id="guideLink" href="#" target="_blank" rel="noopener">Prompt rehberi</a>
+      <button class="icon-btn" id="quit" type="button" title="Stüdyoyu kapat">⏻</button>
+    </div>
+  </aside>
+
+  <main class="main" id="main">
+    <aside class="lic" id="licPanel" aria-label="Lisanslar" hidden></aside>
+    <section class="thread" id="thread" aria-live="polite"></section>
+
+    <section class="dock" id="dock">
+      <h1 class="hello" id="hello">Ne kurgulayalım?</h1>
+
+      <div class="queue" id="queue" hidden></div>
+      <form class="composer" id="composer" autocomplete="off">
+        <div class="strip" id="strip" hidden></div>
+        <div class="atts" id="atts" hidden></div>
+        <textarea id="input" rows="3" placeholder="Ne yapılsın? Örn: bu videoyu Short'a çevir"></textarea>
+        <p class="fill" id="fill" hidden></p>
+        <div class="bar">
+          <button class="icon-tool" id="attachBtn" type="button" title="Dosya ekle: görsel, video, belge (sürükle-bırak ve ⌘V de olur)" aria-label="Dosya ekle"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M10.9 2.2a2.6 2.6 0 0 1 3.7 3.7L8 12.5a4 4 0 0 1-5.7-5.7l5.6-5.6a.7.7 0 0 1 1 1L3.3 7.8a2.6 2.6 0 0 0 3.7 3.7L13.6 5a1.2 1.2 0 0 0-1.7-1.7L5.8 9.4a.5.5 0 1 0 .7.7l5-5a.7.7 0 0 1 1 1l-5 5a1.9 1.9 0 0 1-2.7-2.7z"/></svg></button>
+          <input type="file" id="filePick" multiple hidden accept="image/*,video/*,.heic,.pdf,.txt,.md,.srt">
+          <div class="tools">
+            <button class="tool" id="videoBtn" type="button" aria-haspopup="true">Video</button>
+            <button class="tool" id="taskBtn" type="button" aria-haspopup="true">Görev</button>
+            <button class="tool toggle" id="planBtn" type="button" aria-pressed="true" title="Derlemeden önce planı göstersin">Önce plan</button>
+            <button class="tool" id="cutBtn" type="button" aria-haspopup="true" title="Kesim sertliği, altyazı/müzik/efekt, ince kesim notu: yeni işlere eklenir">Kurgu</button>
+            <button class="tool" id="moreBtn" type="button" aria-haspopup="true" title="Ayarlar">⋯</button>
+            <label class="tool sel" id="effortTool" title="Çalışan işte de değişir: Claude bir sonraki adımda, Codex sonraki turda alır" hidden>Efor <select id="jobEffort" aria-label="Efor"></select></label>
+          </div>
+          <div class="send">
+            <button class="stop" id="stopBtn" type="button" hidden>Durdur</button>
+            <button class="go" id="sendBtn" type="submit" title="Enter ile gönder · Shift+Enter yeni satır"><span id="sendLabel">Gönder</span><kbd>↵</kbd></button>
+          </div>
+        </div>
+      </form>
+
+      <div class="chips" id="chips"></div>
+    </section>
+  </main>
+</div>
+
+<!-- popovers -->
+<div class="pop" id="videoPop" hidden>
+  <div class="pop-row">
+    <button class="pop-btn" id="pickFile" type="button">Bilgisayardan seç…</button>
+    <button class="pop-btn" id="pickFolder" type="button">Klasör seç…</button>
+  </div>
+  <input id="pathInput" type="text" placeholder="ya da yolu yapıştır, Enter" spellcheck="false">
+  <div class="pop-list" id="library"></div>
+</div>
+<div class="pop" id="taskPop" hidden><div class="pop-list" id="tasks"></div></div>
+<div class="pop" id="cutPop" hidden>
+  <div class="field">Kaba kesim<div class="segs" id="cutLevels"></div></div>
+  <div class="field">Bitiş
+    <div class="checks row3">
+      <label for="cut-captions"><input type="checkbox" id="cut-captions">Altyazı</label>
+      <label for="cut-music"><input type="checkbox" id="cut-music">Müzik</label>
+      <label for="cut-sfx"><input type="checkbox" id="cut-sfx">Ses efekti</label>
+    </div>
+  </div>
+  <label class="field">İnce kesim notu
+    <input type="text" id="cutNote" placeholder="örn. kanca daha merak uyandırsın" spellcheck="false">
+    <small class="hint">Kaydedilir ve yeni işlere eklenir; Claude kesim içermeyen işte yok sayar. Kapattığın katman eklenmez, açık olan ancak gerekirse eklenir.</small>
+  </label>
+</div>
+<div class="pop" id="morePop" hidden>
+  <label class="field">Ajan
+    <select id="engine">
+      <option value="claude">Claude Code</option>
+      <option value="codex">Codex</option>
+    </select>
+  </label>
+  <label class="field">İzinler
+    <select id="permMode"></select>
+  </label>
+  <label class="field">Model
+    <select id="model"></select>
+  </label>
+  <label class="field">Efor
+    <select id="effort"></select>
+  </label>
+  <div class="field">Ek talimatlar<div class="checks" id="addons"></div></div>
+  <label class="field">Geçmiş
+    <select id="retention"></select>
+    <small class="hint">Sabitlenen işler hep kalır. Silinen işin özeti video klasöründeki VLOGKIT-NOTLAR.md dosyasına yazılır.</small>
+  </label>
+  <div class="field">Yerel video modeli
+    <div class="models" id="models"></div>
+    <small class="hint" id="modelsHint">Ham çekimdeki hareketi izler (log --vlm, ask, face). Şart değil: kurulu değilse de her şey çalışır.</small>
+  </div>
+  <div class="field">Ara dosyalar
+    <select id="cleanDays" aria-label="Ara dosyalar"></select>
+    <small class="hint" id="diskInfo">Derlemenin base.mov gibi büyük ara dosyaları. Teslim videosu kalır; varyant yeniden derlenince geri gelir.</small>
+    <button class="pop-btn" id="cleanBtn" type="button" hidden></button>
+  </div>
+</div>
+<div class="pop update-pop" id="updatePop" hidden>
+  <p class="update-title" id="updateTitle"></p>
+  <div class="update-notes md" id="updateNotes"></div>
+  <p class="hint" id="updateStep"></p>
+  <div class="pop-row"><button class="pop-btn primary" id="updateGo" type="button">Güncelle</button></div>
+</div>
+<div class="welcome" id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle" hidden>
+  <div class="welcome-card">
+    <h2 id="welcomeTitle">vlogkit'e hoş geldin</h2>
+    <p class="hint">Kurguyu bir yapay zekâ ajanı yapar. Aboneliğin hangisindeyse onu kur ve giriş yap; biri yeter.</p>
+    <div class="agents" id="welcomeAgents"></div>
+    <div class="basics" id="welcomeBasics" hidden></div>
+    <div class="welcome-acts">
+      <button class="pop-btn" id="welcomeLater" type="button">Şimdilik geç</button>
+      <button class="pop-btn primary" id="welcomeGo" type="button" hidden>Başla</button>
+    </div>
+  </div>
+</div>
+<div class="pop confirm" id="confirmPop" role="dialog" aria-labelledby="confirmText" hidden>
+  <p id="confirmText"></p>
+  <small class="hint">Sohbet gider; özeti video klasöründeki VLOGKIT-NOTLAR.md dosyasında kalır.</small>
+  <div class="pop-row">
+    <button class="pop-btn" id="confirmNo" type="button">Vazgeç</button>
+    <button class="pop-btn danger" id="confirmYes" type="button">Sil</button>
+  </div>
+</div>
+<div class="drop" id="drop" hidden><div>Videoyu ya da klasörü bırak</div></div>
+<div class="lightbox" id="lightbox" hidden><img id="lightImg" alt=""><span class="hint">Görsele tıkla: tam boyut · dışarı tıkla ya da Esc: kapat</span></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

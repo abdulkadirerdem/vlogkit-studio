@@ -1,0 +1,465 @@
+# Third-party media used in edits. Files live in assets/library/ (git-ignored):
+#   uv run vlogkit assets fetch        -> downloads anything missing
+# Only add files whose license allows commercial use in monetised videos.
+# Licenses: CC0-1.0 (freesound), Pixabay Content License, Pexels License.
+
+[[asset]]
+id = "vine_boom_drama_boom"
+kind = "sfx"
+file = "sfx/vine_boom_drama_boom_fs802074.mp3"
+url = "https://cdn.freesound.org/previews/802/802074_15956618-hq.mp3"
+page = "https://freesound.org/people/modusmogulus/sounds/802074/"
+license = "CC0-1.0"
+author = "modusmogulus"
+attribution = false
+description = "Vine-boom-style drama hit (glove on a drawer)"
+
+[[asset]]
+id = "vine_boom"
+kind = "sfx"
+file = "sfx/vine_boom_pixabay_392646.mp3"
+url = "https://cdn.pixabay.com/audio/2025/08/29/audio_437b300d21.mp3"
+page = "https://pixabay.com/sound-effects/film-special-effects-vine-boom-392646/"
+license = "Pixabay Content License"
+author = "Bithuh"
+attribution = false
+description = "\"VINE BOOM\" (closest to the real meme)"
+note = "provenance caveat: it may be a re-upload of the viral sound. Prefer the fs802074 or 414572 file if you want zero doubt"
+
+[[asset]]
+id = "cinematic_boom"
+kind = "sfx"
+file = "sfx/cinematic_boom_pixabay_414572.mp3"
+url = "https://cdn.pixabay.com/audio/2025/10/10/audio_4146617901.mp3"
+page = "https://pixabay.com/sound-effects/film-special-effects-cinematic-boom-01-414572/"
+license = "Pixabay Content License"
+author = "DRAGON-STUDIO"
+attribution = false
+description = "Cinematic boom (original, trailer-style)"
+
+[[asset]]
+id = "bass_impact_boom"
+kind = "sfx"
+file = "sfx/bass_impact_boom_fs856795.mp3"
+url = "https://cdn.freesound.org/previews/856/856795_271153-hq.mp3"
+page = "https://freesound.org/people/_earthbound_/sounds/856795/"
+license = "CC0-1.0"
+author = "_earthbound_"
+attribution = false
+description = "Deep meme bass impact / rumble (synthesized)"
+
+[[asset]]
+id = "bruh"
+kind = "sfx"
+file = "sfx/bruh_fs534387.mp3"
+url = "https://cdn.freesound.org/previews/534/534387_11868930-hq.mp3"
+page = "https://freesound.org/people/Autellaem/sounds/534387/"
+license = "CC0-1.0"
+author = "Autellaem"
+attribution = false
+description = "\"Bruh\" voice"
+
+[[asset]]
+id = "record_scratch"
+kind = "sfx"
+file = "sfx/record_scratch_fs71853.mp3"
+url = "https://cdn.freesound.org/previews/71/71853_1062668-hq.mp3"
+page = "https://freesound.org/people/ludvique/sounds/71853/"
+license = "CC0-1.0"
+author = "ludvique"
+attribution = false
+description = "Vinyl record scratch"
+
+[[asset]]
+id = "anime_wow_girl"
+kind = "sfx"
+file = "sfx/anime_wow_girl_fs658569.mp3"
+url = "https://cdn.freesound.org/previews/658/658569_13567167-hq.mp3"
+page = "https://freesound.org/people/DarkNightPrincess/sounds/658569/"
+license = "CC0-1.0"
+author = "DarkNightPrincess"
+attribution = false
+description = "Cute anime-girl \"Wow\" (self-voiced)"
+
+[[asset]]
+id = "wow_male"
+kind = "sfx"
+file = "sfx/wow_male_fs398933.mp3"
+url = "https://cdn.freesound.org/previews/398/398933_909016-hq.mp3"
+page = "https://freesound.org/people/ahab2000/sounds/398933/"
+license = "CC0-1.0"
+author = "ahab2000"
+attribution = false
+description = "Male \"Wow\" (self-voiced)"
+
+[[asset]]
+id = "crickets"
+kind = "sfx"
+file = "sfx/crickets_fs129678.mp3"
+url = "https://cdn.freesound.org/previews/129/129678_2362707-hq.mp3"
+page = "https://freesound.org/people/FreethinkerAnon/sounds/129678/"
+license = "CC0-1.0"
+author = "FreethinkerAnon"
+attribution = false
+description = "Crickets chirping (awkward silence)"
+
+[[asset]]
+id = "sad_trombone"
+kind = "sfx"
+file = "sfx/sad_trombone_fs175409.mp3"
+url = "https://cdn.freesound.org/previews/175/175409_1326576-hq.mp3"
+page = "https://freesound.org/people/kirbydx/sounds/175409/"
+license = "CC0-1.0"
+author = "kirbydx"
+attribution = false
+description = "\"Wah wah\" sad trombone (played by the uploader)"
+
+[[asset]]
+id = "sad_violin_hearts_and_flowers"
+kind = "sfx"
+file = "sfx/sad_violin_hearts_and_flowers_fs234311.mp3"
+url = "https://cdn.freesound.org/previews/234/234311_4232887-hq.mp3"
+page = "https://freesound.org/people/andyssoundbox/sounds/234311/"
+license = "CC0-1.0"
+author = "andyssoundbox"
+attribution = false
+description = "Sad violin, \"Hearts and Flowers\" (public-domain 1893 tune, own performance)"
+
+[[asset]]
+id = "airhorn_dj"
+kind = "sfx"
+file = "sfx/airhorn_dj_fs528807.mp3"
+url = "https://cdn.freesound.org/previews/528/528807_3482490-hq.mp3"
+page = "https://freesound.org/people/pfranzen/sounds/528807/"
+license = "CC0-1.0"
+author = "pfranzen"
+attribution = false
+description = "DJ airhorn \"bwa-bwa-BAM\""
+note = "edit of CC0 freesound #414208"
+
+[[asset]]
+id = "error_computer"
+kind = "sfx"
+file = "sfx/error_computer_fs135125.mp3"
+url = "https://cdn.freesound.org/previews/135/135125_2337290-hq.mp3"
+page = "https://freesound.org/people/ecfike/sounds/135125/"
+license = "CC0-1.0"
+author = "ecfike"
+attribution = false
+description = "Short computer error blip (Windows-like, original)"
+
+[[asset]]
+id = "error_buzzer_wrong"
+kind = "sfx"
+file = "sfx/error_buzzer_wrong_fs493163.mp3"
+url = "https://cdn.freesound.org/previews/493/493163_9159316-hq.mp3"
+page = "https://freesound.org/people/Breviceps/sounds/493163/"
+license = "CC0-1.0"
+author = "Breviceps"
+attribution = false
+description = "Wrong-answer / error buzzers"
+
+[[asset]]
+id = "dog_bark_small"
+kind = "sfx"
+file = "sfx/dog_bark_small_fs163459.mp3"
+url = "https://cdn.freesound.org/previews/163/163459_2965892-hq.mp3"
+page = "https://freesound.org/people/LittleBigSounds/sounds/163459/"
+license = "CC0-1.0"
+author = "LittleBigSounds"
+attribution = false
+description = "Small dog alert bark"
+
+[[asset]]
+id = "boing"
+kind = "sfx"
+file = "sfx/boing_fs540790.mp3"
+url = "https://cdn.freesound.org/previews/540/540790_11537497-hq.mp3"
+page = "https://freesound.org/people/magnuswaker/sounds/540790/"
+license = "CC0-1.0"
+author = "magnuswaker"
+attribution = false
+description = "Cartoon boing (jaw harp)"
+
+[[asset]]
+id = "cartoon_pop"
+kind = "sfx"
+file = "sfx/cartoon_pop_fs245646.mp3"
+url = "https://cdn.freesound.org/previews/245/245646_1038806-hq.mp3"
+page = "https://freesound.org/people/unfa/sounds/245646/"
+license = "CC0-1.0"
+author = "unfa"
+attribution = false
+description = "Cartoon mouth pop"
+
+[[asset]]
+id = "dun_dun_dun"
+kind = "sfx"
+file = "sfx/dun_dun_dun_fs215558.mp3"
+url = "https://cdn.freesound.org/previews/215/215558_4031177-hq.mp3"
+page = "https://freesound.org/people/divenorth/sounds/215558/"
+license = "CC0-1.0"
+author = "divenorth"
+attribution = false
+description = "\"Dun dun duuun\" dramatic sting"
+
+[[asset]]
+id = "alarm_clock_ring"
+kind = "sfx"
+file = "sfx/alarm_clock_ring_fs219244.mp3"
+url = "https://cdn.freesound.org/previews/219/219244_4082826-hq.mp3"
+page = "https://freesound.org/people/ZyryTSounds/sounds/219244/"
+license = "CC0-1.0"
+author = "ZyryTSounds"
+attribution = false
+description = "Mechanical alarm clock ringing"
+
+[[asset]]
+id = "snoring_male"
+kind = "sfx"
+file = "sfx/snoring_male_fs432997.mp3"
+url = "https://cdn.freesound.org/previews/432/432997_897016-hq.mp3"
+page = "https://freesound.org/people/mattyharm/sounds/432997/"
+license = "CC0-1.0"
+author = "mattyharm"
+attribution = false
+description = "Male snoring"
+
+[[asset]]
+id = "dog_eating_steel_bowl"
+kind = "stock"
+file = "stock/dog_eating_steel_bowl_pexels_8056266.mp4"
+url = "https://videos.pexels.com/video-files/8056266/8056266-hd_1920_1080_25fps.mp4"
+page = "https://www.pexels.com/video/dog-eating-on-the-bowl-8056266/"
+license = "Pexels License"
+author = "Kampus Production"
+attribution = false
+description = "Beagle puppy eating from a plain stainless-steel bowl (the \"köpek tası\") (1920x1080)"
+
+[[asset]]
+id = "dog_eating_enamel_bowl"
+kind = "stock"
+file = "stock/dog_eating_enamel_bowl_pexels_7516661.mp4"
+url = "https://videos.pexels.com/video-files/7516661/7516661-hd_1920_1080_30fps.mp4"
+page = "https://www.pexels.com/video/a-dog-drinking-water-from-a-dog-bowl-7516661/"
+license = "Pexels License"
+author = "RDNE Stock project"
+attribution = false
+description = "Dog eating from a speckled enamel metal bowl (studio) (1280x720 (Pexels' \"hd\" file is really 720p))"
+
+[[asset]]
+id = "man_yawning"
+kind = "stock"
+file = "stock/man_yawning_pexels_4588464.mp4"
+url = "https://videos.pexels.com/video-files/4588464/4588464-hd_1920_1080_25fps.mp4"
+page = "https://www.pexels.com/video/a-man-covering-his-mouth-while-yawning-4588464/"
+license = "Pexels License"
+author = "Ketut Subiyanto"
+attribution = false
+description = "Man yawning, dark background (1920x1080)"
+
+[[asset]]
+id = "alarm_clock_slammed"
+kind = "stock"
+file = "stock/alarm_clock_slammed_pexels_6976598.mp4"
+url = "https://videos.pexels.com/video-files/6976598/6976598-hd_1440_1080_25fps.mp4"
+page = "https://www.pexels.com/video/knocking-off-an-alarm-clock-6976598/"
+license = "Pexels License"
+author = "KoolShooters"
+attribution = false
+description = "Hand slams a yellow alarm clock on a nightstand (1440x1080)"
+
+[[asset]]
+id = "coffee_pour_slowmo"
+kind = "stock"
+file = "stock/coffee_pour_slowmo_pexels_19157857.mp4"
+url = "https://videos.pexels.com/video-files/19157857/19157857-hd_2048_1080_60fps.mp4"
+page = "https://www.pexels.com/video/fresh-coffee-being-poured-in-slow-motion-in-mug-19157857/"
+license = "Pexels License"
+author = "Joshua Woroniecki"
+attribution = false
+description = "Dramatic slow-motion coffee pour into a mug (2048x1080)"
+
+[[asset]]
+id = "man_sipping_stare"
+kind = "stock"
+file = "stock/man_sipping_stare_pexels_7326212.mp4"
+url = "https://videos.pexels.com/video-files/7326212/7326212-hd_1920_1080_24fps.mp4"
+page = "https://www.pexels.com/video/man-looking-at-the-camera-while-drinking-7326212/"
+license = "Pexels License"
+author = "PNW Production"
+attribution = false
+description = "Man sips from a mug while staring at the camera (1920x1080)"
+
+[[asset]]
+id = "dog_looking_around_confused"
+kind = "stock"
+file = "stock/dog_looking_around_confused_pixabay_251873.mp4"
+url = "https://cdn.pixabay.com/video/2025/01/10/251873_large.mp4"
+page = "https://pixabay.com/videos/dog-brown-german-shorthaired-pointer-251873/"
+license = "Pixabay Content License"
+author = "brixiv"
+attribution = false
+description = "Pointer dog in snow turning its head, looking around \"confused\" (1920x1080)"
+
+[[asset]]
+id = "orchestral_trap_bertsz"
+kind = "music"
+file = "music/orchestral_trap_bertsz_fs524313.mp3"
+url = "https://cdn.freesound.org/previews/524/524313_6714882-hq.mp3"
+page = "https://freesound.org/people/Bertsz/sounds/524313/"
+license = "CC0-1.0"
+author = "Bertsz"
+attribution = false
+description = "Orchestral trap, ~152 BPM, build-up then a drop at 14.4 s (46 s). Demo track for beat-synced Reels"
+
+# Rize · Soğanlı vlog (rize25-vlog01). Pixabay pages had no "Content ID Registered" badge and no
+# "AI generated" label on 2026-09-29; an author can still register later: keep the page URL and
+# dispute a claim citing the Pixabay Content License.
+[[asset]]
+id = "swiss_view_tvari"
+kind = "music"
+file = "music/swiss_view_tvari_pixabay163808.mp3"
+url = "https://cdn.pixabay.com/download/audio/2023/08/26/audio_aa2c471f37.mp3?filename=tvari-tvari-swiss-view-163808.mp3"
+page = "https://pixabay.com/music/beats-tvari-swiss-view-163808/"
+license = "Pixabay Content License"
+checked = "2026-09-29"  # Pixabay page had no "Content ID Registered" badge
+author = "TVARI"
+attribution = false
+description = "Chill electronic beat, ~137 BPM, quiet intro, drop at 56.5 s (3:51). Travel / mountains"
+
+[[asset]]
+id = "cinematic_adventure_playsound"
+kind = "music"
+file = "music/cinematic_adventure_playsound_pixabay11755.mp3"
+url = "https://cdn.pixabay.com/download/audio/2021/12/06/audio_ae1e1360de.mp3?filename=playsound-cinematic-adventure-11755.mp3"
+page = "https://pixabay.com/music/build-up-scenes-cinematic-adventure-11755/"
+license = "Pixabay Content License"
+checked = "2026-09-29"  # Pixabay page had no "Content ID Registered" badge
+author = "Playsound"
+attribution = false
+description = "Orchestral adventure build (drums, strings), ~112 BPM, final hit at 114.4 s (1:59)"
+
+[[asset]]
+id = "calm_atmospheric_guitar_universfield"
+kind = "music"
+file = "music/calm_atmospheric_guitar_universfield_pixabay143184.mp3"
+url = "https://cdn.pixabay.com/download/audio/2023/03/19/audio_5ebe33f03c.mp3?filename=universfield-calm-atmospheric-acoustic-guitar-143184.mp3"
+page = "https://pixabay.com/music/ambient-calm-atmospheric-acoustic-guitar-143184/"
+license = "Pixabay Content License"
+checked = "2026-09-29"  # Pixabay page had no "Content ID Registered" badge
+author = "Universfield"
+attribution = false
+description = "Calm atmospheric acoustic guitar, ~125 BPM, 12 s soft intro (1:40)"
+
+[[asset]]
+id = "suspense_building_delosound"
+kind = "music"
+file = "music/suspense_building_delosound_pixabay398328.mp3"
+url = "https://cdn.pixabay.com/download/audio/2025/09/02/audio_6f84d0c769.mp3?filename=delosound-suspense-tension-building-398328.mp3"
+page = "https://pixabay.com/music/suspense-suspense-tension-building-398328/"
+license = "Pixabay Content License"
+checked = "2026-09-29"  # Pixabay page had no "Content ID Registered" badge
+author = "DELOSound"
+attribution = false
+description = "Rhythmic suspense build, ~122 BPM (1:44)"
+
+[[asset]]
+id = "piano_strings_universfield"
+kind = "music"
+file = "music/piano_strings_universfield_pixabay558290.mp3"
+url = "https://cdn.pixabay.com/download/audio/2026/07/03/audio_f68bb5e158.mp3?filename=universfield-cinematic-piano-and-strings-558290.mp3"
+page = "https://pixabay.com/music/modern-classical-cinematic-piano-and-strings-558290/"
+license = "Pixabay Content License"
+checked = "2026-09-29"  # Pixabay page had no "Content ID Registered" badge
+author = "Universfield"
+attribution = false
+description = "Cinematic piano and strings, hopeful, ~117 BPM, winds down from 84.3 s to the end (1:37)"
+
+[[asset]]
+id = "ice_cube_blue"
+kind = "stock"
+file = "stock/ice_cube_blue_stocksnap_FFJ1LG6DXV.jpg"
+url = "https://cdn.stocksnap.io/img-thumbs/960w/FFJ1LG6DXV.jpg"
+page = "https://stocksnap.io/photo/ice-cube-FFJ1LG6DXV"
+license = "CC0-1.0"
+author = "Altered Reality"
+attribution = false
+description = "Blue-lit ice cube on black (960x640): screen-blend it, no mask needed (thumbnail frost accent)"
+
+# Rize EDIT_6 main theme (airport -> valley). Pixabay page: no "Content ID Registered" badge and no
+# "AI generated" label on 2026-10-06 (checked in a browser session). Demucs: no sung lyrics; a short
+# "hey" chant around 60-67 s may be there.
+[[asset]]
+id = "sunbathers_scandinavianz"
+kind = "music"
+file = "music/sunbathers_scandinavianz_pixabay7385.mp3"
+url = "https://cdn.pixabay.com/download/audio/2021/08/15/audio_c669a46dfd.mp3?filename=22842325-scandinavianz-sunbathers-7385.mp3"
+page = "https://pixabay.com/music/upbeat-scandinavianz-sunbathers-7385/"
+license = "Pixabay Content License"
+checked = "2026-10-06"  # Pixabay page had no "Content ID Registered" badge
+author = "Scandinavianz"
+attribution = false
+description = "Upbeat soft house, uplifting, hiking/adventure tags, ~105 BPM, breath at ~51 s then rebuilds at 55.4 s (1:51)"
+
+# Rize EDIT_7a/7b (2026-10-06). Pixabay pages checked in a browser session that day: no "Content ID
+# Registered" badge, no "AI generated" label (eleven other candidates had the badge and were dropped).
+[[asset]]
+id = "epic_cinematic_silentthunder"
+kind = "music"
+file = "music/epic_cinematic_silentthunder_pixabay603756.mp3"
+url = "https://cdn.pixabay.com/download/audio/2026/09/21/audio_ef80c867dd.mp3?filename=thesilentthunder-epic-cinematic-603756.mp3"
+page = "https://pixabay.com/music/adventure-epic-cinematic-603756/"
+license = "Pixabay Content License"
+checked = "2026-10-06"  # Pixabay page had no "Content ID Registered" badge
+author = "TheSilentThunder"
+attribution = false
+description = "Epic orchestral adventure, heroic/marching, uplifting; quiet intro, full from ~20.9 s to ~100 s (2:07)"
+
+[[asset]]
+id = "charming_phonk_freemusiclab"
+kind = "music"
+file = "music/charming_phonk_freemusiclab_pixabay513626.mp3"
+url = "https://cdn.pixabay.com/download/audio/2026/04/10/audio_4897785025.mp3?filename=freemusiclab-charming-phonk-i-free-background-music-i-free-music-lab-release-513626.mp3"
+page = "https://pixabay.com/music/beats-charming-phonk-i-free-background-music-i-free-music-lab-release-513626/"
+license = "Pixabay Content License"
+checked = "2026-10-06"  # Pixabay page had no "Content ID Registered" badge
+author = "FreeMusicLab"
+attribution = false
+description = "Phonk / synthwave beat, ~130 BPM, full energy from the first bar (4.23 s) (2:37)"
+
+[[asset]]
+id = "soaring_mountains_cinematicacoustica"
+kind = "music"
+file = "music/soaring_mountains_cinematicacoustica_pixabay411447.mp3"
+url = "https://cdn.pixabay.com/download/audio/2025/09/28/audio_2d070865a8.mp3?filename=cinematicacoustica-soaring-over-mountains-411447.mp3"
+page = "https://pixabay.com/music/mystery-soaring-over-mountains-411447/"
+license = "Pixabay Content License"
+checked = "2026-10-06"  # Pixabay page had no "Content ID Registered" badge
+author = "cinematicacoustica"
+attribution = false
+description = "Deep, slow ambient/orchestral (mystery, vast); very quiet start, first swell ~80.8 s (5:37)"
+
+[[asset]]
+id = "majestic_drone_331music"
+kind = "music"
+file = "music/majestic_drone_331music_pixabay584556.mp3"
+url = "https://cdn.pixabay.com/download/audio/2026/08/12/audio_a730db431b.mp3?filename=331music-majestic-nature-drone-landscape-584556.mp3"
+page = "https://pixabay.com/music/ambient-majestic-nature-drone-landscape-584556/"
+license = "Pixabay Content License"
+checked = "2026-10-06"  # Pixabay page had no "Content ID Registered" badge
+author = "331music"
+attribution = false
+description = "Bright ambient/piano vlog bed, uplifting, smooth, ~102 BPM (2:18)"
+
+[[asset]]
+id = "morning_garden_folk_acoustic"
+kind = "music"
+file = "music/morning_garden_folk_acoustic_pixabay15013.mp3"
+url = "https://cdn.pixabay.com/download/audio/2022/01/18/audio_ea75bab6d8.mp3?filename=folk_acoustic-morning-garden-acoustic-chill-15013.mp3"
+page = "https://pixabay.com/music/acoustic-group-morning-garden-acoustic-chill-15013/"
+license = "Pixabay Content License"
+checked = "2026-10-06"  # Pixabay page had no "Content ID Registered" badge
+author = "folk_acoustic"
+attribution = false
+description = "Warm acoustic guitar with a light beat, bright/hopeful, ~95 BPM (3:53)"

@@ -1,0 +1,44 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(~/yt-vlogs/**)",
+      "Bash(uv run *)",
+      "Bash(uv sync *)",
+      "Bash(/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg *)",
+      "Bash(/opt/homebrew/opt/ffmpeg-full/bin/ffprobe *)",
+      "Bash(ffmpeg *)",
+      "Bash(ffprobe *)",
+      "Bash(whisper-cli *)",
+      "Bash(aubio *)",
+      "Bash(ls *)",
+      "Bash(du *)",
+      "Bash(stat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(gh repo view *)"
+    ],
+    "deny": [
+      "Bash(sudo *)",
+      "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
+      "Bash(rm -r *)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease *)",
+      "Bash(git reset --hard *)",
+      "Bash(git clean *)",
+      "Bash(git checkout -- *)"
+    ]
+  }
+}

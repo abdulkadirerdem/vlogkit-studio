@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[oc]
+.venv/
+dist/
+wheels/
+*.egg-info
+.pytest_cache/
+.ruff_cache/
+
+# Build outputs and intermediates (ProRes, wav, frames...) -> reproducible with `vlogkit build`
+build/
+
+# Third-party media: fetched with `vlogkit assets fetch` (see assets/manifest.toml)
+assets/library/
+
+# Never commit footage / renders
+*.mp4
+*.mov
+*.wav
+*.mkv
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+
+# Browser automation snapshots
+.playwright-mcp/
+
+# Your own work: never part of vlogkit's updates
+/projects/*
+!/projects/_template/
+/recipes/
+/assets/vocab.txt
+/assets/manifest.local.toml
