@@ -198,7 +198,8 @@ class Rain:
 
 
 class SoftText:
-    """One quiet line (an end note on black): fades in while rising a little, fades out."""
+    """One quiet line (an end note on black): fades in while rising a little (`rise` px at 1x,
+    0 = a plain fade in place), fades out."""
 
     def __init__(
         self,
@@ -212,8 +213,9 @@ class SoftText:
         alpha: float = 0.9,
         fade_in: float = 1.2,
         fade_out: float = 0.6,
+        rise: float = 24.0,
     ):
-        self.text, self.t0, self.t1 = text, t0, t1
+        self.text, self.t0, self.t1, self.rise = text, t0, t1, rise
         s = round(size * layout.scale)
         lines = [render_line(x, s, weight, stroke=0, shadow=False, tracking=round(2 * layout.scale))
                  for x in text.split("\n")]  # fmt: skip
@@ -226,7 +228,7 @@ class SoftText:
             return
         p = clamp((t - self.t0) / self.fade_in)
         a = p * clamp((self.t1 - t) / self.fade_out) * self.alpha
-        rise = (1 - ease_out_cubic(p)) * 24 * self.scale
+        rise = (1 - ease_out_cubic(p)) * self.rise * self.scale
         put(canvas, self.img, self.cx, self.cy + rise, alpha=a)
 
 

@@ -655,13 +655,20 @@ def reel(
         str | None,
         typer.Option("--map", help="--bpm ile: ölçü başına enerji, ör. '....--##D###' (. - # D)"),
     ] = None,
-    first_beat: Annotated[float, typer.Option(help="--bpm ile: ilk ölçü başı (sn)")] = 0.0,
+    first_beat: Annotated[float | None, typer.Option(help="--bpm ile: ilk ölçü başı (sn)")] = None,
+    drop: Annotated[
+        float | None,
+        typer.Option(
+            help="--bpm ile: drop'un şarkıdaki saniyesi (uygulamada dinleyerek ya da senkron "
+            "sözlerden); ızgarayı ona oturtur, --map yoksa tipik bir harita kurar"
+        ),
+    ] = None,
     hook: Annotated[
         str | None, typer.Option(help="Kanca başlığı: ilk saniyelerde üstte tek satır vaat")
     ] = None,
 ) -> None:
     """Müziğe göre montaj (Reels/Shorts): kesmeler vuruşta, en iyi anlar drop'ta; müzikli + müziksiz çıktı."""
-    from vlogkit.analysis.music import analyze, grid
+    from vlogkit.analysis.music import analyze, anchored, grid
     from vlogkit.video import beatcut
 
     first = clips[0] if clips else None
@@ -669,10 +676,26 @@ def reel(
     out = (out_dir or (first.parent if first else Path.cwd())) / f"{name}.mp4"
     work = BUILD_DIR / "reels" / name
     tempo = None
+    if drop is not None and not bpm:
+        raise typer.BadParameter("--drop yalnız --bpm ile (şarkı dosyasında drop bulunur)")
     if bpm:
-        if not energy:
-            raise typer.BadParameter("--bpm ile --map de gerekli (ör. '....--##D###')")
-        tempo = {"bpm": bpm, "energy": energy, "first_downbeat": first_beat, "path": str(song)}
+        if drop is not None:
+            if first_beat is not None:
+                raise typer.BadParameter(
+                    "--drop ile --first-beat birlikte olmaz: ilk ölçüyü drop belirler"
+                )
+            try:
+                energy, first_beat = anchored(bpm, drop, energy, cover=length)
+            except ValueError as e:
+                raise typer.BadParameter(str(e)) from e
+        elif not energy:
+            raise typer.BadParameter("--bpm ile --drop ya da --map gerekli (ör. --drop 22.7)")
+        tempo = {
+            "bpm": bpm,
+            "energy": energy,
+            "first_downbeat": first_beat or 0.0,
+            "path": str(song),
+        }
     if plan_file:
         plan = beatcut.Plan.load(plan_file)
     else:

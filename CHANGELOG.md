@@ -2,6 +2,19 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Sürümleme: [SemVer](https://semver.org/).
 
+## [0.16.0] - 2026-10-09
+
+### Eklendi
+- **Trend şarkıya drop'tan kesim (`reel --bpm X --drop SN`):** Şarkı dosyası yokken drop saniyesi (uygulamada dinleyerek ya da senkron sözlerden) ızgarayı kurar: drop bir ölçü başıdır, önceki ölçüler şarkının başına doğru sayılır (`music.anchored`). Harita verilmezse drop'a kadar orta, drop'tan sonra 8 yüksek ölçü, sonra orta; `--map` verilirse ilk `D` drop'a oturur. `--first-beat` ile birlikte verilmez.
+- **`SoftText(rise=...)`:** Kapanış yazısının yükselme mesafesi ayarlanır; `rise=0` yazıyı kaydırmadan, yerinde belirtir (Stüdyo oturumu).
+
+### Değişti
+- **Yükleme notu üç platform için:** `reel` artık `<ad>.instagram.txt` yerine `<ad>.muzik.txt` yazar: başlangıç saniyesi, hizalanacak kesme, trend sesin kesit olabileceği uyarısı ve TikTok, Instagram Reels, YouTube Shorts notları (işletme hesabı sınırları; 60 sn'den uzun videoda Shorts uyarısı). Fonksiyon `beatcut.upload_note`; eski projeler için `instagram_note` adı da çalışır.
+- **Trend şarkı rehberi (`docs/shorts.md`):** Trendin nereden okunduğu (TikTok Creative Center, YouTube "Top Songs on Shorts", Instagram'da uygulama içi), tempo ve drop kaynakları, platform tablosu. Trend listesi ve BPM ajanın web aramasından gelir; ücretli servis, MCP ya da API anahtarı yok. CLAUDE.md'de yeni iş türü satırı, prompt rehberinde kalıp güncellendi.
+
+### Düzeltildi
+- **Shorts telif kuralı:** `docs/shorts.md` "24 Eylül 2026'dan beri 1-3 dk Short engellenmiyor" diyordu; resmi sayfalar (9 Ekim 2026) hâlâ telif iddialı 1 dk üstü Short'un engellendiğini söylüyor. Telifli şarkı eklenecek Short 60 sn altında kalmalı.
+
 ## [0.15.1] - 2026-10-07
 
 ### Değişti

@@ -30,7 +30,8 @@ Oturumun başında `uv run vlogkit doctor` ile neyin kurulu olduğuna bak (yerel
 | **Ham klasörden vlog / Short** | `log KLASÖR [--vlm]` → log.md'yi ve her klibin sayfalarını oku → hikâye adımları (beat) ve adımlara aday parçalar (`find KLASÖR <türkçe> <english>`) → emin olmadığın adayı `ask` ile doğrula → konuşmalı klipte `gaps` → plan tablosu (klip, zaman, desc) → `new` + `edit.py` → `build` → `review` (+ plan ve kesme sayfaları) → eleştirmen → `check` |
 | **Kurgulu videoyu cilala / Short'a çevir** | `analyze` + `sheet` → plan → proje → `build` → `review` → eleştirmen → `check` |
 | **Uzun videodan Short'lar** | `moments VIDEO` → moments.md + kare sayfaları → her adaya Kanca/Akış/Değer (1-5, gerekçeli; `docs/viral-edit.md`) → sıralama tablosu → kullanıcının seçtikleri → proje (9:16, `HookTitle`, altyazı stili) → `build` → `review` → eleştirmen |
-| **Müziğe göre Reels** | `beats ŞARKI` → kaynak ham ise `log` → `reel ... --dry-run` ile planı göster → onay → `reel` → `review` → `.instagram.txt`'yi rapora yaz |
+| **Müziğe göre Reels** | `beats ŞARKI` → kaynak ham ise `log` → `reel ... --dry-run` ile planı göster → onay → `reel` → `review` → `.muzik.txt`'yi rapora yaz |
+| **Trend şarkıya göre Short/Reels/TikTok** | Trendi ve BPM'i web'de ara (ücretli servis ya da MCP yok; kaynaklar `docs/shorts.md` "Trend şarkı") ya da kullanıcı söylesin → drop saniyesini LRCLIB senkron sözlerinden çıkar ya da kullanıcıya sor (uygulamadaki ses şarkının kesiti ya da hızlandırılmış sürümü olabilir) → `reel ŞARKI_ADI KLİP... --bpm X --drop SN --dry-run` → onay → `reel` → `review` → müziksiz dosya + `.muzik.txt` |
 | **Uzun video** | `analyze` (siyah bant, değişken kare hızı) → düşük çözünürlükse sor, sonra `upscale` → `grade.auto_lift` + `audio.level` → altyazı (`transcribe`, SRT) → bölüm kartları → `review` → `check` |
 | **Revizyon** | Sadece istenen değişiklik → `preview` ile değişen anlar → sadece gereken adımları `build -s ...` → `review` |
 | **Stüdyo yorumu / kelime kesimi** | `timeline PROJE -v VARYANT --at SN` ile o anı bul → edit.py'de değiştir → gereken adımları derle → `review` (aşağıda "Stüdyo'dan gelen satırlar") |
@@ -129,7 +130,7 @@ Kullanıcı çıktı videosunun altındaki zaman çizelgesinden mesaja satır ek
 - **Öneriler:** Bu iş için gerekmeyen ama sonraki editlerde işe yarayacak bir vlogkit geliştirmesi görürsen son mesajda tek satır "Öneri:" yaz, kendiliğinden yapma. (İşin kendisi için gereken eksikler 3. adımdaki gibi kütüphaneye eklenir.)
 - **Müzik (Reels / Shorts):**
   - Telifli bir şarkıyı indirme (YouTube, Spotify) ve videoya gömme.
-  - Kullanıcı kendi yasal kopyasını verirse şarkı sadece ritim rehberi olur: kurgu ona göre yapılır, teslim edilecek dosya müziksizdir. Şarkı Instagram ya da YouTube uygulamasının kendi kütüphanesinden eklenir; `.instagram.txt` başlangıç saniyesini söyler.
+  - Kullanıcı kendi yasal kopyasını verirse şarkı sadece ritim rehberi olur: kurgu ona göre yapılır, teslim edilecek dosya müziksizdir. Şarkı TikTok, Instagram ya da YouTube uygulamasının kendi kütüphanesinden eklenir; `.muzik.txt` başlangıç saniyesini ve platform notlarını söyler. Telifli şarkı eklenecek Short 60 sn'yi geçmesin (telif iddialı 1 dk üstü Short engellenir).
   - İşletme hesabı yalnız Meta Sound Collection kullanabilir.
   - Telifsiz müzik (CC0, Pixabay, lisanslı; manifest'e kayıtlı) videoya gömülebilir.
   - Yeni Pixabay parçası: "Authentic only" filtresiyle ara (yapay zekâ üretimini eler), sayfasında "Content ID Registered" rozeti olanı alma, sayfa adresini manifest'e `page` olarak yaz (sonradan talep gelirse Pixabay lisansıyla itiraz edilir). Vokal, mırıltı ya da vokal kesiti olabilir: kullanıcıya `music` ile dinlet.

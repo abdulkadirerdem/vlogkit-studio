@@ -1,6 +1,6 @@
 # vlogkit Prompt Rehberi
 
-<!-- meta: vlogkit=0.15.0; updated=2026-10-06; artifact=https://claude.ai/artifact/WQakjmnPnJ95AJ1kyQPdPW -->
+<!-- meta: vlogkit=0.16.0; updated=2026-10-09; artifact=https://claude.ai/artifact/WQakjmnPnJ95AJ1kyQPdPW -->
 
 Yeni bir vlog'u Claude'a vlogkit ile kurgulatırken kullanacağın hazır prompt'lar. Hepsi vlogkit'in bugünkü yeteneklerine göre yazıldı. vlogkit geliştikçe bu dosya da güncellenir: kaynak `docs/prompts.md`, sayfa `scripts/build_prompts_page.py` ile üretilip artifact olarak yayınlanır. Aynı dosya `vlogkit ui` arayüzündeki görev listesini de besler: arayüzde bir görevi seçince prompt buradan gelir ve seçtiğin video ile formdaki bağlam bilgileri doldurulur.
 
@@ -167,29 +167,29 @@ Claude ne yapar:
 - `vlogkit reel` ile kesmeleri vuruşlara oturtur. Drop'ta punch-in ve flaş olur, drop öncesinde tempo ikiye katlanır, cümle sonlarında fill yapılır.
 - Anları hareket, kalite ve hikâye sırasına göre seçer; gömülü yazılı anları OCR ile atlar.
 - İstersen drop'a hız rampası, bölüm geçişine whip pan ekler.
-- Teslim: şarkılı dosya (izlemek için), müziksiz dosya (yüklemek için) ve şarkıyı Instagram'da hangi saniyeden başlatacağını söyleyen not.
+- Teslim: şarkılı dosya (izlemek için), müziksiz dosya (yüklemek için) ve şarkıyı uygulamada (TikTok, Instagram, YouTube) hangi saniyeden başlatacağını söyleyen not.
 
-Şarkı: Telifli bir şarkıyı Claude indirmez. Satın aldığın dosyayı ver; kurgu ona göre yapılır, yüklerken aynı şarkıyı Instagram'ın kütüphanesinden eklersin (işletme hesabında sadece Meta Sound Collection). Telifsiz (CC0, lisanslı) müzik doğrudan gömülebilir; örnek: `assets/library/music/orchestral_trap_bertsz_fs524313.mp3`.
+Şarkı: Telifli bir şarkıyı Claude indirmez. Satın aldığın dosyayı ver; kurgu ona göre yapılır, yüklerken aynı şarkıyı platformun kütüphanesinden eklersin (işletme hesabında Instagram'da yalnız Meta Sound Collection, TikTok'ta yalnız Commercial Music Library). Telifsiz (CC0, lisanslı) müzik doğrudan gömülebilir; örnek: `assets/library/music/orchestral_trap_bertsz_fs524313.mp3`.
 
-#### Trend şarkılarla Reels varyantları
+#### Trend şarkılarla Reels, Shorts ve TikTok
 
-Ne zaman: Elinde şarkı dosyası yok. Instagram'da o an popüler şarkıların havasına ve ritmine göre birkaç alternatif Reels istiyorsun.
+Ne zaman: Elinde şarkı dosyası yok. O an popüler şarkıların havasına ve ritmine göre birkaç alternatif istiyorsun; şarkıyı yüklerken uygulamada sen ekleyeceksin.
 
 ```text
-~/yt-vlogs/<klasör> serüvenini incele ve Instagram Reels için <4-5> farklı alternatif üret.
-Instagram'da şu an trend olan şarkıları bul; her varyant bir şarkının havasına ve ritmine göre kurgulansın
-(sert drop, sinematik yükseliş, neşeli, karanlık/atmosferik, Türkçe trend gibi farklı tonlar).
+~/yt-vlogs/<klasör> serüvenini incele ve <Instagram Reels | YouTube Shorts | TikTok> için <4-5> farklı alternatif üret.
+Şu an trend olan şarkıları bul (ya da şunları kullan: <şarkı - sanatçı, drop 0:07>); her varyant bir şarkının
+havasına ve ritmine göre kurgulansın (sert drop, sinematik yükseliş, neşeli, karanlık/atmosferik, Türkçe trend gibi farklı tonlar).
 Onaylı versiyona dokunma, yeni proje/varyant aç. Soru sormadan sonuna kadar götür.
 ```
 
 Claude ne yapar:
-- Trend listelerini tarihleriyle araştırır.
-- Her şarkının BPM'ini ve bölüm zamanlarını çıkarır: senkron söz zamanlarından (LRCLIB), şarkıyı indirmeden.
-- Ham çekimi tarayıp anları seçer, kurguyu `music.grid` tempo haritasına göre yapar.
+- Trend listelerini tarihleriyle web'de araştırır: TikTok Creative Center, YouTube'un "Top Songs on Shorts" listesi (Instagram'ın herkese açık listesi yok). Ücretli servis ya da hesap gerekmez.
+- Her şarkının BPM'ini ve drop zamanını çıkarır: senkron söz zamanlarından (LRCLIB), şarkıyı indirmeden. Drop saniyesini sen verirsen onu kullanır.
+- Ham çekimi tarayıp anları seçer, kurguyu tempo ızgarasına göre yapar (`vlogkit reel --bpm --drop`, projede `music.grid`).
 - Her varyantı `vlogkit review` ve `check` ile doğrular.
-- Teslim: müziksiz dosya, rehber ritim sesli önizleme ve `.instagram.txt` (başlangıç saniyesi, hizalanacak kesme). Örnek: `projects/kackar-reels`.
+- Teslim: müziksiz dosya, rehber ritim sesli önizleme ve `.muzik.txt` (başlangıç saniyesi, hizalanacak kesme, TikTok, Reels ve Shorts notları). Örnek: `projects/kackar-reels`.
 
-Not: BPM ve söz zamanları topluluk verisi (~±0,3 sn). Şarkıyı uygulamada eklerken nottaki kesmeyi vuruşa hizalamak gerekir. Meta'nın Edits uygulamasında ses dalgasıyla hizalamak en kolayı. Şarkı işletme hesabında çıkmayabilir.
+Not: BPM ve söz zamanları topluluk verisi (~±0,3 sn). Şarkıyı uygulamada eklerken nottaki kesmeyi vuruşa hizalamak gerekir; Instagram'da Meta'nın Edits uygulamasında ses dalgasıyla hizalamak en kolayı. Trend ses çoğu zaman şarkının bir kesiti ya da hızlandırılmış sürümüdür: uygulamadaki sesin drop saniyesini söylersen hizalama tutar. Şarkı işletme hesabında çıkmayabilir. Shorts'ta telifli şarkılı video 60 sn'yi geçmesin.
 
 #### Beğendiğin bir kurgunun tarzıyla
 
@@ -480,7 +480,7 @@ Herhangi bir prompt'un sonuna ekleyebileceğin kısa talimatlar. Tıklayınca ko
 - **Hesap gerektiren işler:** YouTube Studio ve Audio Library'ye Claude giremez. Müziği indirip dosya yolunu ver.
 - **DaVinci Resolve (ücretsiz sürüm):** `vlogkit resolve` bir FCPXML ve medya klasörü üretir; Resolve'da File > Import > Timeline ile açarsın. Betik çalıştırmak gerekmez (Resolve 21.1 ücretsiz sürümde Python betiklerini kaldırdı).
 - **Yol haritası:** Ham kliplerden otomatik kurgu ve YouTube istatistiklerinden öğrenme vlogkit'in yol haritasında. İlk ihtiyaçta Claude bunları vlogkit'e ekleyerek ilerler.
-- **Viral şarkıyla Reels:** Telifli şarkı videoya gömülmez; müziksiz dosya yüklenir, şarkı Instagram'dan eklenir. Kurgu şarkıya göre yapıldığı için `.instagram.txt` başlangıç saniyesini ve drop kesmesinin zamanını söyler. Meta'nın Edits uygulamasında ses dalgasıyla hizalamak en kolayı.
+- **Viral şarkıyla Reels, Shorts, TikTok:** Telifli şarkı videoya gömülmez; müziksiz dosya yüklenir, şarkı platformun uygulamasından eklenir. Kurgu şarkıya göre yapıldığı için `.muzik.txt` başlangıç saniyesini, drop kesmesinin zamanını ve platform notlarını söyler. Trend listesi ve BPM için ücretli servis kullanılmaz; Claude web'de arar. Ayrıntı: `docs/shorts.md` "Trend şarkı".
 - **İzlenme süresi kontrolü:** Her teslimde Claude `vlogkit review` çalıştırır: kanca, tempo, bitiş, ses, emoji. Loop ve kanca A/B denemesi isteğe bağlıdır, sadece istersen yapılır.
 - **Müzikli videoda konuşma:** Whisper müziğin altındaki konuşmayı zor ayırır, dil tespitini şaşırır ve "中文字幕", "Altyazı M.K." gibi satırlar uydurur. Claude kısa pencerelerle birkaç ayarda dener, sadece tutarlı satırları kullanır ve çözemediği yerleri söyler. O satırları sen verirsen eklenir.
 - **Sonradan elle düzenleme:** Altyazı ve grafikler final videoya gömülüdür, kalite için öyle kalır. `vlogkit resolve` aynı kurgunun katmanlı bir kopyasını DaVinci Resolve'a verir: her plan, her altyazı ve grafik ayrı klip; sesler ayrı izlerde; altyazıların düzenlenebilir metin kopyası üstte kapalı durur. Bir kelimeyi değiştirmek için ya o metni açarsın ya da Claude'a söylersin, sadece değişen adım yeniden derlenir.

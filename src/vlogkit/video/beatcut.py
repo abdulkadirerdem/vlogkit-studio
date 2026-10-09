@@ -12,7 +12,7 @@ the drop.
    Accents: a punch-in and a flash on the drop, a small punch on the bar starts of loud bars.
 4. `render`: frame-accurate picture (a cut lands on round(song_time * fps)), flashes, the song
    as audio. Two deliveries: with the song (to watch / archive) and without (to upload and add
-   the same song in Instagram; see `instagram_note`).
+   the same song in the TikTok, Instagram or YouTube app; see `upload_note`).
 
 The plan is plain data (plan.json): Claude or the user can swap moments and render again.
 """
@@ -385,34 +385,46 @@ def music_graph(p: Plan, length: float | None = None) -> AudioGraph:
     return g
 
 
-def instagram_note(p: Plan, name: str) -> str:
+SHORTS_CLAIM_LIMIT = 60.0  # s: a longer Short with an active copyright claim is blocked
+
+
+def upload_note(p: Plan, name: str) -> str:
+    """How to add the song in the TikTok, Instagram or YouTube app to the silent file."""
     m, s = divmod(p.song_start, 60)
     drops = ", ".join(f"{d:.2f}" for d in p.drops) or "yok"
-    song = "aynı şarkıyı" if p.grid is None else f'"{p.song}" şarkısını'
-    return (
-        "\n".join(
-            [
-                f"{name}: Instagram'a yükleme",
-                "",
-                f"1. {name}_muziksiz.mp4 dosyasını Reels olarak aç.",
-                f"2. Müzik ekle: {song} Instagram'ın kütüphanesinden seç ve {int(m)}:{s:05.2f}'dan başlat",
-                f"   (kurgu şarkının {p.song_start:.2f}-{p.song_start + p.length:.2f} sn arasına göre yapıldı, "
-                f"süre {p.length:.2f} sn).",
-                f"3. Kontrol: videodaki drop kesmesi {drops} sn'de; müzikteki vuruş oraya oturmalı.",
-                "   Kaydıysa başlangıcı birkaç onda bir saniye kaydır. Meta'nın Edits uygulamasında ses dalgasını",
-                "   görerek hizalamak daha kolay.",
-                "",
-                "Not: İşletme hesaplarında sadece Meta Sound Collection kullanılabilir. Telifli bir",
-                "şarkıyı videoya gömüp yüklemek susturulma ya da kaldırılma riski taşır; bu yüzden",
-                "müziksiz dosyayı yükle.",
-                f"Müzik telifsizse (CC0 ya da lisansı sende) {name}.mp4 dosyasını doğrudan yükleyebilirsin."
-                if p.grid is None
-                else f"{name}.mp4 dosyasındaki ses şarkı değil, rehber ritim (vuruş, ölçü, drop): "
-                "onu yükleme.",
-            ]
+    song = "Aynı şarkıyı" if p.grid is None else f'"{p.song}" şarkısını'
+    shorts = "- YouTube Shorts: Ses YouTube uygulamasında eklenir; Shorts kütüphanesindeki şarkılar 30-90 sn ile sınırlı olabilir."
+    if p.length > SHORTS_CLAIM_LIMIT:
+        shorts += (
+            f"\n  Video {SHORTS_CLAIM_LIMIT:g} sn'den uzun: telif iddialı 1 dk üstü Short engellenir. "
+            f"Shorts için {SHORTS_CLAIM_LIMIT:g} sn'ye kısalt ya da telifsiz müzik kullan."
         )
-        + "\n"
-    )
+    lines = [
+        f"{name}: müziği uygulamada ekleme (TikTok, Instagram Reels, YouTube Shorts)",
+        "",
+        f"1. {name}_muziksiz.mp4 dosyasını uygulamada yükle.",
+        f"2. {song} uygulamanın kütüphanesinden ekle ve {int(m)}:{s:05.2f}'dan başlat",
+        f"   (kurgu şarkının {p.song_start:.2f}-{p.song_start + p.length:.2f} sn arasına göre yapıldı, "
+        f"süre {p.length:.2f} sn).",
+        f"3. Kontrol: videodaki drop kesmesi {drops} sn'de; müzikteki vuruş oraya oturmalı.",
+        "   Kaydıysa başlangıcı birkaç onda bir saniye kaydır. Trend ses şarkının bir kesitiyse",
+        "   zamanlar o sesin kendi zamanıdır: drop kesmesini sesteki drop'a hizala.",
+        "",
+        "Platformlar:",
+        "- TikTok: İşletme hesabında yalnız Commercial Music Library açık.",
+        "- Instagram Reels: İşletme hesabında yalnız Meta Sound Collection açık. Meta'nın Edits",
+        "  uygulamasında ses dalgasını görerek hizalamak daha kolay.",
+        shorts,
+        "",
+        "Telifli şarkıyı videoya gömüp yükleme: ses kısılır, video engellenir ya da kaldırılır.",
+        f"Müzik telifsizse (CC0 ya da lisansı sende) {name}.mp4 dosyasını doğrudan yükleyebilirsin."
+        if p.grid is None
+        else f"{name}.mp4 dosyasındaki ses şarkı değil, rehber ritim (vuruş, ölçü, drop): onu yükleme.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+instagram_note = upload_note  # older projects call it by this name
 
 
 def render(
@@ -423,7 +435,7 @@ def render(
     grade: str | None = None,
     flash: bool = True,
 ) -> dict[str, Path]:
-    """Base + flashes + song -> <out>.mp4, <out>_muziksiz.mp4, <out>.instagram.txt, plan.json."""
+    """Base + flashes + song -> <out>.mp4, <out>_muziksiz.mp4, <out>.muzik.txt, plan.json."""
     work.mkdir(parents=True, exist_ok=True)
     base = work / "base.mov"
     inputs, graph = base_graph(p, fps, grade)
@@ -453,8 +465,8 @@ def render(
     compose(base, overlay, audio, out, SHORTS, fps)
     silent = out.with_name(out.stem + "_muziksiz.mp4")
     ffmpeg(["-y", "-i", out, "-an", "-c", "copy", "-movflags", "+faststart", silent])
-    note = out.with_name(out.stem + ".instagram.txt")
-    note.write_text(instagram_note(p, out.stem))
+    note = out.with_name(out.stem + ".muzik.txt")
+    note.write_text(upload_note(p, out.stem))
     from vlogkit.export import timeline
 
     try:
@@ -493,4 +505,5 @@ __all__ = [
     "render",
     "rhythm",
     "summary",
+    "upload_note",
 ]

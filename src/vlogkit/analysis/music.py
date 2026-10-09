@@ -183,6 +183,37 @@ def grid(
     return Music(Path(path), duration, round(bpm, 3), beats, downs, bars, drop_times)
 
 
+def anchored(
+    bpm: float, drop: float, energy: str | None = None, meter: int = 4, cover: float = 30.0
+) -> tuple[str, float]:
+    """`grid`'s energy map and first downbeat for a song known by its tempo and drop time only.
+
+    A drop starts a bar, so its time (heard in the app, or read from synced lyrics) fixes the
+    grid's phase: the bars before it are counted back towards the start of the song. Without
+    `energy` the map is a common layout: mid bars up to the drop, eight loud bars from it, then
+    mid bars until `cover` s after the drop. With `energy`, its first 'D' bar lands on the drop.
+    """
+    if bpm <= 0 or drop < 0:
+        raise ValueError(f"tempo pozitif, drop 0 ya da sonrası olmalı (bpm {bpm:g}, drop {drop:g})")
+    bar = 60.0 / bpm * meter
+    if energy is None:
+        before = int((drop + 1e-6) // bar)
+        after = max(8, math.ceil(cover / bar) + 1)
+        energy = "-" * before + "D" + "#" * 7 + "-" * (after - 8)
+    else:
+        bars_spec = [c for c in energy if c not in " |"]
+        if "D" not in bars_spec:
+            raise ValueError(f"haritada drop (D) yok: {energy!r}")
+        before = bars_spec.index("D")
+    first = drop - before * bar
+    if first < -1e-6:
+        raise ValueError(
+            f"haritada drop'tan önce {before} ölçü ({before * bar:.1f} sn) var, "
+            f"ama drop şarkının {drop:g}. saniyesinde"
+        )
+    return energy, round(max(first, 0.0), 4)
+
+
 def energy_map(m: Music) -> str:
     """One character per bar: '.' low, '-' mid, '#' high, 'D' drop."""
     drop_set = {round(d, 3) for d in m.drops}

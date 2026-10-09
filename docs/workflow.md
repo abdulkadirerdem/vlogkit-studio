@@ -220,7 +220,7 @@ Final video aynı kalır; aktarım onun katmanlı bir kopyasıdır.
 6. **Teslim:**
    - `<ad>.mp4`: şarkılı; izlemek ve arşiv için.
    - `<ad>_muziksiz.mp4`: yüklemek için.
-   - `<ad>.instagram.txt`: şarkının hangi saniyeden başlatılacağı ve drop kesmesinin zamanı.
+   - `<ad>.muzik.txt`: şarkının hangi saniyeden başlatılacağı, drop kesmesinin zamanı ve TikTok, Reels, Shorts notları (`beatcut.upload_note`).
    - Kesmeler şarkı zamanına göre kareye oturur (`round(t * fps)`); ses tam kare süresi kadardır.
 7. **Daha havalı yapmak için** (Claude elle ekler, isteğe bağlı):
    - drop'a girişte `fx.SpeedRamp`;
@@ -228,9 +228,11 @@ Final video aynı kalır; aktarım onun katmanlı bir kopyasıdır.
    - son vuruşta `fx.Freeze`;
    - en fazla 2-3 kısa yazı (güvenli alanda);
    - ham ve yazısız kaynak kullanmak.
-8. **Şarkı dosyası yoksa (trend şarkı): tempo haritası.**
-   - BPM'i songbpm.com'dan (Spotify analizi) al. Bölüm ve söz zamanlarını LRCLIB'in senkron sözlerinden al (`lrclib.net/api/get/<id>`; yalnız zamanlar, sözleri videoya yazma).
-   - `music.grid(bpm, enerji, first_downbeat)` ile ızgarayı kur. İlk ölçüyü en güvenilir vuruşa bağla (drop ya da vokalin girdiği satır).
+8. **Şarkı dosyası yoksa (trend şarkı): tempo haritası.** Kaynaklar ve platform kuralları: `docs/shorts.md` "Trend şarkı".
+   - BPM'i songbpm.com'dan (Spotify analizi) al. Bölüm ve söz zamanlarını LRCLIB'in senkron sözlerinden al (`lrclib.net/api/get/<id>`; yalnız zamanlar, sözleri videoya yazma). Kullanıcı uygulamada dinleyip drop saniyesini söylerse o daha güvenilir.
+   - **Drop biliniyorsa:** `vlogkit reel ŞARKI_ADI KLİP... --bpm 130 --drop 22.7 --dry-run`. Drop bir ölçü başıdır, ızgara ona oturur (`music.anchored`). Harita verilmezse drop'a kadar orta, drop'tan sonra 8 yüksek ölçü, sonra orta; şarkı farklıysa `--map` ile ver, haritadaki ilk `D` drop'a oturur.
+   - **Projede:** `music.grid(bpm, enerji, first_downbeat)`; ilk ölçüyü en güvenilir vuruşa bağla (drop ya da vokalin girdiği satır).
+   - Trend ses şarkının bir kesitiyse zamanlar o sesin kendi zamanıdır. Hızlandırılmış (sped up) sürümde BPM aynı oranda yüksektir.
    - Ardışık satırlar ızgaraya oturuyor mu diye bak. Kaçkar'da Timber'ın satırları hep 1 vuruş önceden (pickup), Döndüm'ün nakaratı ~0,7 sn geç giriyordu. Oturmayan yerde bölümü söz satırında başlat (`kackar-reels`'teki `("@", saniye)`).
    - Teslim müziksiz olur. Not, "şu kesme şu vuruşa" diye tek bir hizalama noktası verir. Önizlemedeki ses şarkı değil, rehber ritimdir (`synth.guide_track`).
    - Plan karelerini `Shot(x=..., rotate=..., speed=..., vf=...)` ile ayarla: 4K 16:9'dan dikey kesitte konu ortada kalsın, yan çekilmiş klip çevrilsin, gece planı aydınlansın.
