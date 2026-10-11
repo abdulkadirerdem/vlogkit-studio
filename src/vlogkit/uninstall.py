@@ -4,7 +4,8 @@ Two levels:
 - "app": vlogkit's folder (with its build intermediates) and the desktop app.
 - "all": the app and what the setup screen installed: the Homebrew packages (ffmpeg-full,
   whisper-cpp, aubio, terminal-notifier and the dependencies nothing else needs), the speech
-  model, the local video models and their runtime (mlx-vlm).
+  model, the local video models and their runtime (mlx-vlm). What this Mac had before vlogkit's
+  first setup check stays (`setup.found`): a package or model the user installed is not ours.
 
 Always kept: the videos and deliveries in ~/yt-vlogs, Homebrew itself, Apple's developer tools,
 uv and Claude Code / Codex (other software may use them). The user's projects, job history,
@@ -24,7 +25,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from vlogkit.config import REPO_ROOT, VLOGS_ROOT, tools
+from vlogkit.config import REPO_ROOT, VLOGS_ROOT, WHISPER_MODEL_HOME
 
 MODES = ("app", "all")
 DESKTOP_APP = Path.home() / "Desktop" / "vlogkit Stüdyo.app"
@@ -60,19 +61,39 @@ def _brew() -> str | None:
     return _brew()
 
 
+def _found() -> set[str]:
+    from vlogkit.ui.setup import found
+
+    return found()
+
+
 def _models() -> list[str]:
     from vlogkit.analysis import localvlm
 
-    return [c.repo for c in localvlm.CHOICES.values() if localvlm.model_dir(c.repo).exists()]
+    return [
+        c.repo
+        for c in localvlm.CHOICES.values()
+        if localvlm.model_dir(c.repo).exists() and c.repo not in _found()
+    ]
 
 
-def _brew_size(brew: str) -> int:
-    """The packages and their dependencies (what uninstall + autoremove can free at most)."""
+def _packages() -> list[str]:
+    """The Homebrew packages the setup installed (not those this Mac had before)."""
     from vlogkit.ui.setup import BREW_PACKAGES
 
-    r = subprocess.run([brew, "deps", "--union", *BREW_PACKAGES], capture_output=True, text=True)
+    return [p for p in BREW_PACKAGES if p not in _found()]
+
+
+def _speech_model() -> Path | None:
+    """The speech model setup downloaded (a copy found elsewhere, or one here before, stays)."""
+    return WHISPER_MODEL_HOME if WHISPER_MODEL_HOME.exists() and "speech" not in _found() else None
+
+
+def _brew_size(brew: str, packages: list[str]) -> int:
+    """The packages and their dependencies (what uninstall + autoremove can free at most)."""
+    r = subprocess.run([brew, "deps", "--union", *packages], capture_output=True, text=True)
     cellar = Path(brew).parent.parent / "Cellar"
-    names = {*BREW_PACKAGES, *r.stdout.split()}
+    names = {*packages, *r.stdout.split()}
     return sum(_size(cellar / n) for n in names if (cellar / n).exists())
 
 
@@ -90,8 +111,8 @@ def plan(mode: str) -> dict:
     if DESKTOP_APP.exists():
         remove.append({"label": "Masaüstü uygulaması (çöpe)", "path": str(DESKTOP_APP), "size": 0})
     if mode == "all":
-        model = tools().whisper_model
-        if model.exists():
+        model = _speech_model()
+        if model:
             remove.append({"label": "Konuşma modeli", "path": str(model), "size": _size(model)})
         from vlogkit.analysis import localvlm
 
@@ -103,14 +124,13 @@ def plan(mode: str) -> dict:
                     "size": localvlm.model_size(repo),
                 }
             )
-        brew = _brew()
-        if brew:
-            size = _brew_size(brew)
+        brew, packages = _brew(), _packages()
+        if brew and packages:
             remove.append(
                 {
-                    "label": "ffmpeg, whisper, aubio (Homebrew) ve kullanılmayan bağımlılıkları",
+                    "label": f"{', '.join(packages)} (Homebrew) ve kullanılmayan bağımlılıkları",
                     "path": "",
-                    "size": size,
+                    "size": _brew_size(brew, packages),
                 }
             )
     keep = [
@@ -118,6 +138,8 @@ def plan(mode: str) -> dict:
         "Projelerin ve iş geçmişin: önce yedeklenir",
         "Homebrew, Apple geliştirici araçları, uv, Claude Code ve Codex (başka uygulamalar da kullanabilir)",
     ]
+    if mode == "all" and _found():
+        keep.append("vlogkit'ten önce bu Mac'te olan araçlar ve modeller")
     if mode == "app":
         keep.insert(2, "Konuşma modeli, yerel video modelleri ve Homebrew paketleri")
     return {"mode": mode, "remove": remove, "keep": keep, "backup": str(backup_dir())}  # fmt: skip
@@ -153,9 +175,9 @@ def script(mode: str, backup: Path) -> str:
             " >/dev/null 2>&1 || true"
         )
     if mode == "all":
-        from vlogkit.ui.setup import BREW_PACKAGES
-
-        lines.append(f"rm -f {q(str(tools().whisper_model))} || true")
+        model = _speech_model()
+        if model:
+            lines.append(f"rm -f {q(str(model))} || true")
         repos = _models()
         if repos:  # a model's files can sit in Hugging Face's shared store: Python removes them
             code = (
@@ -166,9 +188,9 @@ def script(mode: str, backup: Path) -> str:
             lines.append(f"{q(str(py))} -c {q(code)} {' '.join(q(r) for r in repos)} || true")
         lines.append('UV="$(command -v uv || echo "$HOME/.local/bin/uv")"')
         lines.append('"$UV" tool uninstall mlx-vlm >/dev/null 2>&1 || true')
-        brew = _brew()
-        if brew:
-            lines.append(f"{q(brew)} uninstall {' '.join(BREW_PACKAGES)} >/dev/null 2>&1 || true")
+        brew, packages = _brew(), _packages()
+        if brew and packages:
+            lines.append(f"{q(brew)} uninstall {' '.join(packages)} >/dev/null 2>&1 || true")
             lines.append(f"{q(brew)} autoremove >/dev/null 2>&1 || true")
     lines.append(f"rm -rf {q(str(REPO_ROOT))}")
     return "\n".join(lines) + "\n"

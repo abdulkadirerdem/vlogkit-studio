@@ -39,20 +39,14 @@ def version() -> None:
 @app.command()
 def doctor() -> None:
     """Gerekli araçların, modelin, fontların ve kütüphanenin durumunu kontrol et."""
-    import subprocess
+    from vlogkit.config import FFMPEG_FILTERS, ffmpeg_full
 
     t = tools()
-    filters = ""
-    if t.ffmpeg:
-        filters = subprocess.run(
-            [t.ffmpeg, "-hide_banner", "-filters"], capture_output=True, text=True
-        ).stdout
-    need = ("drawtext", "scdet", "loudnorm")
     rows = [
         ("ffmpeg", bool(t.ffmpeg), t.ffmpeg or "brew install ffmpeg-full"),
         (
-            "ffmpeg filtreleri (drawtext, scdet, loudnorm)",
-            all(f" {n} " in filters for n in need),
+            f"ffmpeg filtreleri ({', '.join(FFMPEG_FILTERS)})",
+            ffmpeg_full(t.ffmpeg),
             "ffmpeg-full gerekli (normal ffmpeg'de yok)",
         ),
         ("ffprobe", bool(t.ffprobe), t.ffprobe or "ffmpeg-full ile gelir"),

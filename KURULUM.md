@@ -29,7 +29,7 @@ Stüdyo ilk açıldığında kurulum ekranı çıkar. Her satırda ne olduğu ve
 | Müzik ve ses kütüphanesi | ~90 MB | **İndir** |
 | Yapay zekâ ajanı: Claude Code ya da Codex | ~0,2 GB | **Kur**, sonra **Giriş yap**: Terminal ve tarayıcı açılır, hesabınla onayla |
 
-İlk satırdan sonra **Hepsini kur** kalanları sırayla kurar. Hepsi bitince ekran "Hazır" der. Sonraki seferlerde masaüstündeki **vlogkit Stüdyo**'ya çift tıklaman yeter.
+İlk satırdan sonra **Hepsini kur** kalanları sırayla kurar. Mac'te zaten olan araçlar (ör. ffmpeg-full, whisper) ve Hugging Face'ten indirilmiş konuşma modeli "Kurulu" görünür, yeniden kurulmaz; yalnız eksikler kurulur. Hepsi bitince ekran "Hazır" der. Sonraki seferlerde masaüstündeki **vlogkit Stüdyo**'ya çift tıklaman yeter.
 
 ## Kullanım
 
@@ -65,7 +65,7 @@ Stüdyo açıkken saatte bir yeni sürüme bakar; çıkınca sol altta **Güncel
 **Ayarlar** > **Sürüm ve kaldırma**:
 
 - **Uygulamayı kaldır:** vlogkit'i ve masaüstü uygulamasını siler.
-- **Uygulamayı ve kurulan paketleri kaldır:** ayrıca video araçlarını, konuşma modelini ve yerel video modellerini siler.
+- **Uygulamayı ve kurulan paketleri kaldır:** ayrıca vlogkit'in kurduğu video araçlarını, konuşma modelini ve yerel video modellerini siler. vlogkit'ten önce Mac'te olanlar kalır.
 
 Önce silinecekler boyutlarıyla listelenir. Videoların ve teslim dosyaların kalır; projelerin ve iş geçmişin `~/yt-vlogs/vlogkit-yedek-<tarih>` klasörüne yedeklenir. Homebrew, Apple geliştirici araçları ve Claude Code / Codex başka uygulamalar da kullanabileceği için kalır.
 

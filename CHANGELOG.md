@@ -2,6 +2,23 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Sürümleme: [SemVer](https://semver.org/).
 
+## [0.17.0] - 2026-10-11
+
+### Eklendi
+- **İş türü (Stüdyo):** Yeni işte yazma kutusunun üstünden tür seçilir: Otomatik, Vlog, Short / Reels, Hareketli grafik, Kapak ve başlık, Soru. Mesaja "İş türü: ..." satırı gider. Her türün "Önce plan" ayarı, eforu ve ekleri ayrı saklanır; bir türde seçilen ek (ör. 4K teslim) başka türe geçmez. Kurgu ayarı yalnız kesim içeren türlerde (Otomatik, Vlog, Short) eklenir. Görev listesinden Short ya da uzun video görevi seçince tür kendiliğinden gelir. Önceden bütün işlere eklenen ekler "Otomatik"e taşınır.
+- **Hedef teyidi:** Ajan her işin ilk cevabının ilk satırında hedefi tek cümleyle yazar (ne, oran, süre, çözünürlük); tür istekle çelişiyorsa sorar.
+- **Trend şarkı aday kartı:** "Trend şarkı" tanımlandı: tanınmış sanatçıların edit şarkıları (ör. 21 Savage "a lot"), ülke dinlenme listesi değil. Şarkı verilmediyse ajan kurgudan önce 4-6 adayı "Seçim:" kartıyla gösterir (şarkı, BPM, drop, kaynak ve tarih, neden) ve seçimi bekler. Seçim kartlarında birden çok seçenek seçilebilir.
+
+### Değişti
+- **Daha hızlı varsayılanlar:** Varsayılan efor Extra high yerine Yüksek; Vlog türünde Extra high, Soru'da Orta.
+- **Eleştirmen yalnız büyük işte:** ham çekimden kurgu, 60 sn'den uzun yeni kurgu, büyük revizyon ya da istenirse. İkinci tur yalnız ilk turda kritik madde çıktıysa. Ajan eleştirmeni ya da arka plandaki derlemeyi sabit süreli `sleep` döngüleriyle beklemez: bağımsız işleri yapar, kalmadıysa kısa bir notla turu bitirir; iş bitince oturum kendiliğinden devam eder (headless `claude -p` ile doğrulandı). Stüdyo devam eden adımları notun altında yeni bir blokta canlı gösterir.
+- **4K yalnız 4K kaynakta:** Ek "Kaynak 4K ise 4K teslim et." oldu; Stüdyo onu seçili video 4K değilse göndermez. Kaynak video yoksa (hareketli grafik, kapak) teslim 1080p.
+- **Kurulum ekranı Mac'te olanı sayar:** ffmpeg-full (filtrelerine bakılarak; düz ffmpeg yetmez), whisper ve aubio araç araç algılanır; satır neyin var neyin eksik olduğunu yazar ve yalnız eksikler kurulur. Araçlar başka yoldan kuruluysa Homebrew adımı gerekmez. Hugging Face'ten indirilmiş konuşma modeli de kullanılır. Intel Mac'te ffmpeg-full (`/usr/local/opt`) bulunur.
+- **Kaldırma yalnız vlogkit'in kurduğunu siler:** İlk kurulum kontrolünde Mac'te olan araçlar ve modeller (`build/ui/found.json`) "Uygulamayı ve kurulan paketleri kaldır"da yerinde kalır. Bu sürümden önce kurulmuş kopyalarda o an kurulu olan her şey "önceden vardı" sayılır.
+
+### Düzeltildi
+- **"Video ve ses araçları" kurulurken %0'da kalıyordu.** Homebrew 4.5'ten beri önce bütün paketleri indiriyor, sonra kuruyor; ilerleme yalnız kurulumu sayıyordu ve zaten kurulu bağımlılıkları da hesaba katıyordu. Artık indirmeler (%70) ve kurulumlar (%30) yalnız eksik paketlere göre sayılır.
+
 ## [0.16.0] - 2026-10-09
 
 ### Eklendi

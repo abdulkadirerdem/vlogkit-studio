@@ -79,6 +79,7 @@ code, pre, kbd { font-family: var(--mono); }
 .hello { display: none; font: 600 1.9rem/1.2 var(--ui); letter-spacing: -.015em; margin-bottom: 18px; text-wrap: balance; }
 .main.home .hello { display: block; }
 .main:not(.home) .chips { display: none; }
+.main:not(.home) .types { display: none; }
 .composer { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px 10px;
   display: grid; gap: 6px; box-shadow: 0 8px 30px -18px rgba(0,0,0,.6); }
 .composer:focus-within { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
@@ -116,6 +117,10 @@ code, pre, kbd { font-family: var(--mono); }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px !important; }
 .chip { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 6px 13px; font-size: 13.5px; color: var(--dim); }
 .chip:hover { color: var(--ink); border-color: var(--dim); }
+.types { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.type { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 5px 12px; font-size: 13px; color: var(--dim); }
+.type:hover { color: var(--ink); border-color: var(--dim); }
+.type[aria-checked="true"] { color: var(--ink); border-color: var(--accent); background: var(--raise); }
 
 /* ---------------------------------------------------------------- popovers */
 .pop { position: fixed; z-index: 20; min-width: 280px; max-width: 380px; max-height: 60vh; overflow-y: auto; overscroll-behavior: contain;
@@ -168,6 +173,7 @@ code, pre, kbd { font-family: var(--mono); }
 .checks { display: grid; gap: 4px; margin-top: 2px; }
 .checks label { display: grid; grid-template-columns: 18px 1fr; gap: 8px; align-items: start; color: var(--ink); font-size: 13.5px; line-height: 1.4; cursor: pointer; padding: 3px 2px; }
 .checks input { width: 15px; height: 15px; margin: 2px 0 0; accent-color: var(--accent); }
+.checks label.off { color: var(--faint); text-decoration: line-through; }
 
 /* ---------------------------------------------------------------- thread */
 .me { justify-self: end; max-width: 82%; background: var(--raise); border-radius: 16px 16px 4px 16px; padding: 10px 14px; }

@@ -1,6 +1,6 @@
 # vlogkit Prompt Rehberi
 
-<!-- meta: vlogkit=0.16.0; updated=2026-10-09; artifact=https://claude.ai/artifact/WQakjmnPnJ95AJ1kyQPdPW -->
+<!-- meta: vlogkit=0.17.0; updated=2026-10-11; artifact=https://claude.ai/artifact/WQakjmnPnJ95AJ1kyQPdPW -->
 
 Yeni bir vlog'u Claude'a vlogkit ile kurgulatırken kullanacağın hazır prompt'lar. Hepsi vlogkit'in bugünkü yeteneklerine göre yazıldı. vlogkit geliştikçe bu dosya da güncellenir: kaynak `docs/prompts.md`, sayfa `scripts/build_prompts_page.py` ile üretilip artifact olarak yayınlanır. Aynı dosya `vlogkit ui` arayüzündeki görev listesini de besler: arayüzde bir görevi seçince prompt buradan gelir ve seçtiğin video ile formdaki bağlam bilgileri doldurulur.
 
@@ -177,13 +177,15 @@ Ne zaman: Elinde şarkı dosyası yok. O an popüler şarkıların havasına ve 
 
 ```text
 ~/yt-vlogs/<klasör> serüvenini incele ve <Instagram Reels | YouTube Shorts | TikTok> için <4-5> farklı alternatif üret.
-Şu an trend olan şarkıları bul (ya da şunları kullan: <şarkı - sanatçı, drop 0:07>); her varyant bir şarkının
-havasına ve ritmine göre kurgulansın (sert drop, sinematik yükseliş, neşeli, karanlık/atmosferik, Türkçe trend gibi farklı tonlar).
-Onaylı versiyona dokunma, yeni proje/varyant aç. Soru sormadan sonuna kadar götür.
+Trend şarkı: editlerde kullanılan tanınmış sanatçı şarkıları (ör. 21 Savage - a lot), yerli dinlenme listesi değil.
+<Şarkıları sen bul, önce 4-6 adayı göster, seçtiklerimle devam et | Şunları kullan: şarkı - sanatçı, drop 0:07>.
+Her varyant bir şarkının havasına ve ritmine göre kurgulansın (sert drop, sinematik yükseliş, neşeli, karanlık/atmosferik gibi farklı tonlar).
+Onaylı versiyona dokunma, yeni proje/varyant aç.
 ```
 
 Claude ne yapar:
-- Trend listelerini tarihleriyle web'de araştırır: TikTok Creative Center, YouTube'un "Top Songs on Shorts" listesi (Instagram'ın herkese açık listesi yok). Ücretli servis ya da hesap gerekmez.
+- Trend listelerini tarihleriyle web'de araştırır: TikTok Creative Center, YouTube'un "Top Songs on Shorts" listesi, editlerde tekrar eden şarkılar (Instagram'ın herkese açık listesi yok). Ücretli servis ya da hesap gerekmez.
+- Şarkı vermediysen kurguya başlamadan 4-6 adayı kart olarak gösterir: şarkı ve sanatçı, BPM, drop, kaynak ve tarih, sahneye neden uyduğu. Bir ya da birkaçını seçersin.
 - Her şarkının BPM'ini ve drop zamanını çıkarır: senkron söz zamanlarından (LRCLIB), şarkıyı indirmeden. Drop saniyesini sen verirsen onu kullanır.
 - Ham çekimi tarayıp anları seçer, kurguyu tempo ızgarasına göre yapar (`vlogkit reel --bpm --drop`, projede `music.grid`).
 - Her varyantı `vlogkit review` ve `check` ile doğrular.
@@ -452,7 +454,7 @@ Herhangi bir prompt'un sonuna ekleyebileceğin kısa talimatlar. Tıklayınca ko
 - Altyazı yoğunluğu: sadece önemli anlar.
 - Emoji kullanma.
 - Oranı ve çözünürlüğü koru: kırpma, büyütme yapma.
-- 4K kaynağı 4K teslim et.
+- Kaynak 4K ise 4K teslim et.
 - Kapanış planını 2-3 sn uzat: ara karelerle yavaşlat, karanlığa indir, müzik siyahta bitsin.
 - Boşlukları ve dolgu kelimeleri kes (önce listele).
 - Önce ham çekimi logla, her planın ne anlattığını tabloda yaz.
@@ -500,12 +502,13 @@ Herhangi bir prompt'un sonuna ekleyebileceğin kısa talimatlar. Tıklayınca ko
 - **Emoji:** Shorts altyazılarında en fazla üç altyazıda bir emoji olur, uzun videonun konuşma altyazısında hiç olmaz. Kural aşılırsa derleme uyarı verir. Hiç istemiyorsan "Emoji kullanma." ekini kullan.
 - **Arka plan ve mimik:** `background` kişiyi Apple Vision ile ayırır; hızlı el hareketinde kolun çevresinde koyu kenar, ince saç tellerinde düzleşme olabilir. `face` yüzün yakın planını yerel modele gösterir; ifadeyi görür ama sesi duymaz, anların saniyeleri yaklaşıktır.
 - **Zaman çizelgesi ve kelimeden kesme:** Stüdyo'da her videonun altında planlar ve yazılar izler hâlinde durur. Bir ana tıklayıp "Bu ana yorum" dersen mesaja zaman ve plan eklenir; "Kelimeler"den kesilecek kelimeleri seçip "Seçileni kes" dersin. Değişikliği Claude projede yapar ve yeniden derler.
-- **Kurgu ayarı:** Yazma kutusundaki "Kurgu" çipiyle kesim sertliğini (temkinli, dengeli, sert), altyazı/müzik/ses efektini ve kısa bir notu bir kez seçersin; her yeni işe eklenir, Claude planın başında teyit eder.
+- **Kurgu ayarı:** Yazma kutusundaki "Kurgu" çipiyle kesim sertliğini (temkinli, dengeli, sert), altyazı/müzik/ses efektini ve kısa bir notu bir kez seçersin; kesim içeren türlerdeki (Otomatik, Vlog, Short) yeni işlere eklenir, Claude planın başında teyit eder.
+- **İş türü:** Yeni işte yazma kutusunun üstünden türü seçersin: Otomatik, Vlog, Short / Reels, Hareketli grafik, Kapak ve başlık, Soru. Her türün "Önce plan" ayarı, eforu ve ekleri ayrı saklanır; bir türde seçtiğin ek (ör. 4K teslim) başka türe geçmez. Varsayılan efor Yüksek, Vlog'da Extra high, Soru'da Orta. Görev listesinden bir Short ya da uzun video görevi seçince tür kendiliğinden gelir. Claude ilk satırda hedefi (ne, oran, süre, çözünürlük) tek cümleyle teyit eder. "Kaynak 4K ise 4K teslim et" eki yalnız seçili video 4K ise gider.
 - **Gizlilik:** "Yabancıların yüzlerini bulanıklaştır" dersen Claude yüzleri Apple Vision ile bulup takip eder, senin yüzünü açık bırakır. Kalabalıkta şapkalı, gözlüklü ya da yandan görünen yüzlerin bir kısmı kaçabilir; Claude sonucu sayfada kontrol eder, kaçanları elle ekler.
 - **Ham çekimde arama:** "Göl kenarında ateş yaktığımız an" gibi bir anı tarif etmen yeterli. Claude ham klasörün kaydında arar (`vlogkit find`), bulduklarının karelerine bakıp seçer.
 - **Tarif:** Beğendiğin bir kurguyu onayladığında Claude onun tarifini (açılış hızı, plan ritmi, yazı stili, efektler) `recipes/` altına yazar. Sonra "Kaçkar Short 01 gibi yap" demen yeter.
 - **Proje hafızası:** Her projede bir `NOTES.md` var: kararlar, bu videoya özel tercihlerin ve açık işler. Yeni bir sohbette Claude önce onu okur ve geçen oturumu tek cümleyle özetler; "geçen sefer ne demiştik" diye anlatman gerekmez.
-- **Öz-denetim:** Teslimden önce Claude her kesmeyi kare kare kontrol eder (artık plan, siyah kare, donuk görüntü, ses sıçraması). Yeni kurgularda ayrı bir eleştirmen ajanı videoyu baştan izler. En fazla 3 düzeltme turu yapılır; çözülemeyenler son mesajda "Açık kalanlar" diye yazılır.
+- **Öz-denetim:** Teslimden önce Claude her kesmeyi kare kare kontrol eder (artık plan, siyah kare, donuk görüntü, ses sıçraması). Büyük işlerde (ham çekimden kurgu, 1 dakikadan uzun yeni kurgu, büyük revizyon) ayrı bir eleştirmen ajanı videoyu baştan izler; küçük işlerde istersen "Teslimden önce eleştirmen turu da yap" ekini seç. En fazla 3 düzeltme turu yapılır; çözülemeyenler son mesajda "Açık kalanlar" diye yazılır.
 - **Özel adlar:** Yer ve kişi adları `assets/vocab.txt` dosyasında; altyazıda yanlış yazılan bir ad görürsen ekletmen yeterli.
 - **Görüntüler:** Ham görüntüler repoya girmez. Projeler `~/yt-vlogs` altındaki dosyalara bakar, çıktılar da oraya yazılır.
 

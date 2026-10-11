@@ -19,12 +19,17 @@ def enabled() -> bool:
     return os.environ.get("VLOGKIT_NOTIFY", "1") != "0"
 
 
+def notifier() -> str | None:
+    """terminal-notifier, if installed."""
+    return shutil.which("terminal-notifier") or next(
+        (p for p in _NOTIFIER if os.path.exists(p)), None
+    )
+
+
 def notify(title: str, message: str, url: str | None = None) -> None:
     if not enabled():
         return
-    tn = shutil.which("terminal-notifier") or next(
-        (p for p in _NOTIFIER if os.path.exists(p)), None
-    )
+    tn = notifier()
     if tn:
         cmd = [
             tn,

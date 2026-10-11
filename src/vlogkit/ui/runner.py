@@ -57,7 +57,7 @@ EFFORTS = (
     "max",
     "ultra",
 )  # all engines; each model lists its own
-DEFAULT_EFFORT = "xhigh"
+DEFAULT_EFFORT = "high"  # the studio picks per job type (Vlog: xhigh, Soru: medium)
 EFFORT_NAMES = {"low": "Düşük", "medium": "Orta", "high": "Yüksek", "xhigh": "Extra high",
                 "max": "Maks", "ultra": "Ultra"}  # fmt: skip
 EFFORT_ORDER = {e: i for i, e in enumerate(EFFORTS)}
@@ -219,13 +219,20 @@ onlardan önce gelir.
 vlogkit ...`). Olmuyorsa son mesajda hangi iznin gerektiğini yaz.
 - Kullanıcıya Türkçe yaz, kısa ve net ol. Mesajlarında emoji kullanma; videodaki emoji \
 kullanımında CLAUDE.md'deki emoji kuralına uy.
+- İşin ilk cevabının ilk satırında hedefi tek cümleyle teyit et: ne üretilecek ve biçimi (oran, \
+süre, çözünürlük). Mesajda "İş türü:" satırı varsa işi o türe göre yap; istekle çelişiyorsa sor.
+- Uzun bir işi (derleme, eleştirmen alt ajanı) sabit süreli `sleep` ya da bekleme döngüsüyle \
+bekleme. Ön planda bitecekse ön planda çalıştır. Arka planda başlattıysan bağımsız işleri yap; iş \
+kalmadıysa neyi beklediğini tek cümleyle yazıp turu bitir: arka plandaki iş bitince oturum seni \
+kendiliğinden yeniden çağırır ve kullanıcı bu sırada iş sürüyor görür.
 - Bu iş için gerekmeyen ama vlogkit'e eklenirse sonraki editlerde işe yarayacak bir şey fark \
 edersen (yeni efekt, araç, ön ayar, arayüz iyileştirmesi) son mesajında "Öneri:" ile başlayan tek \
 satırda söyle ve kendiliğinden yapma. Kullanıcı "öneriyi uygula" derse CLAUDE.md'deki "vlogkit'i \
 geliştirince" adımlarıyla ekle.
-- Kullanıcının dinleyerek ya da bakarak seçmesi gereken seçeneklerde (müzik, kapak, renk) son \
-mesajında "Seçim: <soru>" satırı ve altına "1. <etiket> — /mutlak/yol" maddeleri yaz: arayüz \
-bunları önizlemeli kart olarak gösterir. Müzik için bu bloğu `vlogkit music` hazır verir.
+- Kullanıcının dinleyerek ya da bakarak seçmesi gereken seçeneklerde (müzik, trend şarkı adayları, \
+kapak, renk) son mesajında "Seçim: <soru>" satırı ve altına "1. <etiket> — /mutlak/yol" maddeleri \
+yaz (dosyası olmayan seçenekte yol yok): arayüz bunları kart olarak gösterir, kullanıcı bir ya da \
+birkaçını seçer. Müzik için bu bloğu `vlogkit music` hazır verir.
 - Son mesajının en sonunda, bu turda ürettiğin ya da güncellediğin dosyaları mutlak yollarıyla \
 "Çıktılar:" başlığı altında madde madde listele (video, görsel, rapor). Arayüz bunları önizler.\
 """

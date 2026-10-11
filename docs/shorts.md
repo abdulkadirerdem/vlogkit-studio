@@ -57,6 +57,18 @@
 
 Trend şarkı videoya gömülmez. Kurgu şarkının temposuna göre yapılır, müziksiz dosya yüklenir, şarkı platformun uygulamasında eklenir (`reel ŞARKI_ADI KLİP... --bpm --drop`, `docs/workflow.md` Reels 8. adım). Trend listesi ve BPM ajanın o anki web aramasından gelir; vlogkit'te ücretli servis, MCP ya da API anahtarı yok.
 
+**"Trend şarkı" ne demek:** Shorts, Reels ve TikTok editlerinde çok kullanılan, tanınmış sanatçıların şarkıları: rap, phonk, edit klasikleri ve o hafta yükselenler (ör. 21 Savage "a lot"). Ülkenin dinlenme listesi (Spotify Türkiye Top 50 gibi) bu değildir: radyo popunu gösterir, editlerde kullanılanı değil. Kullanıcı yerel ya da Türkçe şarkı isterse o listeye bakılır.
+
+**Önce aday kartı:** Kullanıcı şarkı vermediyse kurguya başlamadan 4-6 aday göster ve seçimini bekle (kullanıcı "sen seç" dediyse seç, nedenini tek cümleyle yaz). Stüdyo `Seçim:` bloğunu kart olarak gösterir, birden çok seçilebilir:
+
+```
+Seçim: Hangi şarkılarla kurgulayayım?
+1. a lot - 21 Savage · 146 BPM · drop 0:24 · edit klasiği · sert, karanlık; zirve anına oturur
+2. <şarkı - sanatçı> · <BPM> · <drop> · TikTok Creative Center, global, 11 Eki 2026 · <neden>
+```
+
+Her satırda şarkı ve sanatçı, BPM, biliniyorsa drop, kaynak ve okunduğu gün (edit klasiğiyse "edit klasiği"), sahneye neden uyduğu. O hafta yükselenlerle edit klasiklerini karıştır. Önizlemedeki tık sesi şarkı değil, ritim rehberidir: kullanıcıya bunu açıkça söyle.
+
 **Trend nereden okunur** (hiçbirinin resmi API'si yok)
 - **TikTok:** TikTok Creative Center > Trends > Songs: ülke ve dönem seçilir, ücretsiz işletme girişi ister. Eylül 2026'da liste bir süre boş kaldı; boşsa Tokchart'ın ücretsiz ülke listeleri.
 - **YouTube Shorts:** charts.youtube.com "Top Songs on Shorts": Shorts'ta kullanım sayısına göre, günlük ve haftalık. Her ülkede yok, Türkiye doğrulanmadı.

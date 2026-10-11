@@ -49,8 +49,34 @@ const LABEL = {
 const HOME_TASKS = ["K1", "K2", "S1", "S2", "S3", "S7", "Y1"];
 const PLAN_ADDON = "Önce plan göster, onaylamadan derleme.";
 
+// Job types: what a new chat is for, picked when it starts (Otomatik: Claude reads the request).
+// Each type keeps its own "Önce plan", add-ons and effort, so a setting made for one kind of job
+// (4K delivery for a vlog) does not ride along with another (a motion graphic). The Kurgu line
+// goes only with types that cut footage. `line` is what the agent reads ("İş türü: ...").
+const TYPES = [
+  { id: "auto", label: "Otomatik", hint: "Claude istekten anlar", effort: "high", plan: true, cut: true },
+  { id: "vlog", label: "Vlog", hint: "Yatay, uzun video", effort: "xhigh", plan: true, cut: true,
+    line: "Vlog (yatay uzun video)" },
+  { id: "short", label: "Short / Reels", hint: "Dikey, 60 sn altı", effort: "high", plan: true, cut: true,
+    line: "Short / Reels / TikTok (dikey 9:16)" },
+  { id: "motion", label: "Hareketli grafik", hint: "Çekimsiz, faceless", effort: "high", plan: true, cut: false,
+    line: "Hareketli grafik (çekimsiz, faceless); ham çekim kesimi yok" },
+  { id: "pack", label: "Kapak ve başlık", hint: "Yayın paketi", effort: "high", plan: false, cut: false,
+    line: "Kapak, başlık ve açıklama; video derlenmez" },
+  { id: "ask", label: "Soru", hint: "Kısa yanıt", effort: "medium", plan: false, cut: false,
+    line: "Soru; kısa yanıt ver, dosya üretme, derleme yapma" },
+];
+const typeOf = (id) => TYPES.find((x) => x.id === id) || TYPES[0];
+// a task from the guide says its type: Short and long-video stages, the publishing pack
+const TASK_TYPE = { short: "short", uzun: "vlog", Y1: "pack" };
+// "Kaynak 4K ise 4K teslim et." goes only with a 4K source (a folder: Claude checks its clips)
+const FOURK = /\b4K\b/;
+const fourK = () => !!S.video && (S.video.is_dir || Math.max(S.video.width || 0, S.video.height || 0) >= 3840);
+
+// what was once chosen for every job now belongs to "Otomatik" (the other types start clean)
+for (const k of ["addons", "plan"]) if (saved.get(k, null) !== null && saved.get(`${k}.auto`, null) === null) saved.set(`${k}.auto`, saved.get(k, null));
 const S = {
-  guide: null, video: null, task: null, plan: saved.get("plan", true), addons: new Set(saved.get("addons", [])),
+  guide: null, video: null, task: null, type: "auto", plan: true, addons: new Set(),
   jobs: [], job: null, es: null, seen: 0, turns: [], att: [],
   cut: { level: "dengeli", captions: true, music: true, sfx: true, note: "", ...saved.get("cut", {}) },
 };
@@ -144,8 +170,9 @@ function suggestion(idea) {
 }
 
 // "Seçim: soru" and "N. etiket — /yol" lines under it: options the user judges by ear or eye
-// (music under the scene from `vlogkit music`, cover or grade variants). Shown as cards with the
-// media; "Bunu seç" writes "Seçim: N. etiket" into the input.
+// (music under the scene from `vlogkit music`, trending-song candidates, cover or grade variants).
+// Shown as cards with the media; "Bunu seç" toggles a card and writes "Seçim: N. etiket" into the
+// input, several picks joined with "; " (one variant per trending song, say).
 const CHOICE = /^[ \t>*_]*(?:\*\*)?Seçim:(?:\*\*)?[ \t]*(.+)\n(?:[ \t]*\n)?((?:[ \t]*\d+[.)][ \t]+.+(?:\n|$))+)/gim;
 // the path runs to the end of the line: file names can have spaces ("Full Copy V1.3.mp4")
 const OPTION = /^[ \t]*(\d+)[.)][ \t]+(.+?)(?:[ \t]+[—–][ \t]+`?((?:\/|~\/)[^`\n]+?)`?)?[ \t]*$/;
@@ -173,10 +200,14 @@ function choiceCard(c) {
     if (body && kind !== "image") body.onplay = () => grid.querySelectorAll("video,audio").forEach((m) => { if (m !== body) m.pause(); });
     const opt = el("div", { class: "opt", title: it.path || "" }, body,
       el("div", { class: "row" }, el("span", { class: "n", text: it.n }), el("span", { class: "v", html: inline(it.label) }),
-        el("button", { class: "tool", type: "button", text: "Bunu seç", onclick: () => {
-          for (const o of grid.children) o.classList.toggle("picked", o === opt);
+        el("button", { class: "tool", type: "button", text: "Bunu seç", onclick: (e) => {
+          const on = opt.classList.toggle("picked");
+          e.currentTarget.textContent = on ? "Seçimi kaldır" : "Bunu seç";
+          const picked = c.items.filter((_, k) => grid.children[k].classList.contains("picked"));
           input.value = input.value.split("\n").filter((l) => !/^Seçim:/.test(l)).join("\n").trimEnd();
-          addLine(`Seçim: ${it.n}. ${it.label.replace(/`|\*\*/g, "")}`); checkFill();
+          if (picked.length) addLine(`Seçim: ${picked.map((x) => `${x.n}. ${x.label.replace(/`|\*\*/g, "")}`).join("; ")}`);
+          else { autosize(); saved.set(draftKey(), input.value); }
+          checkFill();
         } })));
     grid.append(opt);
   }
@@ -239,6 +270,9 @@ function useTask(code) {
   const p = S.guide.stages.flatMap((s) => s.prompts).find((x) => x.code === code);
   if (!p) return;
   S.task = code;
+  // a task with a type sets it; one without (a revision) keeps the user's pick, not an earlier task's
+  const type = TASK_TYPE[code] || TASK_TYPE[p.stage];
+  if (type || S.typeFromTask) { setType(type || "auto"); S.typeFromTask = !!type; }
   input.value = fillTemplate(p.text);
   autosize(); checkFill(); saved.set("draft", input.value);
   $("#taskBtn").textContent = LABEL[code] || p.title;
@@ -261,19 +295,37 @@ function renderTasks() {
 
 function renderAddons() {
   const box = $("#addons"); box.replaceChildren();
+  if (!S.guide) return;
+  $("#addonsTitle").textContent = S.type === "auto" ? "Ek talimatlar" : `Ek talimatlar: ${typeOf(S.type).label}`;
   for (const a of S.guide.addons.filter((x) => x !== PLAN_ADDON)) {
     const id = "ad-" + box.children.length;
+    const off = FOURK.test(a) && !fourK();
     const cb = el("input", { type: "checkbox", id, checked: S.addons.has(a),
-      onchange: (e) => { e.target.checked ? S.addons.add(a) : S.addons.delete(a); saved.set("addons", [...S.addons]); } });
-    box.append(el("label", { for: id }, cb, a));
+      onchange: (e) => { e.target.checked ? S.addons.add(a) : S.addons.delete(a); saved.set(`addons.${S.type}`, [...S.addons]); } });
+    box.append(el("label", { for: id, class: off ? "off" : null, title: off ? "Seçili video 4K değil: bu iş için gönderilmez" : null }, cb, a));
   }
 }
 
 function setPlan(on) {
-  S.plan = on; saved.set("plan", on);
+  S.plan = on; saved.set(`plan.${S.type}`, on);
   $("#planBtn").setAttribute("aria-pressed", String(on));
 }
 $("#planBtn").onclick = () => setPlan(!S.plan);
+
+// The type row on the home screen: picking one brings that type's plan, add-ons and effort.
+function renderTypes() {
+  $("#types").replaceChildren(...TYPES.map((x) => el("button", { class: "type", type: "button", role: "radio",
+    "data-id": x.id, title: x.hint, onclick: () => { S.typeFromTask = false; setType(x.id); } }, x.label)));
+}
+function setType(id) {
+  const t = typeOf(id);
+  S.type = t.id;
+  S.addons = new Set(saved.get(`addons.${t.id}`, []));
+  setPlan(saved.get(`plan.${t.id}`, t.plan));
+  renderAddons(); syncEffort();
+  for (const b of $("#types").children) b.setAttribute("aria-checked", String(b.dataset.id === t.id));
+  $("#cutBtn").hidden = !t.cut || !!S.job;
+}
 
 /* ------------------------------------------------------------------ video */
 const fmtDur = (s) => { s = Math.round(s || 0); const m = Math.floor(s / 60); return m ? `${m}:${String(s % 60).padStart(2, "0")}` : `${s} sn`; };
@@ -299,12 +351,14 @@ async function setVideo(path) {
       }).catch(() => strip.classList.remove("loading"));
     }
     if (S.task && !S.job) useTask(S.task);
+    renderAddons();
   } catch (e) {
     S.video = null; strip.hidden = true; toast(`Açılamadı: ${e.message}`);
   }
 }
 function clearVideo() {
   S.video = null; saved.set("video", null); $("#strip").hidden = true; $("#videoBtn").classList.remove("set");
+  renderAddons();
 }
 
 async function pick(kind) {
@@ -352,7 +406,7 @@ function syncEffort() {
   const sel = $("#effort");
   sel.disabled = !levels.length;
   if (!levels.length) { sel.replaceChildren(el("option", { value: "", text: "Bu modelde yok" })); return; }
-  const want = saved.get("effort", "xhigh");
+  const want = saved.get(`effort.${S.type}`, typeOf(S.type).effort);
   const order = ["low", "medium", "high", "xhigh", "max", "ultra"];
   const fit = levels.includes(want) ? want : levels.filter((x) => order.indexOf(x) <= order.indexOf(want)).pop() || levels[0];
   fillSelect(sel, levels.map((x) => ({ id: x, label: EFFORT_LABEL[x] || x })), fit);
@@ -365,7 +419,7 @@ $("#engine").onchange = (e) => {
 };
 $("#permMode").onchange = (e) => saved.set(key("perm"), e.target.value);
 $("#model").onchange = (e) => { saved.set(key("model"), e.target.value); syncEffort(); };
-$("#effort").onchange = (e) => saved.set("effort", e.target.value);
+$("#effort").onchange = (e) => saved.set(`effort.${S.type}`, e.target.value);
 // An open job's effort, also while it runs: Claude takes it at its next step, Codex next turn.
 function syncJobEffort() {
   const job = S.job, box = $("#effortTool");
@@ -445,7 +499,10 @@ function buildPrompt() {
   let text = input.value.trim();
   const v = S.video;
   if (v && !text.includes(v.display) && !text.includes(v.path)) text += `\n\nKaynak: ${v.display}`;
-  const extra = [S.plan ? PLAN_ADDON : null, cutLine(), ...S.addons].filter(Boolean);
+  const t = typeOf(S.type);
+  const extra = [t.line ? `İş türü: ${t.line}.` : null, S.plan ? PLAN_ADDON : null, t.cut ? cutLine() : null,
+    // only the guide's current add-ons (an update can rename one), 4K only with a 4K source
+    ...[...S.addons].filter((a) => S.guide && S.guide.addons.includes(a) && (!FOURK.test(a) || fourK()))].filter(Boolean);
   if (extra.length) text += "\n\nEk talimatlar:\n" + extra.map((x) => `- ${x}`).join("\n");
   return text;
 }
@@ -497,7 +554,7 @@ async function submit() {
         attachments: files,
         permission_mode: $("#permMode").value, model: $("#model").value || null, effort: $("#effort").value || null,
         engine: engine() });
-      input.value = ""; saved.set("draft", ""); S.task = null;
+      input.value = ""; saved.set("draft", ""); S.task = null; S.typeFromTask = false; setType("auto");
       clearVideo();  // the attachments went with this job: the next new chat starts empty
       S.att = []; saveAtts();
       $("#taskBtn").textContent = "Görev"; $("#taskBtn").classList.remove("set");
@@ -620,6 +677,7 @@ function goHome() {
   $("#thread").replaceChildren();
   input.value = saved.get("draft", ""); input.placeholder = "Ne yapılsın? Örn: bu videoyu Short'a çevir";
   for (const id of COMPOSE_TOOLS) $("#" + id).hidden = false;
+  $("#cutBtn").hidden = !typeOf(S.type).cut;
   $("#effortTool").hidden = true;
   $("#strip").hidden = !S.video; $("#stopBtn").hidden = true; $("#sendBtn").disabled = false;
   autosize(); checkFill(); refreshJobs().catch(() => {}); input.focus();
@@ -689,8 +747,11 @@ function turn(i) {
 }
 // A running turn: the folded step list, and under it a "peek" with Claude's latest note and the
 // step running right now (replaced in place, so the screen shows progress without scrolling).
+// After an answer the same run can go on: a background build or the critic finished and the agent
+// was called again. Its steps open a new block under that answer.
 function stepsOf(t) {
-  if (!t.steps) {
+  if (!t.steps || t.done) {
+    if (t.done) Object.assign(t, { done: false, n: 0 });
     t.sum = el("span", { class: "sum" });
     t.list = el("div", { class: "step-list" });
     t.steps = el("details", { class: "steps live" }, el("summary", {}, t.sum), t.list);
@@ -777,7 +838,8 @@ function render(ev) {
         if (ev.text && !ev.session_id) t.root.insertBefore(el("div", { class: "meta", text: ev.text }), t.steps);
         break;
       }
-      // right under the user's message, above the live steps
+      // right under the user's message, above the live steps (once: a run called again says it too)
+      if (t.root.querySelector(".runinfo")) break;
       t.root.insertBefore(el("div", { class: "runinfo", text: [ev.label, EFFORT_LABEL[S.job && S.job.effort] || ""].filter(Boolean).join(" · ") }), t.steps);
       break;
     case "activity":
@@ -1549,7 +1611,7 @@ for (const b of document.querySelectorAll(".u-acts button")) b.onclick = async (
 };
 
 async function boot() {
-  setPlan(S.plan);
+  renderTypes(); setType("auto");
   renderCut();
   loadStatus();
   try { S.guide = await api("/api/guide"); renderTasks(); renderAddons(); } catch (e) { toast(`Rehber okunamadı: ${e.message}`); }

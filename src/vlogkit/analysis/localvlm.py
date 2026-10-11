@@ -30,7 +30,7 @@ from dataclasses import dataclass
 from itertools import pairwise
 from pathlib import Path
 
-from vlogkit.config import BUILD_DIR, REPO_ROOT
+from vlogkit.config import BUILD_DIR, REPO_ROOT, hf_hub
 from vlogkit.ff import FFmpegError, PathLike, ffmpeg, ffprobe_json
 
 
@@ -86,16 +86,8 @@ def tool_python() -> Path | None:
     return py if py.exists() else None
 
 
-def _hf_hub() -> Path:
-    home = os.environ.get("HF_HUB_CACHE") or os.environ.get("HF_HOME")
-    if home:
-        p = Path(home)
-        return p if p.name == "hub" or os.environ.get("HF_HUB_CACHE") else p / "hub"
-    return Path.home() / ".cache" / "huggingface" / "hub"
-
-
 def model_dir(repo: str) -> Path:
-    return _hf_hub() / f"models--{repo.replace('/', '--')}"
+    return hf_hub() / f"models--{repo.replace('/', '--')}"
 
 
 def _real_files(model_root: Path) -> set[Path]:
@@ -123,7 +115,7 @@ def remove_model_files(repo: str) -> None:
     if not root.exists():
         return
     others = set()
-    for d in _hf_hub().glob("models--*"):
+    for d in hf_hub().glob("models--*"):
         if d != root:
             others |= _real_files(d)
     for f in _real_files(root) - others:

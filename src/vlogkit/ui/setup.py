@@ -3,8 +3,8 @@
 - Agents: is Claude Code / Codex installed, and signed in with a subscription? Installing runs the
   vendor's own installer in the background (Claude Code's native installer, Codex via Homebrew);
   signing in opens Terminal with the login command, because both need a browser round trip.
-- Basics: ffmpeg-full, whisper and its model, aubio (install.sh sets them up; the screen says
-  what is missing and how to fix it).
+- Basics: ffmpeg-full, whisper and its model, aubio. What this Mac already has counts as done and
+  is not installed again; the uninstaller leaves what was here before (`found`).
 - Local video model: optional. Three sizes of the same model (analysis/localvlm.CHOICES); the
   screen shows which fit this Mac's memory, installs one with progress, picks or removes it.
 
@@ -13,7 +13,9 @@ Long installs run in background threads (`tasks`), polled by the studio.
 
 from __future__ import annotations
 
+import contextlib
 import json
+import re
 import shlex
 import shutil
 import subprocess
@@ -22,7 +24,7 @@ import time
 from pathlib import Path
 
 from vlogkit import disk
-from vlogkit.config import tools
+from vlogkit.config import BUILD_DIR, WHISPER_MODEL_HOME, ffmpeg_full, tools
 
 CLAUDE_INSTALL = "set -o pipefail; curl -fsSL https://claude.ai/install.sh | bash"  # offline: fails
 AUTH_TTL = 30.0  # s: signed-in answers are reused this long (the screen polls)
@@ -91,6 +93,7 @@ def agents(fresh: bool = False) -> dict[str, dict]:
 # install.sh only puts the studio on the Mac (uv, vlogkit, Python: ~150 MB, a minute or two). The
 # heavy parts come from the studio's setup screen, each with its size, one click each or all.
 BREW_PACKAGES = ("ffmpeg-full", "whisper-cpp", "aubio", "terminal-notifier")
+FOUND = BUILD_DIR / "ui" / "found.json"  # what this Mac had at the first setup check
 HOMEBREW_INSTALL = (
     '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
     " && (grep -qs 'brew shellenv' ~/.zprofile || echo 'eval \"$(/opt/homebrew/bin/brew shellenv)\"'"
@@ -108,6 +111,39 @@ def is_admin() -> bool:
     return r.returncode == 0
 
 
+def tool_status() -> dict[str, bool]:
+    """Which of the Homebrew packages this Mac already has, by what vlogkit runs (any install:
+    Homebrew, MacPorts, a build of its own). terminal-notifier is optional (notifications)."""
+    from vlogkit.ui.notify import notifier
+
+    t = tools()
+    return {
+        "ffmpeg-full": ffmpeg_full(t.ffmpeg),  # plain ffmpeg lacks filters vlogkit uses
+        "whisper-cpp": bool(t.whisper_cli),
+        "aubio": bool(t.aubio),
+        "terminal-notifier": bool(notifier()),
+    }
+
+
+def found() -> set[str]:
+    """Packages and models this Mac had before vlogkit installed anything (written at the first
+    check): the setup does not install them again and the uninstaller leaves them."""
+    try:
+        return set(json.loads(FOUND.read_text()))
+    except (OSError, ValueError):
+        pass
+    from vlogkit.analysis import localvlm
+
+    have = {name for name, ok in tool_status().items() if ok}
+    if WHISPER_MODEL_HOME.exists():
+        have.add("speech")
+    have |= {c.repo for c in localvlm.CHOICES.values() if localvlm.model_cached(c.repo)}
+    with contextlib.suppress(OSError):
+        FOUND.parent.mkdir(parents=True, exist_ok=True)
+        FOUND.write_text(json.dumps(sorted(have)))
+    return have
+
+
 def _library_done() -> tuple[int, int]:
     from vlogkit import assets
 
@@ -118,31 +154,43 @@ def _library_done() -> tuple[int, int]:
 def steps() -> list[dict]:
     """The setup checklist in order; each says whether it is done and what installing it takes."""
     t = tools()
+    found()  # first check: remember what was here before
     have, total = _library_done()
+    status = tool_status()
+    need = [k for k in TOOLS if not status[k]]
+    tools_done = not need
+    speech = t.whisper_model
     rows = [
         {
             "id": "homebrew",
             "label": "Apple geliştirici araçları ve Homebrew",
-            "detail": "Video araçlarının kurulduğu yer. Terminal açılır, Mac şifren sorulur.",
+            "detail": "Video araçları bu Mac'te var: gerekmiyor."
+            if tools_done and not _brew()
+            else "Video araçlarının kurulduğu yer. Terminal açılır, Mac şifren sorulur.",
             "size": "~2 GB",
-            "done": bool(_brew()),
+            "done": bool(_brew()) or tools_done,
             "terminal": True,
             "admin": is_admin(),
         },
         {
             "id": "tools",
             "label": "Video ve ses araçları",
-            "detail": "ffmpeg, whisper, aubio (bağımlılıklarıyla ~115 paket)",
-            "size": "~1,5 GB",
-            "done": bool(t.ffmpeg and t.whisper_cli and t.aubio),
+            "detail": _tools_detail(status, need),
+            "size": "~1,5 GB" if "ffmpeg-full" in need else "~100 MB",
+            "done": tools_done,
             "needs": "homebrew",
         },
         {
             "id": "speech",
             "label": "Konuşma modeli",
-            "detail": "Konuşmayı internetsiz yazıya döker (whisper large-v3-turbo)",
+            "detail": "Konuşmayı internetsiz yazıya döker (whisper large-v3-turbo)"
+            + (
+                f"; bu Mac'te var: {_home(speech)}"
+                if speech != WHISPER_MODEL_HOME and speech.exists()
+                else ""
+            ),
             "size": "1,5 GB",
-            "done": t.whisper_model.exists(),
+            "done": speech.exists(),
         },
         {
             "id": "library",
@@ -161,11 +209,48 @@ def steps() -> list[dict]:
     return rows
 
 
-def _brew_total() -> int:
-    """How many formulae the tools step pours (for its progress)."""
-    brew = _brew()
-    r = subprocess.run([brew, "deps", "--union", *BREW_PACKAGES], capture_output=True, text=True)
-    return len(r.stdout.split()) + len(BREW_PACKAGES)
+TOOLS = {"ffmpeg-full": "ffmpeg-full", "whisper-cpp": "whisper", "aubio": "aubio"}  # required
+
+
+def _home(p: Path) -> str:
+    return str(p).replace(str(Path.home()), "~", 1)
+
+
+def _tools_detail(status: dict[str, bool], need: list[str]) -> str:
+    if not need:
+        return "ffmpeg-full, whisper, aubio: bu Mac'te var"
+    if len(need) == len(TOOLS):
+        return "ffmpeg, whisper, aubio (bağımlılıklarıyla ~115 paket)"
+    have = ", ".join(TOOLS[k] for k in TOOLS if status[k])
+    note = "; ffmpeg var ama ffmpeg-full değil" if "ffmpeg-full" in need and tools().ffmpeg else ""
+    return f"Bu Mac'te var: {have}. Eksik: {', '.join(TOOLS[k] for k in need)}{note}"
+
+
+def _brew_plan(brew: str, packages: list[str]) -> int:
+    """How many formulae `brew install packages` pours: the packages and their dependencies this
+    Mac does not have yet (for the progress)."""
+    deps = subprocess.run([brew, "deps", "--union", *packages], capture_output=True, text=True)
+    have = subprocess.run([brew, "list", "--formula", "-1"], capture_output=True, text=True)
+    return len({*packages, *deps.stdout.split()} - set(have.stdout.split()))
+
+
+# Homebrew 4.5+ fetches every bottle first (one "✔︎ Bottle name (version)" line each, while the
+# download, most of the time, runs), then pours them one by one ("==> Pouring ..."); older ones
+# fetch and pour per formula ("==> Fetching name"). Downloads are 70 % of the bar, pours 30 %.
+_FETCHED = re.compile(r"^(?:✔\S*\s+Bottle\s+(?!Manifest)\S|==> Fetching \S+$)")
+
+
+def brew_progress(task: dict, line: str, total: int) -> None:
+    line = line.strip()
+    if _FETCHED.match(line):
+        task["fetched"] = task.get("fetched", 0) + 1
+    elif line.startswith("==> Pouring"):
+        task["poured"] = task.get("poured", 0) + 1
+    else:
+        return
+    n = max(1, total)
+    done = 0.7 * min(1.0, task.get("fetched", 0) / n) + 0.3 * min(1.0, task.get("poured", 0) / n)
+    task["progress"] = min(0.99, max(task.get("progress", 0.0), done))
 
 
 def _download(name: str, url: str, dest: Path) -> None:
@@ -212,9 +297,12 @@ def run_step(step: str) -> None:
         _terminal(HOMEBREW_INSTALL)
     elif step == "tools":
         _start_tools(then_library=False)
-    elif step == "speech":
-        dest = tools().whisper_model
-        _run_task("step:speech", [], after=lambda: _download("step:speech", WHISPER_URL, dest))
+    elif step == "speech":  # always into our own place (a copy found elsewhere is not ours)
+        _run_task(
+            "step:speech",
+            [],
+            after=lambda: _download("step:speech", WHISPER_URL, WHISPER_MODEL_HOME),
+        )
     elif step == "library":
         _, total = _library_done()
         cmd = [sys.executable, "-m", "vlogkit.cli", "assets", "fetch"]
@@ -230,17 +318,19 @@ def _start_tools(then_library: bool) -> None:
     brew = _brew()
     if not brew:
         raise RuntimeError("Homebrew yok: önce ilk adım")
-    total = _brew_total()
-
-    def pours(line: str) -> None:
-        if line.startswith("==> Pouring"):
-            with _lock:
-                t = tasks["step:tools"]
-                t["poured"] = t.get("poured", 0) + 1
-                t["progress"] = min(0.99, t["poured"] / max(1, total))
-
+    status = tool_status()
+    packages = [p for p in BREW_PACKAGES if not status[p]]  # only what this Mac lacks
     after = (lambda: run_step("library")) if then_library else None
-    _run_task("step:tools", [[brew, "install", *BREW_PACKAGES]], after=after, on_line=pours)
+    if not packages:
+        _run_task("step:tools", [], after=after)
+        return
+    total = _brew_plan(brew, packages)
+
+    def on_line(line: str) -> None:
+        with _lock:
+            brew_progress(tasks["step:tools"], line, total)
+
+    _run_task("step:tools", [[brew, "install", *packages]], after=after, on_line=on_line)
 
 
 def _terminal(command: str) -> None:

@@ -33,6 +33,7 @@
 
     <section class="dock" id="dock">
       <h1 class="hello" id="hello">Ne kurgulayalım?</h1>
+      <div class="types" id="types" role="radiogroup" aria-label="İş türü"></div>
 
       <div class="queue" id="queue" hidden></div>
       <form class="composer" id="composer" autocomplete="off">
@@ -103,7 +104,9 @@
   <label class="field">Efor
     <select id="effort"></select>
   </label>
-  <div class="field">Ek talimatlar<div class="checks" id="addons"></div></div>
+  <div class="field"><span id="addonsTitle">Ek talimatlar</span><div class="checks" id="addons"></div>
+    <small class="hint">Önce plan, efor ve ekler iş türüne göre ayrı saklanır (yazma kutusunun üstündeki tür).</small>
+  </div>
 </div>
 <div class="settings" id="settings" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" hidden>
   <div class="settings-card">

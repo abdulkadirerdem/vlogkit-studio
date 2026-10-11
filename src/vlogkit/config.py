@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import subprocess
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
@@ -37,9 +38,16 @@ LIBRARY_DIR = _env_path("VLOGKIT_LIBRARY", ASSETS_DIR / "library")
 BUILD_DIR = _env_path("VLOGKIT_BUILD", REPO_ROOT / "build")
 VLOGS_ROOT = _env_path("VLOGKIT_VLOGS_ROOT", REPO_ROOT.parent)
 
-# Homebrew's plain `ffmpeg` formula lacks libass/drawtext/whisper -> prefer `ffmpeg-full`.
-_FFMPEG_FULL_BIN = Path("/opt/homebrew/opt/ffmpeg-full/bin")
-_WHISPER_MODEL = Path.home() / ".cache" / "whisper-cpp" / "ggml-large-v3-turbo.bin"
+# Homebrew's plain `ffmpeg` formula lacks libass/drawtext/whisper -> prefer `ffmpeg-full` (keg-only:
+# not on PATH; Apple Silicon and Intel prefixes).
+_FFMPEG_FULL_BINS = (
+    Path("/opt/homebrew/opt/ffmpeg-full/bin"),
+    Path("/usr/local/opt/ffmpeg-full/bin"),
+)
+FFMPEG_FILTERS = ("drawtext", "scdet", "loudnorm")  # what plain ffmpeg lacks
+WHISPER_MODEL_NAME = "ggml-large-v3-turbo.bin"
+# where the setup screen downloads the speech model (`tools().whisper_model` may be a copy elsewhere)
+WHISPER_MODEL_HOME = Path.home() / ".cache" / "whisper-cpp" / WHISPER_MODEL_NAME
 _CLAUDE_HOME_BIN = Path.home() / ".local" / "bin"  # native installer puts `claude` here
 # The desktop shortcut runs with a minimal PATH: also look where npm-via-mise and the ChatGPT app
 # install Codex.
@@ -49,12 +57,32 @@ _CODEX_FALLBACKS = (
 )
 
 
-def _tool(env: str, name: str, preferred_dir: Path | None = None) -> str | None:
+def _tool(env: str, name: str, preferred: tuple[Path, ...] = ()) -> str | None:
     if os.environ.get(env):
         return os.environ[env]
-    if preferred_dir and (preferred_dir / name).exists():
-        return str(preferred_dir / name)
+    for d in preferred:
+        if (d / name).exists():
+            return str(d / name)
     return shutil.which(name)
+
+
+def hf_hub() -> Path:
+    """Hugging Face's download cache (HF_HUB_CACHE, HF_HOME/hub or ~/.cache/huggingface/hub)."""
+    home = os.environ.get("HF_HUB_CACHE") or os.environ.get("HF_HOME")
+    if home:
+        p = Path(home)
+        return p if p.name == "hub" or os.environ.get("HF_HUB_CACHE") else p / "hub"
+    return Path.home() / ".cache" / "huggingface" / "hub"
+
+
+def _whisper_model() -> Path:
+    """Ours, or a copy this Mac already has: a Hugging Face download of whisper.cpp's models (the
+    same file setup fetches). A partial download never has the final name."""
+    if WHISPER_MODEL_HOME.exists():
+        return WHISPER_MODEL_HOME
+    snaps = hf_hub() / "models--ggerganov--whisper.cpp" / "snapshots"
+    found = [p for p in sorted(snaps.glob(f"*/{WHISPER_MODEL_NAME}")) if p.exists()]
+    return found[-1] if found else WHISPER_MODEL_HOME
 
 
 @dataclass(frozen=True)
@@ -71,15 +99,39 @@ class Tools:
 @cache
 def tools() -> Tools:
     return Tools(
-        ffmpeg=_tool("VLOGKIT_FFMPEG", "ffmpeg", _FFMPEG_FULL_BIN),
-        ffprobe=_tool("VLOGKIT_FFPROBE", "ffprobe", _FFMPEG_FULL_BIN),
+        ffmpeg=_tool("VLOGKIT_FFMPEG", "ffmpeg", _FFMPEG_FULL_BINS),
+        ffprobe=_tool("VLOGKIT_FFPROBE", "ffprobe", _FFMPEG_FULL_BINS),
         whisper_cli=_tool("VLOGKIT_WHISPER_CLI", "whisper-cli"),
-        whisper_model=_env_path("VLOGKIT_WHISPER_MODEL", _WHISPER_MODEL),
+        whisper_model=_env_path("VLOGKIT_WHISPER_MODEL", _whisper_model()),
         aubio=_tool("VLOGKIT_AUBIO", "aubio"),
-        claude=_tool("VLOGKIT_CLAUDE", "claude", _CLAUDE_HOME_BIN),
+        claude=_tool("VLOGKIT_CLAUDE", "claude", (_CLAUDE_HOME_BIN,)),
         codex=_tool("VLOGKIT_CODEX", "codex")
         or next((str(p) for p in _CODEX_FALLBACKS if p.exists()), None),
     )
+
+
+@cache
+def _filters(ffmpeg: str, mtime: float) -> str:
+    try:
+        r = subprocess.run(
+            [ffmpeg, "-hide_banner", "-filters"], capture_output=True, text=True, timeout=20
+        )
+        return r.stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+
+
+def ffmpeg_full(ffmpeg: str | None) -> bool:
+    """Has this ffmpeg the filters vlogkit needs (`FFMPEG_FILTERS`; Homebrew's plain `ffmpeg`
+    has not)? Asked once per binary (path + modification time)."""
+    if not ffmpeg:
+        return False
+    try:
+        mtime = Path(ffmpeg).stat().st_mtime
+    except OSError:
+        return False
+    out = _filters(ffmpeg, mtime)
+    return all(f" {n} " in out for n in FFMPEG_FILTERS)
 
 
 def require(tool: str | None, name: str) -> str:
