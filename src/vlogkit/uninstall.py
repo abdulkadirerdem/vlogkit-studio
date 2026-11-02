@@ -39,7 +39,9 @@ KEEP_FROM_APP = (
 
 
 def allowed() -> bool:
-    return (REPO_ROOT / ".release").exists()
+    import sys
+
+    return (REPO_ROOT / ".release").exists() and sys.platform != "win32"  # Windows: by hand for now
 
 
 def _size(path: Path) -> int:

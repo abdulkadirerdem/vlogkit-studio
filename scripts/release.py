@@ -30,7 +30,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 REPO = "abdulkadirerdem/vlogkit-studio"
 DESCRIPTION = "vlogkit Stüdyo: Claude Code ya da Codex ile video kurgusu (Apple Silicon Mac)"
-DROP = ("tests", "recipes", ".playwright-mcp", "assets/vocab.txt", "scripts/private-terms.txt")
+DROP = ("tests", "recipes", ".playwright-mcp", "assets/vocab.txt", "scripts/private-terms.txt", ".github")  # CI runs the tests
 FIRST_PUBLIC = (0, 14, 0)  # the public CHANGELOG starts here
 TERMS = ROOT / "scripts" / "private-terms.txt"
 KEEP_PROJECT = "_template"
@@ -131,6 +131,8 @@ def filter_snapshot(snap: Path, version: str, repo_url: str) -> list[str]:
     with (snap / ".gitignore").open("a", encoding="utf-8") as f:
         f.write(IGNORE_EXTRA)
     shutil.copy2(snap / "scripts" / "install.sh", snap / "install.sh")
+    if (snap / "scripts" / "install.ps1").exists():  # Windows: irm .../install.ps1 | iex
+        shutil.copy2(snap / "scripts" / "install.ps1", snap / "install.ps1")
     public = snap / "docs" / "public"  # the release repo's front page (logo, install, sizes)
     if (public / "README.md").exists():
         shutil.move(public / "README.md", snap / "README.md")

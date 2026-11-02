@@ -83,6 +83,12 @@ def _git(*args: str, timeout: float = 60) -> str:
 def has_git() -> bool:
     """Apple's developer tools are installed. Without them /usr/bin/git is only a stub that pops
     up an install dialog, so it is never called before this says yes."""
+    import sys
+
+    if sys.platform == "win32":  # Git for Windows (a setup row)
+        import shutil
+
+        return bool(shutil.which("git"))
     try:
         return subprocess.run(["xcode-select", "-p"], capture_output=True).returncode == 0
     except OSError:

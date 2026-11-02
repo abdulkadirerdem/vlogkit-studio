@@ -2,6 +2,21 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Sürümleme: [SemVer](https://semver.org/).
 
+## [0.18.0] - 2026-11-02
+
+### Eklendi
+- **3B animasyon (`vlogkit 3d`, `scene3d/`, `docs/3d.md`):** "Peki ya...?" tarzı çekimsiz dikey videolar. Ajan yalnız `projects/<proje>/scene.json` yazar (beat'ler: anlatım cümlesi, mekân, oyuncular ve hareketleri, kamera, sayaç, efekt); Blender kitten render eder, vlogkit sayaç, altyazı, bitiş kartı ve sesi ekler, `vlogkit build` ile derlenir. Komutlar: `3d new`, `plan` (seslendirip beat zamanlarını yazar), `preview -t` (tek kare render + grafikler), `kit`, `voice` (sesleri "Seçim:" kartıyla dinletir), `status`, `fetch`, `install-voice`.
+  - Gerçekçi iskeletli karakterler (Quaternius Universal Base Characters, CC0) ve hareket kaydı kalitesinde 43 animasyon (Universal Animation Library, CC0); kıyafetler karakterin gövdesinden üretilir (tişört, kapüşonlu, önlük, takım; kot, şort...), spor ayakkabı, ten ve saç rengi, boy ve yapı: her karakter farklı. Kütüphanede olmayan jestler (şok, el sallama, işaret, omuz silkme...) kol kemikleri hedeflenerek animasyonun üstüne katman olarak eklenir.
+  - Mekânlar: oda, banyo, sınıf, mutfak, ofis, spor salonu, sokak, şehir, park, uzay, stüdyo fonu, Dünya; Poly Haven gökyüzü ışıkları (HDRI) ve gerçek dokular (CC0). Gerçek modeller: binalar ve sokak eşyaları (Quaternius Downtown City), ağaçlar ve bitkiler (Stylized Nature), arabalar, Poly Haven mobilyaları; Dünya NASA Blue Marble ve atmosfer ışıltısıyla. Sokakta binaların zemin katında Türkçe dükkân tabelaları. Yazılı eşyalar (gazete, tabela, takvim, ekran...) kitin kendi çizimi. Kamera: 10 kadraj, 11 hareket.
+  - Zıplama gerçek fizikle: kalkış klibinin sonunda havalanır, yükseklikten hesaplanan süre boyunca parabol çizer, iniş klibinin ilk karesinde yere değer.
+  - Doğrulayıcı tüm hataları bir kerede, izin verilen adlarla yazar. Değişmeyen beat yeniden render edilmez. `VLOGKIT_3D_ENGINE=cycles` (GPU'suz), `VLOGKIT_3D_RES=0.5` (hızlı taslak).
+  - Eski oyuncak karakterler `"style": "toon"` ile seçilebilir.
+- **Yerel Türkçe seslendirme (`speech/`):** Pocket TTS Turkish (yerel, ücretsiz, ticari kullanım serbest; 6 ses, duygu ayarı, izinli ses kopyalama), kendi `uv tool` ortamında. Süreler sesin kendisinden ölçülür. Sistem sesleri (Yelda, Tolga) robotik olduğu için kendiliğinden seçilmez.
+- **Stüdyo:** "3B animasyon" iş türü; kurulum ekranında isteğe bağlı üç satır: Blender (Homebrew / winget), 3B karakter ve mekân kütüphanesi (~160 MB, `vlogkit-studio`'nun `3d-library-1` sürümünden, SHA-256 doğrulamalı), Türkçe ses modeli. İsteğe bağlı satırlar "hazır" durumunu ve "Hepsini kur"u etkilemez.
+- **Kadraj dışı yazı uyarısı (`scene3d/framing.py`, `bpy_kit/framecheck.py`):** `3d preview` karelerin altına, `build` ise her planın ortasında, kadraja sığmayan sahne yazılarını (tabela, takvim, tahta, afiş) `!` ile yazıyor: yüzde kaçı dışarıda ve hangi kenardan. Önceden ancak kareye bakınca fark ediliyordu.
+- **Duygu adları (`speech/tts.py`):** `voice.emotion` adları ses modelinin kendi etiketlerine çevriliyor (`notr` → nötr, `uzgun` → üzgün, `heyecanli` → mutlu; `saskin` eklendi). Yanlış duygu ya da ses adı artık render başlamadan doğrulayıcıda görünüyor (önceden model çalışırken hata veriyordu).
+- **Windows 10 / 11 (`winsupport.py`, `install.ps1`):** Stüdyo ve 3B animasyon işleri: PowerShell kurulum satırı, winget ile FFmpeg ve Git, masaüstü ve Başlat menüsü kısayolu, dosya seçici, Explorer'da göster, iş sürerken uyumama, iş ağacını durdurma, her Python sürecinde UTF-8, Windows yollarının sohbette önizlenmesi, Segoe emoji. Gerçek bir Windows makinesinde otomatik test (`.github/workflows/windows-3d.yml`). Apple'a özel analiz araçları Mac'te kalır.
+
 ## [0.17.0] - 2026-10-11
 
 ### Eklendi

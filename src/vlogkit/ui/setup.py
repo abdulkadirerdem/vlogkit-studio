@@ -19,6 +19,7 @@ import re
 import shlex
 import shutil
 import subprocess
+import sys
 import threading
 import time
 from pathlib import Path
@@ -103,6 +104,10 @@ WHISPER_URL = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-la
 
 
 def is_admin() -> bool:
+    if sys.platform == "win32":
+        from vlogkit.winsupport import is_admin as win_admin
+
+        return win_admin()
     import getpass
 
     r = subprocess.run(
@@ -153,6 +158,17 @@ def _library_done() -> tuple[int, int]:
 
 def steps() -> list[dict]:
     """The setup checklist in order; each says whether it is done and what installing it takes."""
+    if sys.platform == "win32":  # winget instead of Homebrew; the 3D rows as on macOS
+        from vlogkit import winsupport
+        from vlogkit.scene3d import setup as scene3d_setup
+
+        rows = winsupport.setup_rows(winsupport.tool_status(), _library_done()) + scene3d_setup.rows()
+        done = {r["id"]: r["done"] for r in rows}
+        for r in rows:
+            r["ready"] = not r.get("needs") or done[r["needs"]]
+            task = tasks.get(f"step:{r['id']}")
+            r["task"] = {k: task.get(k) for k in ("status", "progress", "error")} if task else None
+        return rows
     t = tools()
     found()  # first check: remember what was here before
     have, total = _library_done()
@@ -201,6 +217,9 @@ def steps() -> list[dict]:
             "needs": "tools",
         },
     ]
+    from vlogkit.scene3d import setup as scene3d_setup  # optional rows: Blender, voice model
+
+    rows += scene3d_setup.rows()
     done = {r["id"]: r["done"] for r in rows}
     for r in rows:
         r["ready"] = not r.get("needs") or done[r["needs"]]
@@ -278,6 +297,13 @@ def run_step(step: str) -> None:
     from vlogkit.config import REPO_ROOT
 
     rows = {r["id"]: r for r in steps()}
+    if sys.platform == "win32" and step == "all":
+        from vlogkit import winsupport
+
+        for sid in ("ffmpeg", "git"):
+            if not rows[sid]["done"] and (tasks.get(f"step:{sid}") or {}).get("status") != "running":
+                winsupport.run_step(sid, _run_task)
+        return
     if step == "all":
         if not rows["speech"]["done"]:
             run_step("speech")
@@ -291,6 +317,16 @@ def run_step(step: str) -> None:
         raise ValueError(f"bilinmeyen adım: {step}")
     if not row["ready"]:
         raise RuntimeError("önce bir önceki adımı tamamla")
+    if sys.platform == "win32":
+        from vlogkit import winsupport
+
+        if winsupport.run_step(step, _run_task):
+            return
+    if row.get("optional"):  # the 3D rows (scene3d/setup.py)
+        from vlogkit.scene3d import setup as scene3d_setup
+
+        scene3d_setup.run(step, _run_task)
+        return
     if step == "homebrew":
         if not row["admin"]:
             raise RuntimeError("Homebrew için bu Mac'te yönetici hesabı gerekli")
@@ -335,6 +371,11 @@ def _start_tools(then_library: bool) -> None:
 
 def _terminal(command: str) -> None:
     """Run a command in a new Terminal window (it needs the user: a password, a browser)."""
+    if sys.platform == "win32":
+        from vlogkit.winsupport import terminal
+
+        terminal(command)
+        return
     cmd = command.replace("\\", "\\\\").replace('"', '\\"')
     subprocess.run(
         [
@@ -357,8 +398,10 @@ def _run_task(
         log: list[str] = []
         try:
             for cmd in steps:
+                win = sys.platform == "win32"  # no console windows; UTF-8 output
                 proc = subprocess.Popen(
-                    cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=cwd
+                    cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=cwd,
+                    **({"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000} if win else {}),
                 )
                 assert proc.stdout
                 for line in proc.stdout:
@@ -397,6 +440,11 @@ def _run_task(
 
 
 def install_agent(name: str) -> None:
+    if sys.platform == "win32" and name == "claude":
+        from vlogkit.winsupport import claude_install_cmd
+
+        _run_task("agent:claude", [claude_install_cmd()])
+        return
     if name == "claude":
         _run_task("agent:claude", [["/bin/bash", "-c", CLAUDE_INSTALL]])
     elif name == "codex":
@@ -413,6 +461,10 @@ def login_command(name: str) -> str:
     exe = t.claude if name == "claude" else t.codex if name == "codex" else None
     if not exe:
         raise RuntimeError(f"{name} kurulu değil")
+    if sys.platform == "win32":  # PowerShell runs a quoted path with &
+        from vlogkit.winsupport import ps_quote
+
+        return f"& {ps_quote(exe)} auth login" if name == "claude" else f"& {ps_quote(exe)} login"
     return f"{shlex.quote(exe)} auth login" if name == "claude" else f"{shlex.quote(exe)} login"
 
 

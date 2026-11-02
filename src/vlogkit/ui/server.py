@@ -144,6 +144,10 @@ def unique_path(p: Path) -> Path:
 
 def pick(kind: str) -> str | None:
     """Native macOS open dialog (runs as the logged-in user)."""
+    if sys.platform == "win32":
+        from vlogkit.winsupport import pick as win_pick
+
+        return win_pick(kind, VLOGS_ROOT)
     loc = f'default location (POSIX file "{VLOGS_ROOT}")'
     script = (
         f'POSIX path of (choose folder with prompt "Vlog klasörü seç" {loc})'
@@ -570,7 +574,12 @@ def make_handler(app: App) -> type[BaseHTTPRequestHandler]:
                     p = Path(self._body().get("path", "")).expanduser()
                     if not p.exists() or not app.media_ok(p):
                         raise FileNotFoundError(p)
-                    subprocess.run(["open", "-R", str(p)], check=False)
+                    if sys.platform == "win32":
+                        from vlogkit.winsupport import reveal
+
+                        reveal(p)
+                    else:
+                        subprocess.run(["open", "-R", str(p)], check=False)
                     return self._json({"ok": True})
                 case ("GET", ["setup"]):
                     from vlogkit import update

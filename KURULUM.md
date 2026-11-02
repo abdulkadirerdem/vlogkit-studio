@@ -28,8 +28,21 @@ Stüdyo ilk açıldığında kurulum ekranı çıkar. Her satırda ne olduğu ve
 | Konuşma modeli | 1,5 GB | **İndir** |
 | Müzik ve ses kütüphanesi | ~90 MB | **İndir** |
 | Yapay zekâ ajanı: Claude Code ya da Codex | ~0,2 GB | **Kur**, sonra **Giriş yap**: Terminal ve tarayıcı açılır, hesabınla onayla |
+| İsteğe bağlı, 3B animasyon için: Blender, 3B kütüphane, Türkçe ses modeli | ~1 GB + 0,16 GB + 1,2 GB | **Kur** / **İndir** (Homebrew ile Blender) |
 
 İlk satırdan sonra **Hepsini kur** kalanları sırayla kurar. Mac'te zaten olan araçlar (ör. ffmpeg-full, whisper) ve Hugging Face'ten indirilmiş konuşma modeli "Kurulu" görünür, yeniden kurulmaz; yalnız eksikler kurulur. Hepsi bitince ekran "Hazır" der. Sonraki seferlerde masaüstündeki **vlogkit Stüdyo**'ya çift tıklaman yeter.
+
+## Windows
+
+Windows 10 / 11 (64 bit). PowerShell'i aç (Başlat > "PowerShell"), yapıştır, Enter:
+
+```powershell
+irm https://raw.githubusercontent.com/abdulkadirerdem/vlogkit-studio/main/install.ps1 | iex
+```
+
+Stüdyo tarayıcıda açılır, masaüstüne ve Başlat menüsüne **vlogkit Stüdyo** eklenir. Kurulum ekranında: Video araçları (FFmpeg, winget ile), Git for Windows (Claude Code'un komut kabuğu), müzik kütüphanesi, Blender, 3B kütüphane, Türkçe ses modeli ve Claude Code (**Kur**, sonra **Giriş yap**: PowerShell penceresi açılır, tarayıcıda onayla). winget yoksa Microsoft Store'dan "App Installer"ı kur.
+
+Windows'ta bugün Stüdyo ve 3B animasyon işleri çalışır. Ham çekim analizindeki Apple'a özel araçlar (yüz/plaka gizleme, arka plan değiştirme, Apple ile büyütme ve yavaş çekim, yerel video modeli) yalnız Mac'te. Güncellemek için kurulum satırını tekrar çalıştır.
 
 ## Kullanım
 

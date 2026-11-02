@@ -21,8 +21,16 @@ Terminal'i aç (⌘ + boşluk, "Terminal" yaz), bu satırı yapıştır ve Enter
 
 Bu satır yalnız Stüdyo'yu kurar (~150 MB, bir iki dakika, şifre sormaz) ve tarayıcıda açar. Video araçları, konuşma modeli, müzik kütüphanesi ve yapay zekâ ajanı Stüdyo'nun kurulum ekranından, boyutları görünerek tek tıkla kurulur. Adım adım anlatım: **[KURULUM.md](KURULUM.md)**.
 
+**Windows 10 / 11:** PowerShell'i aç (Başlat > "PowerShell"), bu satırı yapıştır ve Enter'a bas:
+
+```powershell
+irm https://raw.githubusercontent.com/abdulkadirerdem/vlogkit-studio/main/install.ps1 | iex
+```
+
+Windows'ta bugün Stüdyo ve **3B animasyon** işleri çalışır; ham çekim analizi araçlarının bir kısmı (yüz gizleme, arka plan değiştirme, yerel video modeli) Apple'ın çerçevelerini kullandığı için yalnız Mac'te.
+
 Gerekenler:
-- Apple Silicon bir Mac (M1 ve sonrası), macOS 14 ya da sonrası
+- Apple Silicon bir Mac (M1 ve sonrası), macOS 14 ya da sonrası; ya da Windows 10 / 11 (64 bit)
 - Claude Pro / Max ya da ChatGPT Plus / Pro aboneliği (kurgu bu abonelikle yapılır, ayrıca ücret yok)
 
 ## Neler yapar
@@ -32,6 +40,7 @@ Gerekenler:
 - Telifsiz müzik adaylarını sahnenin altında dinletir; seçimi sen yaparsın.
 - Videonun altındaki plan şeridinden bir anı seçip yorum yazarsın, düzeltmeyi ajan yapar.
 - Her videonun yanına kullandığı müziklerin lisansını ve telif itiraz metnini koyar.
+- **3B animasyon ("Peki ya...?" videoları):** konuyu yazarsın; ajan hesabı yapar, senaryoyu yazar, Blender'da gerçekçi iskeletli karakterlerle sahneleri kurar, yerel Türkçe sesle seslendirir, sayaç ve altyazıyla dikey video çıkarır. Çekim gerekmez.
 
 Videoların bilgisayarından çıkmaz: aboneliğindeki yapay zekâya yalnız yazdıkların, ajanın baktığı kareler ve konuşma dökümleri gider.
 
@@ -48,6 +57,8 @@ Videoların bilgisayarından çıkmaz: aboneliğindeki yapay zekâya yalnız yaz
 | **Toplam** | | **~5,5 GB** | (geliştirici araçları varsa ~3,5 GB) |
 
 Mac'inde zaten olan parçalar (Homebrew, ffmpeg-full, whisper, aubio, Hugging Face'ten indirilmiş konuşma modeli) kurulum ekranında "Kurulu" görünür ve yeniden indirilmez.
+
+İsteğe bağlı **3B animasyon** parçaları (Ayarlar > Kurulum): Blender ~1 GB, 3B karakter ve mekân kütüphanesi ~0,16 GB (CC0: Quaternius, Poly Haven), Türkçe ses modeli ~1,2 GB (Pocket TTS, yerel ve ücretsiz).
 
 İsteğe bağlı **yerel video modeli** (ham çekimi parça parça izler; Ayarlar > Yerel model): Qwen3.5 2B ~2,4 GB, 4B ~3,7 GB, 9B ~6,6 GB. Mac'inin belleğine uymayan kurulamaz; uygun olanın yanında "önerilen" yazar.
 

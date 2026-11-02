@@ -15,6 +15,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import sys
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
@@ -63,6 +64,12 @@ def _tool(env: str, name: str, preferred: tuple[Path, ...] = ()) -> str | None:
     for d in preferred:
         if (d / name).exists():
             return str(d / name)
+    if sys.platform == "win32":  # name.exe, and where winget links its tools (a console opened
+        from vlogkit.winsupport import winget_links  # before the install has no PATH to them)
+
+        for d in (*preferred, winget_links()):
+            if (d / f"{name}.exe").exists():
+                return str(d / f"{name}.exe")
     return shutil.which(name)
 
 

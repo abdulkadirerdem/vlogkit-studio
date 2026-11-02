@@ -1,0 +1,21 @@
+{
+  "title": "Peki ya ...?",
+  "output": "3d/yeni-proje",
+  "voice": {"engine": "auto", "voice": "male_1"},
+  "quality": "normal",
+  "cast": {
+    "kahraman": {"body": "adult", "shirt": "#f2b134", "pants": "#35507a", "hair": "short", "hair_color": "#3b2a20"}
+  },
+  "hud": {"label": "SAYAÇ"},
+  "beats": [
+    {
+      "say": "Peki ya [bir sabah] her şey değişseydi?",
+      "set": "room",
+      "actors": [{"who": "kahraman", "at": [0, 0], "face": "surprised", "do": "shock"}],
+      "camera": {"frame": "full", "move": "push"},
+      "hud": {"value": 1},
+      "sfx": ["whoosh"]
+    }
+  ],
+  "end": {"tag": "PART 2 İÇİN", "title": "TAKİPTE KAL", "seconds": 1.2}
+}

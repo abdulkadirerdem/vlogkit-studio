@@ -14,6 +14,7 @@ The module-level constants (W, H, CAP_X, ...) are the vertical layout, kept for 
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
@@ -143,7 +144,15 @@ def cjk_font(weight: str, size: int) -> ImageFont.FreeTypeFont:
 
 @cache
 def emoji_img(ch: str) -> Image.Image:
-    f = ImageFont.truetype(EMOJI_FONT, 160)
+    if sys.platform == "win32":  # Segoe UI Emoji (COLR): any size, the look differs from Apple's
+        from vlogkit.winsupport import emoji_font
+
+        path = emoji_font()
+        if not path:
+            return Image.new("RGBA", (1, 1), (0, 0, 0, 0))
+        f = ImageFont.truetype(path, 136)
+    else:
+        f = ImageFont.truetype(EMOJI_FONT, 160)
     im = Image.new("RGBA", (200, 200), (0, 0, 0, 0))
     ImageDraw.Draw(im).text((0, 0), ch, font=f, embedded_color=True)
     box = im.getbbox()  # None: the emoji font has no glyph for ch

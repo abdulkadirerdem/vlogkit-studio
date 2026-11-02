@@ -1,0 +1,97 @@
+"""What the 3D kit offers, readable without Blender: the names a scene.json may use.
+
+The lists must match the builders in bpy_kit/ (a test parses those files and compares), so the
+validator can say exactly which names exist before anything renders.
+"""
+
+from __future__ import annotations
+
+SETS = {
+    "room": "Oda (yatak, pencere, masa, laptop)",
+    "bedroom_night": "Oda, gece (tavan lambası)",
+    "bathroom": "Banyo (fayans, klozet, lavabo, ayna)",
+    "classroom": "Sınıf (yeşil tahta: set_opts.text tahtaya yazılır, sıralar, saat)",
+    "kitchen": "Mutfak (tezgâh, ocak, buzdolabı)",
+    "office": "Ofis (masalar, laptoplar, pencere)",
+    "gym": "Spor salonu (bench, halter, ayna; set_opts.text afiş yazısı)",
+    "street": "Şehir sokağı (dükkânlar ve tabelaları, ağaçlar, lambalar, arabalar; set_opts.shops tabela adları, night)",
+    "city": "Şehir, yukarıdan (bina blokları, yollar, parklar): geniş ve havadan planlar",
+    "park": "Park (çimen, ağaçlar, bank, yol)",
+    "space": "Uzay (yıldızlar, aşağıda Dünya, uzakta Ay)",
+    "studio": "Renkli sonsuz fon (set_opts.color): anlatım, eşya yakın planı, liste",
+    "world": "Dünya kadrajda, uzaydan (herkes/dünya çapında anlar)",
+}
+
+PROPS = {
+    "bed": "yatak", "toilet": "klozet", "sink": "lavabo", "desk": "masa", "school_desk": "okul sırası",
+    "chair": "sandalye", "sofa": "kanepe", "tv": "televizyon (text)", "laptop": "laptop", "phone": "telefon",
+    "fridge": "buzdolabı", "stove": "ocak", "counter": "tezgâh", "car": "araba (color)", "bus": "otobüs",
+    "tree": "ağaç (h)", "pine": "çam", "bench": "bank", "lamp_post": "sokak lambası", "box": "kutu (size, color)",
+    "ball": "top (d, color)", "barbell": "halter", "weight_bench": "bench sehpası", "door": "kapı (text: kapıdaki levha)",
+    "window": "pencere", "plant": "saksı bitkisi", "cup": "bardak", "burger": "hamburger", "money": "para destesi (n)",
+    "rocket": "roket", "house": "ev", "building": "bina (w, d, h, text: tabela)", "shop": "dükkân (text: tabela, awning)",
+    "sign": "tabela/levha (text, size)", "newspaper": "gazete (masthead, text: manşet)", "screen": "ekran / güvenlik monitörü (text)",
+    "calendar": "takvim (month, text: gün)", "clock": "duvar saati (hours: 10.25 = 10:15)", "arrow": "büyük ok (bir şeyi gösterir)",
+    "globe": "Dünya küresi (r)", "moon": "Ay (r)", "cloud": "bulut (z)", "water_jet": "ışın/fışkırma (len, color)",
+    "crowd_person": "kalabalık için basit insan (color)",
+    # gerçek modeller (3B dünya kütüphanesi; yoksa basit karşılığı çizilir)
+    "taxi": "taksi", "police_car": "polis arabası", "sports_car": "spor araba", "suv": "SUV",
+    "big_tree": "dev ağaç (16 m)", "bush": "çalı", "flowers": "çiçek öbeği", "grass": "uzun çimen", "rock": "kaya",
+    "fern": "eğrelti", "shrub": "süs bitkisi", "armchair": "koltuk", "coffee_table": "sehpa", "dining_table": "yemek masası",
+    "fire_hydrant": "yangın musluğu", "trash_can": "çöp konteyneri", "bookshelf": "kitaplık", "desk_lamp": "masa lambası",
+    "cctv_camera": "güvenlik kamerası (z: yükseklik)", "bollard": "bariyer direği", "ac_unit": "klima dış ünitesi",
+    "planter": "büyük saksı", "manhole": "rögar kapağı",
+}  # fmt: skip
+
+ACTIONS = {
+    "idle": "durur, nefes alır", "walk": "yürür (path)", "run": "koşar (path)", "sneak": "sinsice yürür (path)",
+    "jump": "zıplar", "wave": "el sallar", "fall": "sırtüstü düşer", "shake": "titrer (korku, soğuk)",
+    "nod": "başını sallar", "spin": "kendi etrafında döner", "shock": "şok (kollar yanda)", "arms_up": "kollar havada",
+    "point": "önünü gösterir", "point_up": "yukarıyı gösterir", "think": "düşünür", "facepalm": "eliyle yüzünü kapatır",
+    "shrug": "omuz silker", "cheer": "sevinir (zıplayarak)", "hands_hips": "eller belde", "scared": "korkar, büzülür",
+    "sit": "oturur", "lie": "yatar", "crouch": "çömelir", "flex": "kas gösterir", "hold": "önünde bir şey tutar",
+    "phone": "telefona bakar", "sad": "üzgün, omuzlar düşük", "run_reach": "uzanarak koşar",
+    # gerçekçi karakterlerde hareket kaydı kalitesinde kütüphane animasyonları
+    "talk": "konuşurken el kol hareketleri", "jog": "hafif koşar (path)", "walk_formal": "resmi yürür (path)",
+    "dance": "dans eder", "hit": "göğsüne darbe alır", "hit_head": "kafasına darbe alır", "pickup": "masadan bir şey alır",
+    "push": "bir şeyi iter", "roll": "takla atar", "punch": "yumruk atar", "swim": "yüzer", "float": "suda durur",
+    "drive": "araba sürer (otururken)", "interact": "bir şeye dokunur / düğmeye basar", "fix": "diz çöküp tamir eder",
+    "present": "eliyle bir şeyi sunar", "sit_talk": "otururken konuşur", "stand_up": "oturduğu yerden kalkar",
+}  # fmt: skip
+
+FACES = (
+    "neutral",
+    "happy",
+    "grin",
+    "shock",
+    "surprised",
+    "angry",
+    "sad",
+    "scared",
+    "smug",
+    "confused",
+    "talk",
+)
+FRAMES = {
+    "face": "yüz",
+    "close": "omuzlardan yukarı",
+    "medium": "belden yukarı",
+    "full": "boydan",
+    "wide": "geniş: kişi ve çevresi",
+    "far": "uzak",
+    "aerial": "havadan",
+    "top": "tepeden",
+    "low": "alttan (kişiyi büyük gösterir)",
+    "hands": "eller / masa üstü",
+}
+MOVES = {
+    "static": "sabit", "push": "yavaşça yaklaşır (varsayılan)", "pull": "uzaklaşır", "orbit": "etrafında döner",
+    "pan": "yana kayar", "rise": "yükselir (vinç)", "fall": "alçalır", "zoom_out": "ölçek açılışı: yakından çok uzağa",
+    "dolly": "ileri yürür", "follow": "hareket eden kişiyi izler", "shake": "sarsıntı",
+}  # fmt: skip
+BODIES = ("adult", "kid", "big", "old", "tall")
+HAIR = ("short", "parted", "long", "bun", "buns", "buzzed", "curly", "bald", "hood", "cap")
+TOPS = ("tshirt", "longsleeve", "hoodie", "tank", "coat", "suit")
+BOTTOMS = ("jeans", "trousers", "shorts", "skirt")
+OUTFITS = ("casual", "suit", "chef", "doctor", "lab")
+SFX = ("whoosh", "pop", "impact", "riser", "ding", "boom")

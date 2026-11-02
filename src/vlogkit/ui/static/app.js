@@ -61,6 +61,8 @@ const TYPES = [
     line: "Short / Reels / TikTok (dikey 9:16)" },
   { id: "motion", label: "Hareketli grafik", hint: "Çekimsiz, faceless", effort: "high", plan: true, cut: false,
     line: "Hareketli grafik (çekimsiz, faceless); ham çekim kesimi yok" },
+  { id: "3d", label: "3B animasyon", hint: "Blender, dikey, seslendirmeli", effort: "high", plan: true, cut: false,
+    line: "3B animasyon (Blender, scene.json, dikey 9:16, Türkçe seslendirme; ham çekim yok; docs/3d.md)" },
   { id: "pack", label: "Kapak ve başlık", hint: "Yayın paketi", effort: "high", plan: false, cut: false,
     line: "Kapak, başlık ve açıklama; video derlenmez" },
   { id: "ask", label: "Soru", hint: "Kısa yanıt", effort: "medium", plan: false, cut: false,
@@ -175,7 +177,7 @@ function suggestion(idea) {
 // input, several picks joined with "; " (one variant per trending song, say).
 const CHOICE = /^[ \t>*_]*(?:\*\*)?Seçim:(?:\*\*)?[ \t]*(.+)\n(?:[ \t]*\n)?((?:[ \t]*\d+[.)][ \t]+.+(?:\n|$))+)/gim;
 // the path runs to the end of the line: file names can have spaces ("Full Copy V1.3.mp4")
-const OPTION = /^[ \t]*(\d+)[.)][ \t]+(.+?)(?:[ \t]+[—–][ \t]+`?((?:\/|~\/)[^`\n]+?)`?)?[ \t]*$/;
+const OPTION = /^[ \t]*(\d+)[.)][ \t]+(.+?)(?:[ \t]+[—–][ \t]+`?((?:\/|~\/|[A-Za-z]:[\\\/])[^`\n]+?)`?)?[ \t]*$/;
 function splitChoices(text) {
   const choices = [];
   const rest = text.replace(CHOICE, (_, q, body) => {
@@ -1373,7 +1375,7 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) { fi
 // background with progress). Then an agent: install and sign in. Shown until all is ready.
 const AGENTS = { claude: { name: "Claude Code", plan: "Claude Pro ya da Max aboneliği" }, codex: { name: "Codex", plan: "ChatGPT Plus ya da Pro aboneliği" } };
 let welcomeTimer = 0, wasReady = null;
-const setupDone = (d) => d.steps.every((x) => x.done) && Object.values(d.agents).some((a) => a.ready);
+const setupDone = (d) => d.steps.every((x) => x.done || x.optional) && Object.values(d.agents).some((a) => a.ready);
 async function checkSetup(fresh = false) {
   let d;
   try { d = await api(`/api/setup${fresh ? "?fresh=1" : ""}`); } catch { return null; }
@@ -1393,6 +1395,7 @@ function stepState(x) {
   const go = (label) => el("button", { class: `pop-btn${x.ready ? " primary" : ""}`, type: "button", text: label, disabled: !x.ready,
     title: x.ready ? "" : "Önce bir önceki adım", onclick: () => stepAction(x.id) });
   if (x.terminal) return x.admin ? [go("Terminal'de kur")] : [el("span", { class: "state bad", text: "Yönetici hesabı gerekli" })];
+  if (x.manual) return [el("a", { class: "pop-btn", href: "https://www.blender.org/download/", target: "_blank", rel: "noopener", text: "İndir" })];
   const out = [go(x.id === "speech" || x.id === "library" ? "İndir" : "Kur")];
   if (t.status === "error") out.unshift(el("span", { class: "state bad", text: "Olmadı", title: t.error || "" }));
   return out;
@@ -1428,7 +1431,7 @@ function drawWelcome(d, ready) {
   const { steps, agents } = setupRows(d);
   $("#setupSteps").replaceChildren(...steps);
   $("#welcomeAgents").replaceChildren(...agents);
-  const canRun = d.steps.some((x) => !x.done && x.ready && !x.terminal && !(x.task && x.task.status === "running"));
+  const canRun = d.steps.some((x) => !x.done && !x.optional && x.ready && !x.terminal && !(x.task && x.task.status === "running"));
   $("#setupAll").hidden = !canRun;
   $("#welcomeGo").hidden = !ready;
   if (ready && wasReady === false) { wasReady = true; toast("Hazır: ilk işini yazabilirsin"); }

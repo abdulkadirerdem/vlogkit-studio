@@ -24,6 +24,9 @@ extras_app = typer.Typer(
     help="İsteğe bağlı dış araçlar (DeepFilterNet, Demucs).", no_args_is_help=True
 )
 app.add_typer(extras_app, name="extras")
+from vlogkit.scene3d.cli import app as scene3d_app  # noqa: E402  (3B videolar: docs/3d.md)
+
+app.add_typer(scene3d_app, name="3d")
 
 
 def _ok(flag: bool) -> str:

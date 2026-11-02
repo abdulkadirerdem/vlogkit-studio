@@ -34,6 +34,20 @@ def is_running(port: int = DEFAULT_PORT) -> bool:
 def start_background(port: int = DEFAULT_PORT, timeout: float = 20.0) -> None:
     LOG.parent.mkdir(parents=True, exist_ok=True)
     log = LOG.open("ab")
+    if sys.platform == "win32":  # no console window, UTF-8 everywhere, outlives the launcher
+        from vlogkit.winsupport import background_flags, utf8_env
+
+        subprocess.Popen(
+            [sys.executable, "-X", "utf8", "-m", "vlogkit.cli", "ui", "--no-open", "--port", str(port)],
+            cwd=REPO_ROOT, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
+            creationflags=background_flags(), env=utf8_env(),
+        )  # fmt: skip
+        t = time.time()
+        while time.time() - t < timeout:
+            if is_running(port):
+                return
+            time.sleep(0.3)
+        raise RuntimeError(f"stüdyo {timeout:.0f} sn içinde açılmadı, günlük: {LOG}")
     subprocess.Popen(
         [sys.executable, "-m", "vlogkit.cli", "ui", "--no-open", "--port", str(port)],
         cwd=REPO_ROOT,
@@ -109,6 +123,10 @@ def _icns(dest: Path) -> None:
 
 def create_shortcut(dest_dir: Path = DESKTOP, name: str = APP_NAME) -> Path:
     """Build `<name>.app`: double-click -> `uv run vlogkit open` in this repo."""
+    if sys.platform == "win32":  # a .lnk on the desktop and in the Start menu
+        from vlogkit.winsupport import shortcut
+
+        return shortcut(name, REPO_ROOT, _icon_png)
     uv = shutil.which("uv") or "/opt/homebrew/bin/uv"
     app = dest_dir / f"{name}.app"
     if app.exists():

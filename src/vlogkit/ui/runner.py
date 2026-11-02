@@ -18,6 +18,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import threading
 import time
 import uuid
@@ -202,7 +203,7 @@ MEDIA_EXT = {
     ".srt": "text",
 }
 _PATH = re.compile(
-    r"(?:(?<=\s)|^|(?<=[`'\"(]))((?:/|~/)[^\s`'\"()<>]+?\.(?:"
+    r"(?:(?<=\s)|^|(?<=[`'\"(]))((?:/|~/|[A-Za-z]:[\\/])[^\s`'\"()<>]+?\.(?:"
     + "|".join(e[1:] for e in MEDIA_EXT)
     + r"))(?=$|[\s`'\"),.;:])",
     re.M,
@@ -496,8 +497,14 @@ def user_line(text: str, uid: str) -> str:
     return json.dumps(msg) + "\n"
 
 
-def _keep_awake(pid: int) -> None:
+def _keep_awake(pid: int, proc=None) -> None:
     """macOS: no idle sleep while the agent runs (a sleeping Mac pauses the job). Display may sleep."""
+    if sys.platform == "win32":
+        if proc is not None and os.environ.get("VLOGKIT_CAFFEINATE", "1") != "0":
+            from vlogkit.winsupport import keep_awake
+
+            keep_awake(proc)
+        return
     caffeinate = shutil.which("caffeinate")
     if caffeinate and os.environ.get("VLOGKIT_CAFFEINATE", "1") != "0":
         with contextlib.suppress(OSError):
@@ -537,6 +544,9 @@ def subscription_env() -> dict[str, str]:
         if k not in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")
     }
     env.setdefault("NO_COLOR", "1")
+    if sys.platform == "win32":  # Turkish text in every Python the agent starts
+        env["PYTHONUTF8"] = "1"
+        env["PYTHONIOENCODING"] = "utf-8"
     return env
 
 
@@ -842,7 +852,12 @@ class JobStore:
         proc = self.procs.get(job.id)
         if proc and proc.poll() is None:
             self.stopping.add(job.id)
-            proc.terminate()
+            if sys.platform == "win32":  # terminate() would leave ffmpeg / Blender running
+                from vlogkit.winsupport import kill_tree
+
+                kill_tree(proc.pid)
+            else:
+                proc.terminate()
 
     def _taken(self, job: Job, uid: str | None, answered: bool) -> bool:
         """Claude took a message written while it worked (its replay, same uuid): show it in the
@@ -925,6 +940,7 @@ class JobStore:
                 stderr=subprocess.PIPE,
                 text=True,
                 bufsize=1,
+                **({"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000} if sys.platform == "win32" else {}),
             )
             if not is_codex:  # Claude reads messages from stdin (never parsed as an option)
                 assert proc.stdin
@@ -936,7 +952,7 @@ class JobStore:
             self._finish(job, turn, ok=False, error=str(e))
             return
         self.procs[job.id] = proc
-        _keep_awake(proc.pid)
+        _keep_awake(proc.pid, proc)
         stderr_tail: list[str] = []
         reader = threading.Thread(
             target=lambda: stderr_tail.extend(proc.stderr.readlines()), daemon=True
