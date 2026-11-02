@@ -869,6 +869,10 @@ def make_handler(app: App) -> type[BaseHTTPRequestHandler]:
 
 
 def serve(port: int = 8765, open_browser: bool = True) -> None:
+    if sys.platform == "win32":  # no console window flashing for the tools the studio runs
+        from vlogkit.winsupport import hide_child_windows
+
+        hide_child_windows()
     app = App(port)
     httpd = ThreadingHTTPServer(("127.0.0.1", port), make_handler(app))
     app.httpd = httpd

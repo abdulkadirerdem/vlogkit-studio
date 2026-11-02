@@ -40,7 +40,27 @@ def utf8_env(env: dict | None = None) -> dict:
 
 
 def background_flags() -> int:
-    return CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS
+    """A background process with a console of its own that nobody sees. Not DETACHED_PROCESS:
+    with no console at all, every console program it starts (ffprobe, git, uv...) opens a
+    window of its own, and some (uv's launcher) fail to start (0xc0000142)."""
+    return CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP
+
+
+def hide_child_windows() -> None:
+    """Every process this one starts from now on gets no window, unless it asks for a console
+    (the sign-in window does). Called by the studio server and the detached render on Windows."""
+    if getattr(subprocess.Popen, "_vk_no_window", False):
+        return
+    original = subprocess.Popen.__init__
+
+    def init(self, *args, **kwargs):
+        flags = kwargs.get("creationflags", 0) or 0
+        if not flags & (CREATE_NEW_CONSOLE | DETACHED_PROCESS):
+            kwargs["creationflags"] = flags | CREATE_NO_WINDOW
+        original(self, *args, **kwargs)
+
+    subprocess.Popen.__init__ = init
+    subprocess.Popen._vk_no_window = True
 
 
 def is_admin() -> bool:

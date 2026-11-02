@@ -2,6 +2,13 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Sürümleme: [SemVer](https://semver.org/).
 
+## [0.18.1] - 2026-11-02
+
+### Düzeltildi
+- **Windows: her birkaç saniyede bir komut penceresi açılıp kapanıyordu, "Müzik ve ses kütüphanesi" kurulurken `uv.exe` 0xc0000142 hatası veriyordu.** Stüdyo sunucusu hiç konsolu olmadan başlatılıyordu; başlattığı her konsol programı (kurulum ekranının birkaç saniyede bir sorduğu `uv tool dir`, ffprobe, git) kendi penceresini açıyor, bazıları başlayamıyordu. Sunucu artık görünmeyen bir konsolla başlar, başlattığı süreçler pencere açmaz; `uv tool dir` bir kez sorulur.
+- **Windows: kurulum satırı güncellerken açık Stüdyo'yu önce kapatır** (açık Stüdyo dosyaları kilitliyordu).
+- **3B render oturumdan bağımsız:** `vlogkit 3d render` / `3d progress` (ajanın turu bitince render yarıda kesiliyordu).
+
 ## [0.18.0] - 2026-11-02
 
 ### Eklendi

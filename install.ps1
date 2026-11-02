@@ -35,6 +35,16 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
 
 # 2. vlogkit
 New-Item -ItemType Directory -Force -Path $Root | Out-Null
+# Açık bir Stüdyo dosyalarını kilitler: güncellemeden önce kapat
+try {
+    $page = Invoke-WebRequest "http://127.0.0.1:8765/" -UseBasicParsing -TimeoutSec 2
+    if ($page.Content -match 'name="vlogkit-token" content="([^"]+)"') {
+        Step "Açık Stüdyo kapatılıyor"
+        Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8765/api/shutdown" -Headers @{ "X-Vlogkit-Token" = $Matches[1] } | Out-Null
+        Start-Sleep -Seconds 2
+    }
+} catch { }
+
 if (Test-Path (Join-Path $Dest ".release")) {
     Step "vlogkit zaten kurulu; son sürüme getiriliyor"
     if (Get-Command git -ErrorAction SilentlyContinue) {

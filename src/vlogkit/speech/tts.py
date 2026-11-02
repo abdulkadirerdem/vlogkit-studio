@@ -23,6 +23,7 @@ import subprocess
 import sys
 import wave
 from dataclasses import dataclass
+from functools import cache
 from pathlib import Path
 
 ENGINES = ("auto", "pocket", "system")
@@ -96,7 +97,8 @@ def _uv() -> str | None:
     return None
 
 
-def _tool_dir() -> Path | None:
+@cache
+def _tool_dir() -> Path | None:  # asked once: the studio polls the setup rows every few seconds
     uv = _uv()
     if not uv:
         return None

@@ -137,6 +137,11 @@ def _worker(project: str, variant: str, steps: list[str]) -> int:
     """The detached process: build, then record the outcome next to the frames."""
     from vlogkit.project import STEPS, load
 
+    if sys.platform == "win32":  # ffmpeg, Blender, the voice model: no windows
+        from vlogkit.winsupport import hide_child_windows
+
+        hide_child_windows()
+
     path = state_path(project, variant)
     st = read(project, variant) | {"pid": os.getpid()}
     try:
