@@ -20,7 +20,7 @@ from vlogkit.config import REPO_ROOT
 GUIDE = REPO_ROOT / "docs" / "prompts.md"
 
 _HEAD = re.compile(r"^(#{1,4})\s+(.*?)(?:\s+\{#([\w-]+)\})?\s*$")
-STAGE_CODE = {"kesif": "K", "short": "S", "uzun": "U", "revizyon": "R", "yayin": "Y", "sistem": "G"}
+STAGE_CODE = {"kesif": "K", "short": "S", "uzun": "U", "revizyon": "R", "ucb": "B", "yayin": "Y", "sistem": "G"}
 PLACEHOLDER = re.compile(r"<[^<>\n]+>")
 
 
@@ -30,6 +30,7 @@ class Prompt:
     when: str = ""
     text: str = ""
     does: str = ""
+    does_items: list[str] = field(default_factory=list)  # "Claude ne yapar:" altındaki maddeler
     note: str = ""
     variations: list[str] = field(default_factory=list)
     code: str = ""
@@ -107,19 +108,19 @@ def parse(md: str) -> tuple[str, dict[str, str], list[str], list[Section]]:
 def parse_prompts(lines: list[str]) -> list[Stage]:
     stages: list[Stage] = []
     p: Prompt | None = None
-    i, in_vars = 0, False
+    i, in_vars, in_does = 0, False, False
     while i < len(lines):
         line = lines[i]
         m = _HEAD.match(line)
         if m and len(m.group(1)) == 3:
             stages.append(Stage(m.group(3), m.group(2)))
-            p, in_vars = None, False
+            p, in_vars, in_does = None, False, False
         elif m and len(m.group(1)) == 4:
             st = stages[-1]
             code = f"{STAGE_CODE.get(st.id, st.id[:1].upper())}{len(st.prompts) + 1}"
             p = Prompt(m.group(2), code=code, stage=st.id)
             st.prompts.append(p)
-            in_vars = False
+            in_vars = in_does = False
         elif p is not None:
             if line.startswith("```"):
                 j = i + 1
@@ -131,14 +132,17 @@ def parse_prompts(lines: list[str]) -> list[Stage]:
                 p.when = line.split(":", 1)[1].strip()
             elif line.startswith("Claude ne yapar:"):
                 p.does = line.split(":", 1)[1].strip()
+                in_does, in_vars = not p.does, False  # the bullets below carry it instead
             elif line.startswith("Not:"):
                 p.note = line.split(":", 1)[1].strip()
             elif line.startswith("Varyasyonlar:"):
-                in_vars = True
+                in_vars, in_does = True, False
             elif in_vars and line.startswith("- "):
                 p.variations.append(line[2:])
+            elif in_does and line.startswith("- "):
+                p.does_items.append(line[2:])
             elif line.strip():
-                in_vars = False
+                in_vars = in_does = False
         i += 1
     return stages
 

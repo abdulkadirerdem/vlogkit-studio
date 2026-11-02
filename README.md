@@ -40,7 +40,9 @@ Gerekenler:
 - Telifsiz müzik adaylarını sahnenin altında dinletir; seçimi sen yaparsın.
 - Videonun altındaki plan şeridinden bir anı seçip yorum yazarsın, düzeltmeyi ajan yapar.
 - Her videonun yanına kullandığı müziklerin lisansını ve telif itiraz metnini koyar.
-- **3B animasyon ("Peki ya...?" videoları):** konuyu yazarsın; ajan hesabı yapar, senaryoyu yazar, Blender'da gerçekçi iskeletli karakterlerle sahneleri kurar, yerel Türkçe sesle seslendirir, sayaç ve altyazıyla dikey video çıkarır. Çekim gerekmez.
+- **3B animasyon ("Peki ya...?" videoları):** konuyu yazarsın; ajan hesabı yapar, senaryoyu yazar, Blender'da gerçekçi iskeletli karakterlerle sahneleri kurar, kanalın tek Türkçe sesiyle (yerel, ücretsiz) seslendirir, sayaç ve altyazıyla dikey video çıkarır. Çekim gerekmez.
+- **Senaryolar:** Claude viral olabilecek "Peki ya?" fikirlerini araştırır, beş ölçütle puanlar ve sahne sahne yazar; Stüdyo'daki Senaryolar sayfasından birini seçersin, video o senaryodan üretilir.
+- **Paylaşım paketi:** bitmiş videonun altındaki YouTube, Instagram ve TikTok düğmeleri; Claude her platform için başlık, açıklama, etiketler ve kapak hazırlar, sen kopyalayıp yükleme sayfasında paylaşırsın (hesap bağlama ya da uygulama onayı gerekmez).
 
 Videoların bilgisayarından çıkmaz: aboneliğindeki yapay zekâya yalnız yazdıkların, ajanın baktığı kareler ve konuşma dökümleri gider.
 
@@ -58,7 +60,7 @@ Videoların bilgisayarından çıkmaz: aboneliğindeki yapay zekâya yalnız yaz
 
 Mac'inde zaten olan parçalar (Homebrew, ffmpeg-full, whisper, aubio, Hugging Face'ten indirilmiş konuşma modeli) kurulum ekranında "Kurulu" görünür ve yeniden indirilmez.
 
-İsteğe bağlı **3B animasyon** parçaları (Ayarlar > Kurulum): Blender ~1 GB, 3B karakter ve mekân kütüphanesi ~0,16 GB (CC0: Quaternius, Poly Haven), Türkçe ses modeli ~1,2 GB (Pocket TTS, yerel ve ücretsiz).
+İsteğe bağlı **3B animasyon** parçaları (Ayarlar > Kurulum): Blender ~1 GB, 3B karakter ve mekân kütüphanesi ~0,32 GB (CC0: Quaternius, Poly Haven, NASA), Türkçe ses modeli ~5 GB (Qwen3-TTS Türkçe, Apache-2.0; yerel ve ücretsiz).
 
 İsteğe bağlı **yerel video modeli** (ham çekimi parça parça izler; Ayarlar > Yerel model): Qwen3.5 2B ~2,4 GB, 4B ~3,7 GB, 9B ~6,6 GB. Mac'inin belleğine uymayan kurulamaz; uygun olanın yanında "önerilen" yazar.
 

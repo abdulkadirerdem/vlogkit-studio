@@ -24,6 +24,7 @@ from pathlib import Path
 
 from vlogkit.audio import synth
 from vlogkit.audio.mix import AudioGraph
+from vlogkit.config import ASSETS_DIR
 from vlogkit.export.encode import SHORTS
 from vlogkit.graphics.elements import EndCard, caption
 from vlogkit.graphics.style import VERTICAL, tr_upper
@@ -36,6 +37,17 @@ from vlogkit.video.graph import PRORES_HQ
 FPS = 30
 CAPTION_Y = 1010  # mid-frame, over the action, clear of the bottom title block
 CAPTION_SIZE = 104
+
+
+def looked(shot: dict, f: int, src: Path):
+    """Frame f of a shot (1 = its first) with the shot's look drawn over it."""
+    from PIL import Image
+
+    from vlogkit.scene3d import looks
+
+    img = Image.open(src).convert("RGB")
+    t = (f - 1) / FPS
+    return looks.apply(img, shot["look"], t, shot["at"] + t, seed=f * 7 + len(shot["id"]))
 
 
 class Scene3DEdit(Edit):
@@ -82,7 +94,12 @@ class Scene3DEdit(Edit):
         return p
 
     def cuts(self) -> list[float]:
-        return [b.t0 for b in self.beats[1:]]
+        """Every shot change (several per beat when a beat has `shots`)."""
+        return [s["at"] for s in self.render_plan()["shots"][1:]]
+
+    def when(self, b: plan.Beat, cue, default: float) -> float:
+        """A cue of the beat (a word of its line or a fraction) on the video's timeline."""
+        return default if cue is None else b.t0 + plan.cue_time(b, cue)
 
     def notes(self) -> list[tuple[float, str]]:
         return [
@@ -97,9 +114,7 @@ class Scene3DEdit(Edit):
         total = sum(s["frames"] for s in p["shots"])
         done = [0]
 
-        edges = framing.Collector(
-            {s["id"]: b.t0 for s, b in zip(p["shots"], self.beats, strict=True)}
-        )
+        edges = framing.Collector({s["id"]: s["at"] for s in p["shots"]})
 
         def progress(line: str) -> None:
             if edges.feed(line):
@@ -123,10 +138,13 @@ class Scene3DEdit(Edit):
             for f in range(1, shot["frames"] + 1):
                 src = Path(shot["out"]) / f"{f:05d}.png"
                 dst = seq / f"{n:06d}.png"
-                try:
-                    os.link(src, dst)
-                except OSError:  # another drive, a file system without hard links
-                    shutil.copyfile(src, dst)
+                if shot.get("look"):  # the security camera, the news, the phone: drawn on top
+                    looked(shot, f, src).save(dst)
+                else:
+                    try:
+                        os.link(src, dst)
+                    except OSError:  # another drive, a file system without hard links
+                        shutil.copyfile(src, dst)
                 n += 1
         from vlogkit.ff import ffmpeg
 
@@ -177,7 +195,12 @@ class Scene3DEdit(Edit):
                 h = b.raw.get("hud")
                 if h is not None:
                     keys.append(
-                        (b.speech_at, float(h.get("value", 0)), h.get("text"), h.get("tag"))
+                        (
+                            self.when(b, h.get("at"), b.speech_at),
+                            float(h.get("value", 0)),
+                            h.get("text"),
+                            h.get("tag"),
+                        )
                     )
             if keys:
                 t_end = self.beats[-1].t1 - (float(end.get("seconds", 2.0)) if end else 0)
@@ -220,7 +243,10 @@ class Scene3DEdit(Edit):
             )
         for b in self.beats:
             for s in b.raw.get("sfx") or []:
-                at = max(0.0, b.t0 - (0.25 if s in ("whoosh", "riser") else 0.0))
+                cue = s.get("at") if isinstance(s, dict) else None
+                s = s.get("id") if isinstance(s, dict) else s
+                lead = 0.25 if s in ("whoosh", "riser") else 0.0
+                at = max(0.0, self.when(b, cue, b.t0) - lead)
                 chain = {
                     "whoosh": lambda a: synth.whoosh(a, 0.45, gain=0.5),
                     "riser": lambda a: synth.whoosh(a, 0.9, center_hz=900, gain=0.45),
@@ -232,9 +258,28 @@ class Scene3DEdit(Edit):
                 g.chain(chain, stem="sfx")
         # every counter change ticks
         for b in self.beats:
-            if b.raw.get("hud") is not None and self.spec.get("hud") and b.index > 0:
-                g.chain(synth.pop(b.speech_at, freq=1500, gain=0.18), stem="sfx")
+            h = b.raw.get("hud")
+            if h is not None and self.spec.get("hud") and b.index > 0:
+                at = self.when(b, h.get("at") if isinstance(h, dict) else None, b.speech_at)
+                g.chain(synth.pop(at, freq=1500, gain=0.18), stem="sfx")
+        # every cut inside a beat gets a soft whoosh unless the beat sets its own sounds
+        for b in self.beats:
+            shots = b.raw.get("shots") or []
+            if len(shots) > 1 and not b.raw.get("sfx") and self.spec.get("cut_whoosh", True):
+                for sh in shots[1:]:
+                    at = self.when(b, sh.get("cue"), b.t0) - 0.12
+                    g.chain(synth.whoosh(max(0.0, at), 0.3, gain=0.22), stem="sfx")
         return g
+
+    def _uses_moon(self) -> bool:
+        """Space shows the Moon; any shot may place one."""
+        for b in self.spec["beats"]:
+            for sh in [b, *(b.get("shots") or [])]:
+                if sh.get("set") == "space" or any(
+                    p.get("kind") == "moon" for p in sh.get("props") or []
+                ):
+                    return True
+        return False
 
     def sidecars(self) -> dict[str, str]:
         """The narration as text; the credits of the 3D library and of the voice model."""
@@ -245,6 +290,11 @@ class Scene3DEdit(Edit):
         }
         if library.ready():
             out[".3b-lisans.md"] = library.credits_md()
+        moon = ASSETS_DIR / "moon" / "CREDITS.md"
+        if moon.exists() and self._uses_moon():
+            out[".3b-lisans.md"] = (
+                out.get(".3b-lisans.md", "") + "\n" + moon.read_text(encoding="utf-8")
+            )
         if any(p.parent.name == "voice" for p in [b.speech for b in self.beats if b.speech]):
             from vlogkit.speech import tts
 

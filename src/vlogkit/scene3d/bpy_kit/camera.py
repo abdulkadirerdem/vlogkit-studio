@@ -51,14 +51,28 @@ def _place(cam, target: Vector, dist: float, height: float, angle: float, tilt: 
     shapes.look_at(cam, target)
 
 
+def _group(on, actors: dict) -> list[str]:
+    """`on` as a list of actor names (framing two or more people together)."""
+    if isinstance(on, (list, tuple)) and on and all(isinstance(x, str) for x in on):
+        return [x for x in on if x in actors and not getattr(actors[x], "is_prop", False)]
+    return []
+
+
 def _target_of(spec: dict, actors: dict, scale_of: dict) -> tuple[Vector, float]:
     on = spec.get("on")
     k = 1.0
+    names = _group(on, actors)
+    if names:
+        pts = [actors[n].root.matrix_world.translation for n in names]
+        mid = sum(pts, Vector()) / len(pts)
+        return Vector((mid.x, mid.y, 0)), sum(scale_of.get(n, 1.0) for n in names) / len(names)
+    if isinstance(on, str) and getattr(actors.get(on), "is_prop", False):
+        return actors[on].center(), 1.0
     if isinstance(on, str) and on in actors:
         root = actors[on].root
         k = scale_of.get(on, 1.0)
         base = Vector((root.location.x, root.location.y, root.location.z))
-    elif isinstance(on, (list, tuple)):
+    elif isinstance(on, (list, tuple)) and not names:
         base = Vector((on[0], on[1], on[2] if len(on) > 2 else 0))
     else:
         base = Vector(spec.get("_default_target", (0, 0, 1.0)))
@@ -66,14 +80,32 @@ def _target_of(spec: dict, actors: dict, scale_of: dict) -> tuple[Vector, float]
     return base, k
 
 
-def animate(cam, spec: dict, n: int, fps: float, actors: dict, scale_of: dict) -> None:
-    """Keyframe the camera for a shot of n frames."""
+def animate(
+    cam, spec: dict, n: int, fps: float, actors: dict, scale_of: dict, start: int = 1
+) -> None:
+    """Keyframe the camera for a shot of n frames starting at frame `start`."""
     frame = spec.get("frame", "medium")
     dist, tz, hz = FRAMES.get(frame, FRAMES["medium"])
+    bpy.context.scene.frame_set(start)  # where the subject is when this shot starts
     base, k = _target_of(spec, actors, scale_of)
-    if frame not in ("aerial", "top") and not isinstance(spec.get("on"), (list, tuple)):
+    on = spec.get("on")
+    if isinstance(on, str) and getattr(actors.get(on), "is_prop", False):
+        # a thing: framed around its middle; the distance makes its width fill the frame
+        w = actors[on].width()
+        fill = {"face": 0.6, "close": 0.85, "hands": 0.85, "medium": 1.25, "full": 1.7,
+                "wide": 2.8, "far": 5.5, "low": 1.5}.get(frame, 1.25)  # fmt: skip
+        dist = 1.9 * w * fill * 35.0 / float(spec.get("lens", 35))
+        tz, hz = 0.0, dist * 0.12
+    elif _group(on, actors):
+        # several people: aim between them, step back to take them all in
+        names = _group(on, actors)
+        pts = [actors[n].root.matrix_world.translation for n in names]
+        spread = max((a - b).length for a in pts for b in pts)
+        dist = max(dist, dist * 0.6 + spread * 1.6)
         tz *= k
-    elif isinstance(spec.get("on"), (list, tuple)) and len(spec["on"]) > 2:
+    elif frame not in ("aerial", "top") and not isinstance(on, (list, tuple)):
+        tz *= k
+    elif isinstance(on, (list, tuple)) and len(on) > 2 and not _group(on, actors):
         tz = 0
     target = base + Vector((0, 0, tz)) + Vector(spec.get("offset", (0, 0, 0)))
     angle = float(spec.get("angle", 0))
@@ -93,7 +125,7 @@ def animate(cam, spec: dict, n: int, fps: float, actors: dict, scale_of: dict) -
         "shake": 0.03,
         "dolly": 1.2,
     }.get(move, 0)
-    f0, f1 = 1, max(2, n)
+    f0, f1 = start, start + max(1, n - 1)
 
     def at(f, d, h, ang, tgt):
         _place(cam, tgt, d, h, ang, tilt)
@@ -131,7 +163,7 @@ def animate(cam, spec: dict, n: int, fps: float, actors: dict, scale_of: dict) -
     elif move == "follow":  # keep framing an actor that moves: re-aim every 4 frames
         on = spec.get("on")
         root = actors[on].root if isinstance(on, str) and on in actors else None
-        for f in range(f0, f1 + 1, 4):
+        for f in [*range(f0, f1, 4), f1]:
             bpy.context.scene.frame_set(f)
             t = (
                 Vector((root.matrix_world.translation.x, root.matrix_world.translation.y, tz))
@@ -143,7 +175,7 @@ def animate(cam, spec: dict, n: int, fps: float, actors: dict, scale_of: dict) -
     else:
         at(f0, dist, hz, angle, target)
     if move == "shake" or spec.get("shake"):
-        _shake(cam, float(spec.get("shake", amt or 0.03)))
+        _shake(cam, float(spec.get("shake", amt or 0.03)), f0)
     _ease(cam, spec.get("ease", "ease"))
     if spec.get("dof", frame in ("face", "close", "hands")):
         cam.data.dof.use_dof = True
@@ -151,17 +183,22 @@ def animate(cam, spec: dict, n: int, fps: float, actors: dict, scale_of: dict) -
         cam.data.dof.aperture_fstop = float(spec.get("fstop", 2.8))
 
 
-def _shake(cam, strength: float) -> None:
+def _shake(cam, strength: float, f0: int = 1, f1: int | None = None, blend: int = 0) -> None:
+    """Hand-held / impact shake: noise on the rotation, optionally only from f0 to f1."""
     from .anim import _fcurves
 
     for idx in range(3):
-        cam.keyframe_insert("rotation_euler", index=idx, frame=1)
+        cam.keyframe_insert("rotation_euler", index=idx, frame=f0)
     for fc in _fcurves(cam.animation_data.action):
         if fc.data_path == "rotation_euler":
             m = fc.modifiers.new("NOISE")
-            m.scale = 6
+            m.scale = 6 if f1 is None else 2.5
             m.strength = strength
-            m.phase = fc.array_index * 7.0
+            m.phase = fc.array_index * 7.0 + f0
+            if f1 is not None:
+                m.use_restricted_range = True
+                m.frame_start, m.frame_end = f0, f1
+                m.blend_in, m.blend_out = blend, max(blend, (f1 - f0) // 2)
 
 
 def _ease(cam, mode: str) -> None:

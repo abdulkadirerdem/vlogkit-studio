@@ -133,6 +133,62 @@ def progress(project: str) -> None:
 
 
 @app.command()
+def senaryolar(
+    tumu: Annotated[bool, typer.Option("--tumu", help="Arşivdekiler dahil")] = False,
+) -> None:
+    """Kayıtlı senaryolar (projects/_senaryolar): puan, durum, sorunlar."""
+    from vlogkit.scene3d import scenarios
+
+    rows = scenarios.list_all(tumu)
+    if not rows:
+        typer.echo(f"senaryo yok ({scenarios.DIR})")
+        return
+    for r in rows:
+        bad = f"  ! {'; '.join(r['problems'])}" if r["problems"] else ""
+        typer.echo(f"{r['total']:>4} {r['status']:<10} {r['id']:<40} {r['title']}{bad}")
+
+
+@app.command("senaryo-kontrol")
+def senaryo_kontrol(
+    sid: Annotated[str | None, typer.Argument(help="Senaryo kimliği (--tum ile verilmez)")] = None,
+    tum: Annotated[
+        bool, typer.Option("--tum", help="Klasördeki bütün senaryoları tek seferde doğrula")
+    ] = False,
+) -> None:
+    """Bir senaryo dosyasını doğrula (yazdıktan sonra); --tum ile hepsini."""
+    from vlogkit.scene3d import scenarios
+
+    if bool(sid) == tum:
+        raise typer.BadParameter("ya bir senaryo kimliği ver ya --tum")
+    if tum:
+        checks = [(r["id"], r["problems"]) for r in scenarios.list_all(include_archived=True)]
+        if not checks:
+            typer.echo(f"senaryo yok ({scenarios.DIR})")
+            return
+    else:
+        checks = [(sid, scenarios.validate(scenarios.load(sid)))]
+    for one, problems in checks:
+        if problems:
+            for p in problems:
+                typer.echo(f"! {one}: {p}")
+        else:
+            typer.echo(f"✅ {one}: tamam")
+    if any(problems for _, problems in checks):
+        raise typer.Exit(1)
+
+
+@app.command("senaryo-durum")
+def senaryo_durum(
+    sid: str, durum: str, proje: Annotated[str | None, typer.Option("--proje")] = None
+) -> None:
+    """Senaryonun durumunu değiştir: yeni | secildi | uretiliyor | uretildi | arsiv."""
+    from vlogkit.scene3d import scenarios
+
+    scenarios.set_status(sid, durum, proje)
+    typer.echo(f"{sid}: {durum}")
+
+
+@app.command()
 def kit(
     as_json: Annotated[bool, typer.Option("--json", help="Makine için JSON")] = False,
 ) -> None:
@@ -151,6 +207,9 @@ def kit(
         "hair": list(catalog.HAIR),
         "outfits": list(catalog.OUTFITS),
         "sfx": list(catalog.SFX),
+        "fx": catalog.FX,
+        "looks": catalog.LOOKS,
+        "crowd": list(catalog.CROWD_DO),
         "voices": tts.POCKET_VOICES,
         "emotions": list(tts.POCKET_EMOTIONS),
     }
@@ -178,14 +237,35 @@ def _edit(project: str):
 
 @app.command()
 def plan(project: str) -> None:
-    """Anlatımı seslendir (önbellekli) ve beat zaman çizelgesini yaz: süre, cümle, mekân, kamera."""
+    """Anlatımı seslendir (önbellekli) ve zaman çizelgesini yaz: beat'ler ve içlerindeki planlar
+    (kesme anı, mekân, kamera, görünüm, efektler)."""
+    from vlogkit.scene3d import plan as planmod
+
     e = _edit(project)
+    long = []
     for b in e.beats:
-        cam = b.raw.get("camera", {})
+        typer.echo(f"{b.index + 1:>2}. {b.t0:6.2f}-{b.t1:6.2f} ({b.dur:4.1f} sn) {b.raw['say']}")
+        shots = planmod.beat_shots(b, float(e.fps))
+        for s in shots:
+            cam = s["camera"]
+            look = s["look"].get("kind") if isinstance(s["look"], dict) else s["look"]
+            fx = ", ".join(f["kind"] for f in s["fx"])
+            dur = s["frames"] / float(e.fps)
+            extra = " ".join(x for x in (f"[{look}]" if look else "", f"efekt: {fx}" if fx else "",
+                                         "kalabalık" if s["crowd"] else "") if x)  # fmt: skip
+            typer.echo(
+                f"      {s['id']:<5} {s['at']:6.2f} +{dur:3.1f} sn  {s['set']:<10} "
+                f"{cam.get('frame', 'medium')}/{cam.get('move', 'push'):<8} {extra}"
+            )
+            if dur > 3.2:
+                long.append(f"{s['id']} ({dur:.1f} sn)")
+    typer.echo(
+        f"Toplam: {e.duration:.1f} sn, {e.nframes} kare, {sum(len(planmod.beat_shots(b, float(e.fps))) for b in e.beats)} plan"
+    )
+    if long:
         typer.echo(
-            f"{b.index + 1:>2}. {b.t0:6.2f}-{b.t1:6.2f} ({b.dur:4.1f} sn) {b.raw['set']:<10} {cam.get('frame', 'medium')}/{cam.get('move', 'push'):<8} {b.raw['say']}"
+            "!  3 saniyeden uzun planlar (bir kesme ya da yeni olay ekle): " + ", ".join(long)
         )
-    typer.echo(f"Toplam: {e.duration:.1f} sn, {e.nframes} kare")
 
 
 @app.command()
@@ -198,16 +278,15 @@ def preview(
     from PIL import Image
 
     from vlogkit.graphics.render import compose_frame
-    from vlogkit.scene3d import blender, framing
+    from vlogkit.scene3d import blender, framing, plan
+    from vlogkit.scene3d.edit import looked
 
     e = _edit(project)
     p = e.render_plan(quality)
     only: dict[str, list[int]] = {}
     want = []
     for t in at:
-        b = next((x for x in e.beats if x.t0 <= t < x.t1), e.beats[-1])
-        shot = p["shots"][b.index]
-        f = min(shot["frames"], max(1, round((t - b.t0) * e.fps) + 1))
+        shot, f = plan.shot_at(p, t, float(e.fps))
         only.setdefault(shot["id"], []).append(f)
         want.append((t, shot, f))
     out_dir = e.ctx.work / "preview3d"
@@ -217,11 +296,13 @@ def preview(
     plan_path = out_dir / "preview_plan.json"
     out_dir.mkdir(parents=True, exist_ok=True)
     plan_path.write_text(json.dumps(p, ensure_ascii=False), encoding="utf-8")
-    edges = framing.Collector({p["shots"][b.index]["id"]: b.t0 for b in e.beats})
+    edges = framing.Collector({s["id"]: s["at"] for s in p["shots"]})
     blender.run(plan_path, edges.feed)
     els = e.elements()
     for t, shot, f in want:
-        bg = Image.open(Path(shot["out"]) / f"{f:05d}.png").convert("RGBA").resize(e.layout.size)
+        src = Path(shot["out"]) / f"{f:05d}.png"
+        frame = looked(shot, f, src) if shot.get("look") else Image.open(src)
+        bg = frame.convert("RGBA").resize(e.layout.size)
         bg.alpha_composite(compose_frame(els, t, e.layout.size))
         path = out_dir / f"onizleme_{t:06.2f}.jpg"
         bg.convert("RGB").save(path, quality=88)

@@ -1,7 +1,11 @@
 """Runs inside the qwen-tts tool environment (not vlogkit's): load the Turkish model once, speak
 every line of the job in the channel's voice. Usage: python qwen_worker.py job.json
 
-job.json = {"model": repo, "ref": channel voice wav, "items": [{"text", "out"}]}
+job.json = {"model": repo, "ref": channel voice wav, "ref_text": what it says (optional),
+            "temperature": float (optional), "items": [{"text", "out"}]}
+
+With `ref_text` the clone copies the reference's delivery too (ICL: its pace, energy, the way it
+lands on words); without it only the timbre (speaker embedding).
 """
 
 from __future__ import annotations
@@ -27,10 +31,18 @@ def main() -> None:
         model = Qwen3TTSModel.from_pretrained(job["model"], **kw)
     except TypeError:
         model = Qwen3TTSModel.from_pretrained(job["model"])
-    prompt = model.create_voice_clone_prompt(ref_audio=job["ref"], x_vector_only_mode=True)
+    ref_text = job.get("ref_text")
+    prompt = model.create_voice_clone_prompt(
+        ref_audio=job["ref"], ref_text=ref_text, x_vector_only_mode=not ref_text
+    )
+    extra = {"temperature": float(job["temperature"])} if job.get("temperature") else {}
     for i, it in enumerate(job["items"]):
         wavs, sr = model.generate_voice_clone(
-            text=it["text"], language="Auto", voice_clone_prompt=prompt, non_streaming_mode=True
+            text=it["text"],
+            language="Auto",
+            voice_clone_prompt=prompt,
+            non_streaming_mode=True,
+            **extra,
         )
         w = wavs[0] if isinstance(wavs, (list, tuple)) else wavs
         out = Path(it["out"])

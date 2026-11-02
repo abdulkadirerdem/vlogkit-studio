@@ -1,6 +1,6 @@
 # vlogkit Prompt Rehberi
 
-<!-- meta: vlogkit=0.17.0; updated=2026-10-11; artifact=https://claude.ai/artifact/WQakjmnPnJ95AJ1kyQPdPW -->
+<!-- meta: vlogkit=0.19.0; updated=2026-11-02; artifact=https://claude.ai/artifact/WQakjmnPnJ95AJ1kyQPdPW -->
 
 Yeni bir vlog'u Claude'a vlogkit ile kurgulatırken kullanacağın hazır prompt'lar. Hepsi vlogkit'in bugünkü yeteneklerine göre yazıldı. vlogkit geliştikçe bu dosya da güncellenir: kaynak `docs/prompts.md`, sayfa `scripts/build_prompts_page.py` ile üretilip artifact olarak yayınlanır. Aynı dosya `vlogkit ui` arayüzündeki görev listesini de besler: arayüzde bir görevi seçince prompt buradan gelir ve seçtiğin video ile formdaki bağlam bilgileri doldurulur.
 
@@ -375,6 +375,38 @@ Claude ne yapar:
 - Adayları manifest'teki açıklamalardan ve `beats` analizinden seçer; yeni Pixabay parçasında "Content ID Registered" rozeti olmayanı alır ve manifest'e yazar.
 - `vlogkit music` ile her aday için sahnenin altında kısa bir önizleme yapar; Stüdyo'da kartlar çıkar, birini oynatınca diğerleri durur.
 - "Bunu seç" dediğin parçayı, önizlemedeki başlangıç saniyesiyle kurguya koyar. "Sen seç" dersen kendisi seçer ve nedenini yazar.
+
+### 3B animasyon {#ucb}
+
+#### Viral "Peki ya?" senaryoları araştır
+
+Ne zaman: Yeni 3B videolar için fikir lazım. Stüdyo'da **Senaryolar** sayfasındaki "Yeni senaryolar araştır" düğmesi bu prompt'u gönderir.
+
+```text
+"Peki ya?" 3B kanalı için viral olabilecek <5> yeni senaryo araştır ve yaz.
+Yön: <uzay | vücut | para | doğa olayları | serbest>.
+docs/senaryo.md'deki yöntemi ve puanlamayı izle; mevcut senaryoları tekrar etme. Video üretme.
+```
+
+Claude ne yapar:
+- Shorts, TikTok ve Reels'te tutan "what if" konularını web'de arar, sayıları kaynaklarla doğrular.
+- Her adayı beş ölçütle puanlar (merak, tırmanış, görsellik, sayılar, yorum); ortalaması 7.5'in altındakileri eler.
+- Kalanları sahne sahne yazar (her cümle ekranda bir olay), `projects/_senaryolar/` altına kaydeder; Senaryolar sayfasında puanıyla görünür.
+
+#### Konudan ya da senaryodan 3B video
+
+Ne zaman: Bir senaryoyu seçtin (Senaryolar sayfasında "Bu senaryoyu çek") ya da kendi konunu anlatacaksın.
+
+```text
+"Peki ya <soru>?" konusunu 45 saniyelik dikey 3B videoya çevir.
+Her cümle ekranda bir olay olsun; sayaç: <ne sayılıyor>. Önce sahne tablosu ve önizleme karelerini göster.
+```
+
+Claude ne yapar:
+- Gerçekleri ve hesabı toplar, sahneleri `scene.json`'a yazar, kanal sesiyle seslendirip süreleri ölçer.
+- Mekânı kitten seçer (oda, sınıf, ofis, spor salonu, asansör kabini, sokak, şehir, park, uzay, Dünya, stüdyo fonu); hangi mekânlar ve eşyalar var: `uv run vlogkit 3d kit`.
+- Önizleme karelerine bakıp kadrajı düzeltir; onaydan sonra Blender render'ını oturumdan bağımsız başlatır (`vlogkit 3d render`).
+- Bitince `review` ve `check` ile teslim kontrolü yapar.
 
 ### Yayın {#yayin}
 

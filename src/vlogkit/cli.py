@@ -475,6 +475,93 @@ def thumbs(
     typer.echo(f"-> {thumbs_sheet(made, out / 'kapaklar.jpg')}")
 
 
+def _yayin_report(video: Path) -> int:
+    from vlogkit import publish
+
+    pkg = publish.load(video)
+    if pkg is None:
+        typer.echo(f"Yayın paketi yok: {publish.path_for(video)}")
+        return 1
+    problems, warnings = publish.check(pkg, video.parent)
+    for p in publish.PLATFORMS:
+        if not pkg.get(p):
+            continue
+        typer.echo(f"\n== {publish.LABEL[p]}  ({publish.upload_url(p)})")
+        for f in publish.fields(pkg, p):
+            typer.echo(f"-- {f['label']}:\n{f['text']}")
+        cover = (pkg[p] or {}).get("cover")
+        if cover:
+            typer.echo(f"-- Kapak: {video.parent / cover}")
+        if (pkg.get("posted") or {}).get(p):
+            typer.echo(f"-- Paylaşıldı: {pkg['posted'][p]}")
+    if pkg.get("cover_at") is not None:
+        typer.echo(f"\nKapak karesi: {pkg['cover_at']} sn (TikTok'ta kapağı bu kareden seç)")
+    for w in warnings:
+        typer.echo(f"uyarı: {w}")
+    for p in problems:
+        typer.echo(f"! {p}")
+    typer.echo("Paket hazır." if not problems else f"{len(problems)} sorun.")
+    return 1 if problems else 0
+
+
+@app.command()
+def yayin(
+    video: Path,
+    taslak: Annotated[
+        bool, typer.Option("--taslak", help="Paket yoksa senaryodan (varsa) taslak yaz")
+    ] = False,
+) -> None:
+    """Yayın paketi (YouTube Shorts, Instagram Reels, TikTok): metinler, kapaklar, sorunlar."""
+    from vlogkit import publish
+
+    video = video.expanduser().resolve()
+    if taslak and publish.load(video) is None:
+        typer.echo(f"Taslak yazıldı: {publish.save(video, publish.draft(video))}")
+    raise typer.Exit(_yayin_report(video))
+
+
+@app.command("yayin-kontrol")
+def yayin_kontrol(video: Path) -> None:
+    """Yayın paketini platform sınırlarına göre denetle (sorun varsa çıkış kodu 1)."""
+    raise typer.Exit(_yayin_report(video.expanduser().resolve()))
+
+
+@app.command("yayin-kapak")
+def yayin_kapak(
+    video: Path,
+    text: Annotated[
+        str, typer.Option(help="Kapak yazısı: 3-5 kelime, satır için \\n, \\[vurgu]")
+    ] = "",
+    at: Annotated[
+        float | None,
+        typer.Option("--at", "-t", help="Kare (sn); verilmezse 3B projede en güçlü an"),
+    ] = None,
+    platform: Annotated[str, typer.Option(help="youtube | instagram | tiktok | all")] = "all",
+) -> None:
+    """Dikey kapak (1080x1920): videonun karesi + büyük yazı; pakete cover ve cover_at yazılır."""
+    from vlogkit import publish
+
+    video = video.expanduser().resolve()
+    text = text.replace("\\n", "\n")
+    plats = publish.PLATFORMS if platform == "all" else (platform,)
+    if any(p not in publish.PLATFORMS for p in plats):
+        raise typer.BadParameter(f"platform: {', '.join(publish.PLATFORMS)} | all")
+    if len(text.split()) > 5:
+        typer.echo("⚠️ kapak yazısı 5 kelimeden uzun: küçük boyutta okunmaz")
+    t, made = publish.cover(video, text, at, plats)
+    for path in made:
+        typer.echo(f"{t:7.2f} sn  {path}")
+    pkg = publish.load(video)
+    if pkg is not None:
+        pkg["cover_at"] = t
+        if text:
+            pkg["cover_text"] = text
+        for p, path in zip(plats, made, strict=True):
+            pkg.setdefault(p, {})["cover"] = path.name
+        publish.save(video, pkg)
+        typer.echo(f"-> {publish.path_for(video)}")
+
+
 @app.command()
 def review(
     video: Annotated[Path | None, typer.Argument(help="Varsayılan: projenin çıktısı")] = None,

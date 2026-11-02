@@ -77,6 +77,9 @@ GESTURES = {
         "lowerarm_l": (0.2, 0.85, 0.5),
     },
     "sad": {"upperarm_s": (0.05, 0.05, -1.0), "lowerarm_s": (0.0, 0.1, -1.0)},
+    "give": {"upperarm_r": (0.1, 1.0, -0.25), "lowerarm_r": (0.0, 1.0, 0.05)},
+    "dodge": {"upperarm_s": (0.35, 0.7, 0.35), "lowerarm_s": (-0.3, 0.3, 0.9)},
+    "fly": {"upperarm_s": (0.12, 0.55, 0.85), "lowerarm_s": (0.05, 0.4, 0.95)},
 }
 
 
@@ -112,8 +115,27 @@ class Performer:
         ends = [s.frame_end for s in self.base.strips]
         return max([f, *ends]) if ends and max(ends) > f else f
 
+    def _pad(self, f: float) -> None:
+        """Idle from the end of the track up to frame f. Strips are laid down in time order, so
+        there is always room after the last one (Blender will not slide a strip into a gap)."""
+        ends = [s.frame_end for s in self.base.strips]
+        end = math.ceil(max(ends) - 1e-6) if ends else 1
+        want = math.floor(f) - end
+        if want < 1:
+            return
+        idle = _clip("Idle_Loop")
+        length = _frames(idle)
+        st = self.base.strips.new(f"idle.{end}", end, idle)
+        if want >= length:
+            st.repeat = want / length
+        else:
+            st.action_frame_end = idle.frame_range[0] + want
+        st.extrapolation = "HOLD_FORWARD"
+        st.blend_in = min(self.blend, want // 2) if end > 1 else 0
+
     def clip(self, action: str, f0: int, f1: int, speed: float = 1.0) -> None:
         clips, loops = LIB.get(action, LIB["idle"])
+        self._pad(f0)
         f = float(self._free(f0))
         for i, name in enumerate(clips):
             a = _clip(name)
@@ -145,25 +167,17 @@ class Performer:
         self._last_end = max(self._last_end, round(f))
 
     def fill_idle(self) -> None:
-        """Every frame not covered by a clip idles (strips may not overlap on one track)."""
-        strips = sorted(self.base.strips, key=lambda s: s.frame_start)
-        gaps, t = [], 1.0
-        for s in strips:
-            if s.frame_start - t > 1:
-                gaps.append((t, s.frame_start))
-            t = max(t, s.frame_end)
-        if self.n + 1 - t > 1:
-            gaps.append((t, self.n + 1))
-        for a, b in gaps:
-            a = math.ceil(a - 1e-6)
-            if b - a < 1:
-                continue
-            idle = _clip("Idle_Loop")
-            st = self.base.strips.new(f"idle.{a}", a, idle)
-            st.repeat = max(1.0, (b - a) / _frames(idle))
-            st.frame_end = b
-            st.extrapolation = "HOLD_FORWARD"
-            st.blend_in = min(self.blend, (b - a) // 2) if a > 1 else 0
+        """Idle after the last clip to the end of the shot (gaps before clips are padded as the
+        clips are laid down)."""
+        if not self.base.strips:
+            self._pad(1)
+            if not self.base.strips:  # nothing at all: idle the whole beat
+                idle = _clip("Idle_Loop")
+                st = self.base.strips.new("idle.1", 1, idle)
+                st.repeat = max(1.0, self.n / _frames(idle))
+                st.extrapolation = "HOLD_FORWARD"
+                return
+        self._pad(self.n + 1)
 
     # ---- moves
     def move(self, path: list, f0: int, f1: int, kind: str) -> None:
@@ -177,9 +191,12 @@ class Performer:
             fa = f0 + round((f1 - f0) * acc / total)
             acc += d
             fb = f0 + round((f1 - f0) * acc / total)
-            h = math.atan2(b[0] - a[0], -(b[1] - a[1]))
+            flat = math.dist(a[:2], b[:2]) > 1e-3
+            h = math.atan2(b[0] - a[0], -(b[1] - a[1])) if flat else self.arm.rotation_euler.z
             for f, pt in ((fa, a), (fb, b)):
                 self.arm.location.x, self.arm.location.y = pt[0], pt[1]
+                if len(pt) > 2:  # flying: the path has heights
+                    self.arm.location.z = pt[2]
                 self.arm.rotation_euler.z = h
                 self.arm.keyframe_insert("location", frame=f)
                 self.arm.keyframe_insert("rotation_euler", index=2, frame=f)
@@ -195,6 +212,7 @@ class Performer:
         k = min(
             1.0, max(0.6, (room - air) / (s_len + l_len))
         )  # a short beat plays the clips faster
+        self._pad(f0)
         f0 = round(self._free(f0) + 0.499)
         t = float(f0)
         for a, length in ((start, s_len * k), (loop, float(air)), (land, l_len * k)):
@@ -304,15 +322,31 @@ class Performer:
             pb = pose[bn]
             pb.rotation_quaternion = q
             pb.keyframe_insert("rotation_quaternion", frame=f)
-        for f0, f1, ramp in ramps:
-            for f, v in ((f0, 0.0), (f0 + ramp, 1.0), (f1 - 1, 1.0), (min(self.n, f1 + ramp), 0.0)):
-                ad.action_influence = v
-                self.arm.keyframe_insert("animation_data.action_influence", frame=f)
-        if ramps and ramps[0][0] > 1:
-            ad.action_influence = 0.0
-            self.arm.keyframe_insert("animation_data.action_influence", frame=1)
-        if hasattr(ad, "action_slot") and act.slots:
-            ad.action_slot = act.slots[0]
+        slot = act.slots[0] if hasattr(ad, "action_slot") and act.slots else None
+        # 3) play: each gesture is a window of that action on a top NLA track, faded in and out by
+        # the strip itself (an action cannot animate its own influence), nothing outside it
+        ad.action = None
+        ad.action_influence = 1.0
+        tracks: list = []
+        for f0, f1, ramp in sorted(ramps):
+            end = min(self.n + 1, f1 + ramp)
+            tr = next((t for t in tracks if all(s.frame_end <= f0 for s in t.strips)), None)
+            if tr is None:
+                tr = ad.nla_tracks.new()
+                tr.name = f"gestures{len(tracks)}"
+                tracks.append(tr)
+            far = round(max([s.frame_end for s in tr.strips] + [self.n + 10]) + 10)
+            st = tr.strips.new(f"g.{f0}", far, act)
+            if slot is not None and hasattr(st, "action_slot"):
+                st.action_slot = slot
+            st.use_sync_length = False
+            st.action_frame_start = f0
+            st.action_frame_end = max(f0 + 2, end)
+            st.frame_start_ui = f0
+            st.blend_type = "REPLACE"
+            st.extrapolation = "NOTHING"
+            st.blend_in = min(ramp, (end - f0) // 2)
+            st.blend_out = min(ramp, (end - f0) // 2)
         sc.frame_set(1)
 
     # ---- face (the realistic heads have no face rig: brows and eyes carry the expression)
@@ -346,6 +380,13 @@ def perform(person, actor: dict, fps: float, n: int) -> Performer:
         do = a["do"]
         if do in ("walk", "run", "jog", "sneak", "walk_formal") and a.get("path"):
             pf.move(a["path"], f0, f1, do)
+        elif do == "fly":
+            path = a.get("path") or [
+                [*actor.get("at", [0, 0])[:2], 0],
+                [*actor.get("at", [0, 0])[:2], 3],
+            ]
+            pf.move(path, f0, f1, "float")
+            pf.gesture("fly", f0, f1)
         elif do == "jump":
             pf.jump(f0, f1, float(a.get("height", 0.5)))
         elif do in LIB:
@@ -353,6 +394,14 @@ def perform(person, actor: dict, fps: float, n: int) -> Performer:
         elif do in GESTURES:
             pf.clip("talk" if actor.get("talk") else "idle", f0, f1)
             pf.gesture(do, f0, f1)
+            if do == "dodge":  # a step back, away from what comes
+                h = pf.arm.rotation_euler.z
+                back = (-math.sin(h) * 0.35, math.cos(h) * 0.35)
+                x, y = pf.arm.location.x, pf.arm.location.y
+                for f, k in ((f0, 0.0), (min(f1, f0 + round(0.35 * fps)), 1.0)):
+                    pf.arm.location.x, pf.arm.location.y = x + back[0] * k, y + back[1] * k
+                    pf.arm.keyframe_insert("location", index=0, frame=f)
+                    pf.arm.keyframe_insert("location", index=1, frame=f)
         else:
             pf.clip("idle", f0, f1)
     if actor.get("talk") and not acts:

@@ -14,6 +14,7 @@ SETS = {
     "kitchen": "Mutfak (tezgâh, ocak, buzdolabı)",
     "office": "Ofis (masalar, laptoplar, pencere)",
     "gym": "Spor salonu (bench, halter, ayna; set_opts.text afiş yazısı)",
+    "elevator": "Asansör kabini (kapı, kat levhası: set_opts.floor, düğme paneli, tutamak; set_opts: open, ceiling=false tepeden çekim için, shaft kuyuyu açar, emergency kırmızı ışık)",
     "street": "Şehir sokağı (dükkânlar ve tabelaları, ağaçlar, lambalar, arabalar; set_opts.shops tabela adları, night)",
     "city": "Şehir, yukarıdan (bina blokları, yollar, parklar): geniş ve havadan planlar",
     "park": "Park (çimen, ağaçlar, bank, yol)",
@@ -34,6 +35,8 @@ PROPS = {
     "calendar": "takvim (month, text: gün)", "clock": "duvar saati (hours: 10.25 = 10:15)", "arrow": "büyük ok (bir şeyi gösterir)",
     "globe": "Dünya küresi (r)", "moon": "Ay (r)", "cloud": "bulut (z)", "water_jet": "ışın/fışkırma (len, color)",
     "crowd_person": "kalabalık için basit insan (color)",
+    "wanted": "ARANIYOR afişi (text: isim, reward: ödül)", "map": "duvar haritası (text: yer, pins: [[x, y], ...] -1..1)",
+    "phone_big": "büyük telefon ekranı: sosyal medya gönderisi (text: #etiket, likes, user)",
     # gerçek modeller (3B dünya kütüphanesi; yoksa basit karşılığı çizilir)
     "taxi": "taksi", "police_car": "polis arabası", "sports_car": "spor araba", "suv": "SUV",
     "big_tree": "dev ağaç (16 m)", "bush": "çalı", "flowers": "çiçek öbeği", "grass": "uzun çimen", "rock": "kaya",
@@ -57,6 +60,8 @@ ACTIONS = {
     "push": "bir şeyi iter", "roll": "takla atar", "punch": "yumruk atar", "swim": "yüzer", "float": "suda durur",
     "drive": "araba sürer (otururken)", "interact": "bir şeye dokunur / düğmeye basar", "fix": "diz çöküp tamir eder",
     "present": "eliyle bir şeyi sunar", "sit_talk": "otururken konuşur", "stand_up": "oturduğu yerden kalkar",
+    "fly": "uçar / havalanır (path: [[x, y, z], ...])", "give": "elindekini öne uzatır (verir)",
+    "dodge": "geri çekilir, kaçınır",
 }  # fmt: skip
 
 FACES = (
@@ -95,3 +100,33 @@ TOPS = ("tshirt", "longsleeve", "hoodie", "tank", "coat", "suit")
 BOTTOMS = ("jeans", "trousers", "shorts", "skirt")
 OUTFITS = ("casual", "suit", "chef", "doctor", "lab")
 SFX = ("whoosh", "pop", "impact", "riser", "ding", "boom")
+
+# Effects: things that happen in the shot at a moment (`at`: a word of the line or a fraction).
+# `pos` [x, y, z] or `on` (an actor or a prop id); `size` scales; `dur` seconds.
+FX = {
+    "crack": "zemin (ya da wall: true ile duvar) çatlar, çatlak büyür",
+    "debris": "parçalar fırlar, düşer, seker (n, color)",
+    "shatter": "cam kırılır, kırıklar saçılır",
+    "explosion": "patlama: ateş topu, ışık, duman, parçalar",
+    "smoke": "duman yükselir (color)",
+    "fire": "alev yanar (dur boyunca)",
+    "sparks": "kıvılcım saçılır",
+    "flood": "su seviyesi yükselir (level: m)",
+    "pour": "akan sıvı ve büyüyen birikinti (color)",
+    "rain": "yukarıdan yağar (item: money | confetti | water | snow, area: [x0, y0, x1, y1])",
+    "flash": "ışık patlaması (color)",
+    "shake": "kamera sarsılır (amount)",
+    "beam": "ışın: pos'tan to'ya (color)",
+    "split": "bir eşyayı ikiye böler, parçalar ayrılır (target: eşya id'si)",
+    "pop": "bir eşya 'pat' diye belirir (target)",
+    "vanish": "bir eşya küçülüp kaybolur (target)",
+}
+# Looks: how a shot is shown (drawn over its frames, after the render).
+LOOKS = {
+    "security": "güvenlik kamerası: siyah-beyaz, kumlu, REC ve saat (text: KAMERA 03)",
+    "news": "canlı yayın: SON DAKİKA bandı, manşet, alt yazı kayan bant (text, ticker, channel)",
+    "phone": "telefon ekranında video: kullanıcı, beğeni sayacı, #etiket (text, user, likes)",
+    "old": "eski film: sepya, gren, titreme (tarih sahneleri)",
+    "nightvision": "gece görüşü: yeşil, kumlu",
+}
+CROWD_DO = ("idle", "cheer", "jump", "walk", "run", "panic", "dance", "talk", "shock", "point_up")

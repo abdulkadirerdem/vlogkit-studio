@@ -21,7 +21,11 @@
       "end": {"tag": "PART 2 İÇİN", "title": "TAKİPTE KAL", "seconds": 2.0}
     }
 
-- One beat = one narration line = one shot; its length is the measured speech plus `hold`.
+- One beat = one narration line; its length is the measured speech plus `hold`. A beat is one
+  shot, or several (`shots`: each starts at its `cue` word and changes the camera, set, actors,
+  props, effects, crowd or look; what it leaves alone carries on from the beat, time running).
+- `fx` (effects), prop `anim` / `hand` / `open`, `crowd`, `look` (security, news, phone...): see
+  docs/3d.md. Any moment (`from`, `to`, `at`, `cue`) may be a word of the line.
 - `do` is an action name, or a list of steps [{"do": "walk", "from": 0, "to": 0.6, "path": [...]},
   {"do": "shock", "from": 0.6}] with `from`/`to` as fractions of the beat.
 - `[word]` in `say` is the yellow emphasis in the captions (brackets are not spoken).
@@ -57,6 +61,7 @@ _TOP = {
     "fps",
     "captions",
     "notes",
+    "cut_whoosh",
 }
 _BEAT = {
     "say",
@@ -70,7 +75,16 @@ _BEAT = {
     "hold",
     "caption",
     "notes",
+    "shots",
+    "fx",
+    "crowd",
+    "look",
 }
+_SHOT = {"cue", "set", "set_opts", "actors", "props", "camera", "fx", "crowd", "look", "notes"}
+_FX = {"kind", "at", "pos", "on", "to", "size", "dur", "color", "n", "level", "item", "area",
+       "target", "amount", "wall", "axis", "gap"}  # fmt: skip
+_PROP_ANIM = {"at", "to", "by", "rot", "tilt", "scale", "dur", "ease", "hide", "show", "spin"}
+_CROWD = {"count", "area", "do", "facing", "seed", "at", "cheap", "spread", "speed"}
 _ACTOR = {"who", "at", "facing", "face", "do", "path", "talk", "look", "size", "faces"}
 _CAMERA = {
     "frame",
@@ -127,7 +141,69 @@ def _names(d) -> str:
     return ", ".join(sorted(d))
 
 
-def _check_steps(where: str, a: dict, out: list[str]) -> None:
+def _cue_ok(where: str, say: str, cue, out: list[str]) -> None:
+    """A moment: a fraction 0..1 or a word of the line."""
+    from vlogkit.scene3d.plan import find_cue
+
+    if cue is None or isinstance(cue, bool):
+        return
+    if isinstance(cue, (int, float)):
+        if not 0 <= cue <= 1:
+            out.append(f"{where}: an {cue}: 0 ile 1 arasında bir kesir ya da cümleden bir kelime")
+        return
+    if find_cue(say, str(cue)) is None:
+        out.append(f"{where}: '{cue}' kelimesi cümlede yok (an: cümleden bir kelime ya da 0-1)")
+
+
+def _check_fx(where: str, say: str, items, ids: set[str], out: list[str]) -> None:
+    for j, f in enumerate(items or [], 1):
+        fw = f"{where} efekt {j}"
+        if not isinstance(f, dict) or f.get("kind") not in catalog.FX:
+            out.append(f"{fw}: kind bilinmiyor (var olanlar: {_names(catalog.FX)})")
+            continue
+        for k in set(f) - _FX:
+            out.append(f"{fw}: bilinmeyen alan '{k}' (olanlar: {_names(_FX)})")
+        _cue_ok(fw, say, f.get("at"), out)
+        if f["kind"] in ("split", "pop", "vanish") and f.get("target") not in ids:
+            out.append(
+                f"{fw}: '{f['kind']}' için target: bu planda bir eşyanın id'si ({_names(ids) or 'yok'})"
+            )
+
+
+def _check_look(where: str, look, out: list[str]) -> None:
+    if look is None:
+        return
+    kind = look.get("kind") if isinstance(look, dict) else look
+    if kind not in catalog.LOOKS:
+        out.append(f"{where}: look '{kind}' yok (olanlar: {_names(catalog.LOOKS)})")
+
+
+def _check_props(where: str, say: str, props, actors: set[str], out: list[str]) -> set[str]:
+    ids = set()
+    for j, p in enumerate(props or [], 1):
+        pw = f"{where} eşya {j}"
+        if p.get("kind") not in catalog.PROPS:
+            out.append(
+                f"{pw}: bilinmeyen eşya '{p.get('kind')}' (var olanlar: {_names(catalog.PROPS)})"
+            )
+        if p.get("id"):
+            ids.add(p["id"])
+        for k, m in enumerate(p.get("anim") or [], 1):
+            for x in set(m) - _PROP_ANIM:
+                out.append(f"{pw} anim {k}: bilinmeyen alan '{x}' (olanlar: {_names(_PROP_ANIM)})")
+            _cue_ok(f"{pw} anim {k}", say, m.get("at"), out)
+        if p.get("open"):
+            _cue_ok(f"{pw} open", say, p["open"].get("at"), out)
+        hand = p.get("hand")
+        steps = [{"who": hand}] if isinstance(hand, str) else hand or []
+        for st in steps:
+            if st.get("who") not in actors:
+                out.append(f"{pw} hand: '{st.get('who')}' bu planda oyuncu değil")
+            _cue_ok(f"{pw} hand", say, st.get("at"), out)
+    return ids
+
+
+def _check_steps(where: str, a: dict, out: list[str], say: str = "") -> None:
     do = a.get("do")
     steps = do if isinstance(do, list) else ([{"do": do}] if do else [])
     for i, st in enumerate(steps):
@@ -141,10 +217,87 @@ def _check_steps(where: str, a: dict, out: list[str]) -> None:
                 f"{where}: bilinmeyen hareket '{st['do']}' (var olanlar: {_names(catalog.ACTIONS)})"
             )
         for k in ("from", "to"):
-            if k in st and not (isinstance(st[k], (int, float)) and 0 <= st[k] <= 1):
-                out.append(f"{where} adım {i + 1}: '{k}' 0 ile 1 arasında bir kesir olmalı")
-        if st["do"] in ("walk", "run", "sneak") and not (st.get("path") or a.get("path")):
+            if k in st:
+                _cue_ok(f"{where} adım {i + 1} {k}", say, st[k], out)
+        if st["do"] in ("walk", "run", "sneak", "jog", "fly") and not (
+            st.get("path") or a.get("path")
+        ):
             out.append(f"{where}: '{st['do']}' için path gerekli: [[x, y], [x, y], ...]")
+
+
+def _check_scope(
+    w: str, say: str, eff: dict, cast: dict, out: list[str], own: dict, beat: dict, seen: set[int]
+) -> None:
+    """One shot's actors, props, camera, effects, look and crowd (each list checked once even when
+    several shots share the beat's)."""
+
+    def fresh(key: str) -> bool:
+        v = eff.get(key)
+        if v is None:
+            return False
+        if key not in own:  # the beat's own: check it with the first shot only
+            if id(v) in seen:
+                return False
+            seen.add(id(v))
+        return True
+
+    names = {a.get("who") for a in eff.get("actors") or []}
+    if fresh("actors"):
+        for j, a in enumerate(eff.get("actors") or [], 1):
+            aw = f"{w} oyuncu {j}"
+            for k in set(a) - _ACTOR:
+                out.append(f"{aw}: bilinmeyen alan '{k}' (olanlar: {_names(_ACTOR)})")
+            if a.get("who") not in cast:
+                out.append(f"{aw}: '{a.get('who')}' cast'te yok (cast: {_names(cast) or 'boş'})")
+            if a.get("face", "happy") not in catalog.FACES:
+                out.append(
+                    f"{aw}: yüz ifadesi '{a.get('face')}' yok (olanlar: {', '.join(catalog.FACES)})"
+                )
+            _check_steps(aw, a, out, say)
+            for fc in a.get("faces") or []:
+                _cue_ok(f"{aw} faces", say, fc.get("at"), out)
+    ids = {p.get("id") for p in eff.get("props") or [] if p.get("id")}
+    if fresh("props"):
+        _check_props(w, say, eff.get("props"), names, out)
+    for a in eff.get("actors") or []:
+        if isinstance(a.get("facing"), str) and a["facing"] not in names | ids:
+            out.append(f"{w}: facing '{a['facing']}' bu planda bir oyuncu ya da eşya id'si değil")
+    if fresh("camera"):
+        cam = eff.get("camera") or {}
+        for k in set(cam) - _CAMERA:
+            out.append(f"{w} kamera: bilinmeyen alan '{k}' (olanlar: {_names(_CAMERA)})")
+        if cam.get("frame", "medium") not in catalog.FRAMES:
+            out.append(
+                f"{w} kamera: frame '{cam.get('frame')}' yok (olanlar: {_names(catalog.FRAMES)})"
+            )
+        if cam.get("move", "push") not in catalog.MOVES:
+            out.append(
+                f"{w} kamera: move '{cam.get('move')}' yok (olanlar: {_names(catalog.MOVES)})"
+            )
+        on = cam.get("on")
+        if isinstance(on, list) and on and all(isinstance(x, str) for x in on):
+            for x in on:
+                if x not in names:
+                    out.append(f"{w} kamera: on listesindeki '{x}' bu planda oyuncu değil")
+        if isinstance(on, str) and on not in names | ids:
+            out.append(
+                f"{w} kamera: on='{on}' bu planda oyuncu ya da eşya değil (oyuncular: {_names(names) or 'yok'})"
+            )
+    if fresh("fx"):
+        _check_fx(w, say, eff.get("fx"), ids, out)
+    if fresh("look"):
+        _check_look(w, eff.get("look"), out)
+    if fresh("crowd"):
+        c = eff.get("crowd") or {}
+        for k in set(c) - _CROWD:
+            out.append(f"{w} kalabalık: bilinmeyen alan '{k}' (olanlar: {_names(_CROWD)})")
+        if c.get("do", "idle") not in catalog.CROWD_DO:
+            out.append(
+                f"{w} kalabalık: do '{c.get('do')}' yok (olanlar: {', '.join(catalog.CROWD_DO)})"
+            )
+        if not 1 <= int(c.get("count", 12)) <= 400:
+            out.append(f"{w} kalabalık: count 1-400")
+        _cue_ok(f"{w} kalabalık", say, c.get("at"), out)
 
 
 def validate(spec: dict) -> list[str]:
@@ -198,46 +351,42 @@ def validate(spec: dict) -> list[str]:
             out.append(f"{w}: bilinmeyen alan '{k}' (olanlar: {_names(_BEAT)})")
         if not spoken(b.get("say", "")):
             out.append(f"{w}: 'say' (anlatım cümlesi) boş")
-        if b.get("set") not in catalog.SETS:
+        needs_set = not b.get("shots") or any("set" not in sh for sh in b["shots"])
+        if (needs_set or "set" in b) and b.get("set") not in catalog.SETS:
             out.append(
                 f"{w}: bilinmeyen mekân '{b.get('set')}' (var olanlar: {_names(catalog.SETS)})"
             )
-        for j, a in enumerate(b.get("actors") or [], 1):
-            aw = f"{w} oyuncu {j}"
-            for k in set(a) - _ACTOR:
-                out.append(f"{aw}: bilinmeyen alan '{k}' (olanlar: {_names(_ACTOR)})")
-            if a.get("who") not in cast:
-                out.append(f"{aw}: '{a.get('who')}' cast'te yok (cast: {_names(cast) or 'boş'})")
-            if a.get("face", "happy") not in catalog.FACES:
+        say = b.get("say", "")
+        shots = b.get("shots") or []
+        if shots and not isinstance(shots, list):
+            out.append(f"{w}: shots bir liste olmalı")
+            shots = []
+        scopes = (
+            [(w, {**b, **sh}, sh) for sh in [{}]]
+            if not shots
+            else [(f"{w} plan {k}", {**b, **sh}, sh) for k, sh in enumerate(shots, 1)]
+        )
+        for k, sh in enumerate(shots, 1):
+            for x in set(sh) - _SHOT:
+                out.append(f"{w} plan {k}: bilinmeyen alan '{x}' (olanlar: {_names(_SHOT)})")
+            if k > 1 and sh.get("cue") is None:
+                out.append(f"{w} plan {k}: cue gerekli (planın başladığı kelime ya da 0-1)")
+            _cue_ok(f"{w} plan {k}", say, sh.get("cue"), out)
+            if "set" in sh and sh["set"] not in catalog.SETS:
                 out.append(
-                    f"{aw}: yüz ifadesi '{a.get('face')}' yok (olanlar: {', '.join(catalog.FACES)})"
+                    f"{w} plan {k}: bilinmeyen mekân '{sh['set']}' (var olanlar: {_names(catalog.SETS)})"
                 )
-            _check_steps(aw, a, out)
-        for j, p in enumerate(b.get("props") or [], 1):
-            if p.get("kind") not in catalog.PROPS:
-                out.append(
-                    f"{w} eşya {j}: bilinmeyen eşya '{p.get('kind')}' (var olanlar: {_names(catalog.PROPS)})"
-                )
-        cam = b.get("camera") or {}
-        for k in set(cam) - _CAMERA:
-            out.append(f"{w} kamera: bilinmeyen alan '{k}' (olanlar: {_names(_CAMERA)})")
-        if cam.get("frame", "medium") not in catalog.FRAMES:
-            out.append(
-                f"{w} kamera: frame '{cam.get('frame')}' yok (olanlar: {_names(catalog.FRAMES)})"
-            )
-        if cam.get("move", "push") not in catalog.MOVES:
-            out.append(
-                f"{w} kamera: move '{cam.get('move')}' yok (olanlar: {_names(catalog.MOVES)})"
-            )
-        on = cam.get("on")
-        names = {a.get("who") for a in b.get("actors") or []}
-        if isinstance(on, str) and on not in names:
-            out.append(
-                f"{w} kamera: on='{on}' bu beat'te oyuncu değil (oyuncular: {_names(names) or 'yok'})"
-            )
+        seen: set[int] = set()
+        for sw, eff, own in scopes:
+            _check_scope(sw if shots else w, say, eff, cast, out, own, b, seen)
         for s in b.get("sfx") or []:
-            if s not in catalog.SFX:
-                out.append(f"{w}: ses efekti '{s}' yok (olanlar: {', '.join(catalog.SFX)})")
+            sid = s.get("id") if isinstance(s, dict) else s
+            if sid not in catalog.SFX:
+                out.append(f"{w}: ses efekti '{sid}' yok (olanlar: {', '.join(catalog.SFX)})")
+            if isinstance(s, dict):
+                _cue_ok(f"{w} ses efekti", say, s.get("at"), out)
+        if isinstance(b.get("hud"), dict):
+            _cue_ok(f"{w} sayaç", say, b["hud"].get("at"), out)
     return out
 
 

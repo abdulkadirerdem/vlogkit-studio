@@ -16,6 +16,7 @@
   <aside class="side">
     <div class="brand"><span class="wordmark">vlogkit</span></div>
     <button class="new" id="newJob" type="button"><span aria-hidden="true">＋</span> Yeni iş</button>
+    <button class="new scen-btn" id="scenariosBtn" type="button"><span aria-hidden="true">✦</span> Senaryolar</button>
     <nav class="history" id="history" aria-label="İşler"></nav>
     <div class="side-foot">
       <button class="update-btn" id="updateBtn" type="button" aria-haspopup="true" hidden></button>
@@ -30,6 +31,7 @@
   <main class="main" id="main">
     <aside class="lic" id="licPanel" aria-label="Lisanslar" hidden></aside>
     <section class="thread" id="thread" aria-live="polite"></section>
+    <section class="scen" id="scenarios" aria-label="Senaryolar" hidden></section>
 
     <section class="dock" id="dock">
       <h1 class="hello" id="hello">Ne kurgulayalım?</h1>
@@ -191,6 +193,15 @@
   </div>
 </div>
 <div class="drop" id="drop" hidden><div>Videoyu ya da klasörü bırak</div></div>
+<div class="settings pub" id="publish" role="dialog" aria-modal="true" aria-labelledby="pubTitle" hidden>
+  <div class="settings-card pub-card">
+    <header class="settings-head">
+      <div class="settings-ver"><b id="pubTitle">Yayınla</b><small id="pubVideo"></small></div>
+      <button class="icon-btn" id="pubClose" type="button" aria-label="Kapat" title="Kapat (Esc)">✕</button>
+    </header>
+    <div class="pub-body" id="pubBody"></div>
+  </div>
+</div>
 <div class="lightbox" id="lightbox" hidden><img id="lightImg" alt=""><span class="hint">Görsele tıkla: tam boyut · dışarı tıkla ya da Esc: kapat</span></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="/static/app.js"></script>

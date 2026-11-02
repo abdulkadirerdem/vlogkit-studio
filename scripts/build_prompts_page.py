@@ -118,7 +118,9 @@ def render_blocks(lines: list[str]) -> str:
 # ---------------------------------------------------------------- page
 def card(stage: Stage, n: int, p: Prompt) -> str:
     code = p.code
-    search = " ".join([p.title, p.when, p.text, p.does, p.note, *p.variations]).lower()
+    search = " ".join(
+        [p.title, p.when, p.text, p.does, *p.does_items, p.note, *p.variations]
+    ).lower()
     parts = [
         f'<article class="card" id="{code.lower()}" data-stage="{stage.id}" '
         f'data-search="{html.escape(search)}">',
@@ -129,8 +131,11 @@ def card(stage: Stage, n: int, p: Prompt) -> str:
         parts.append(f'<p class="when"><span class="lbl">Ne zaman</span>{inline(p.when)}</p>')
     parts.append(pre_block(p.text))
     notes = []
-    if p.does:
-        notes.append(f"<div><dt>Claude ne yapar</dt><dd>{inline(p.does)}</dd></div>")
+    if p.does or p.does_items:
+        body = inline(p.does) if p.does else ""
+        if p.does_items:
+            body += "<ul>" + "".join(f"<li>{inline(x)}</li>" for x in p.does_items) + "</ul>"
+        notes.append(f"<div><dt>Claude ne yapar</dt><dd>{body}</dd></div>")
     if p.note:
         notes.append(f"<div><dt>Not</dt><dd>{inline(p.note)}</dd></div>")
     if notes:
@@ -307,6 +312,7 @@ code .ph { color: var(--accent-ink); }
 .notes dt { font: 600 11px/1.9 var(--mono); letter-spacing: .1em; text-transform: uppercase;
   color: var(--accent-ink); }
 .notes dd { margin: 0; color: var(--ink); }
+.notes dd ul { margin: 4px 0 0; padding-left: 1.15em; display: grid; gap: 5px; }
 .vars ul { margin: 6px 0 0; }
 .vars li { color: var(--muted); }
 .slate { margin: 0; border-radius: 12px; overflow: hidden; background: var(--panel);

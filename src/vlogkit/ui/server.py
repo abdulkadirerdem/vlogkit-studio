@@ -632,6 +632,41 @@ def make_handler(app: App) -> type[BaseHTTPRequestHandler]:
                     else:
                         raise ValueError("işlem: install | remove | select")
                     return self._json(setup.models())
+                case ("GET", ["scenarios"]):
+                    from vlogkit.scene3d import scenarios
+
+                    arch = (q.get("archived") or ["0"])[0] == "1"
+                    return self._json(
+                        {"dir": str(scenarios.DIR), "items": scenarios.list_all(arch)}
+                    )
+                case ("GET", ["scenarios", sid]):
+                    from vlogkit.scene3d import scenarios
+
+                    s = scenarios.load(sid)
+                    return self._json(
+                        {
+                            **s,
+                            "total": scenarios.total(s),
+                            "problems": scenarios.validate(s),
+                            "file": str(scenarios.path(sid)),
+                        }
+                    )
+                case ("POST", ["scenarios", sid, "status"]):
+                    from vlogkit.scene3d import scenarios
+
+                    b = self._body()
+                    return self._json(
+                        scenarios.set_status(sid, str(b.get("status", "")), b.get("project"))
+                    )
+                case ("GET", ["publish"]):
+                    return self._json(self._publish((q.get("video") or [""])[0]))
+                case ("POST", ["publish", "posted"]):
+                    from vlogkit import publish
+
+                    b = self._body()
+                    v = self._publish_video(str(b.get("video", "")))
+                    publish.mark_posted(v, str(b.get("platform", "")), bool(b.get("posted", True)))
+                    return self._json(self._publish(str(v)))
                 case ("GET", ["update"]):
                     from vlogkit import update
 
@@ -793,6 +828,52 @@ def make_handler(app: App) -> type[BaseHTTPRequestHandler]:
                 f"words:{p}:{st.st_size}:{st.st_mtime}", lambda: timeline.words(p)
             )
             return {"status": res["status"], "error": res.get("error"), "words": res.get("data")}
+
+        def _publish_video(self, raw: str) -> Path:
+            v = Path(raw).expanduser()
+            if not raw or v.suffix.lower() not in (".mp4", ".mov", ".m4v") or not v.exists():
+                raise FileNotFoundError(raw)
+            if not app.media_ok(v):
+                raise FileNotFoundError(raw)
+            return v.resolve()
+
+        def _publish(self, raw: str) -> dict:
+            """A video's publishing package as the studio shows it: per platform the texts with
+            their copy labels, the cover and the upload page; problems and warnings."""
+            from vlogkit import publish
+
+            v = self._publish_video(raw)
+            pkg = publish.load(v)
+            out = {
+                "video": str(v),
+                "file": str(publish.path_for(v)),
+                "exists": pkg is not None,
+                "platforms": {},
+            }
+            if pkg is None:
+                return out
+            problems, warnings = publish.check(pkg, v.parent)
+            for p in publish.PLATFORMS:
+                d = pkg.get(p)
+                if not d:
+                    continue
+                cv = v.parent / d["cover"] if d.get("cover") else publish.cover_path(v, p)
+                out["platforms"][p] = {
+                    "label": publish.LABEL[p],
+                    "url": publish.upload_url(p),
+                    "fields": publish.fields(pkg, p),
+                    "cover": str(cv) if cv.exists() else None,
+                    "posted": (pkg.get("posted") or {}).get(p),
+                    "problems": [x for x in problems if x.startswith(p)],
+                    "warnings": [x for x in warnings if x.startswith(p)],
+                }
+            out.update(
+                cover_at=pkg.get("cover_at"),
+                cover_text=pkg.get("cover_text"),
+                problems=problems,
+                warnings=warnings,
+            )
+            return out
 
         def _attach(self, q: dict) -> dict:
             """Store an image/document sent with a message; HEIC becomes JPEG (agents read it)."""

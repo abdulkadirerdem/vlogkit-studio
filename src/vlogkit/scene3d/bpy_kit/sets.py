@@ -219,6 +219,64 @@ def gym(o):
     }
 
 
+def elevator(o):
+    """A lift cabin, open towards the camera: steel walls, the doors and the floor indicator at the
+    back, a button panel, a handrail. `opts`: "floor" (the number on the indicator), "open" (doors
+    apart), "ceiling": False (for shots from above), "shaft" (the hoistway over the cabin: concrete,
+    guide rails, suspension cables; implies no ceiling), "emergency" (red light, no cabin lamp)."""
+    w, d, h = 1.9, 1.7, 2.35
+    shaft = bool(o.get("shaft"))
+    steel = look.mat(o.get("wall", "#b9bfc6"), rough=0.3, spec=0.7, metal=0.6)
+    # "floor" is the number on the indicator here, so the ground's color is "floor_color"
+    floor_m = look.pbr("floor_tiles_06", None, 0.8, fallback=o.get("floor_color", "#4a4f55"))
+    shapes.rbox("set.floor", (w, d, 0.12), floor_m, (0, 0, -0.06), 0.01)
+    shapes.rbox("set.back", (w, 0.1, h), steel, (0, d / 2, h / 2), 0.01)
+    for s in (-1, 1):
+        shapes.rbox(f"set.side{s}", (0.1, d, h), steel, (s * w / 2, 0, h / 2), 0.01)
+    dm = look.mat("#d7dde2", rough=0.2, spec=0.8, metal=0.5)
+    dw, dx = (0.3, w / 2 - 0.22) if o.get("open") else (0.78, 0.4)
+    for s in (-1, 1):
+        shapes.rbox(f"set.door{s}", (dw, 0.06, 2.05), dm, (s * dx, d / 2 - 0.09, 1.02), 0.01)
+    shapes.rbox("set.indbox", (0.62, 0.05, 0.22), look.mat("#15181c", rough=0.4), (0, 0.75, 2.18), 0.01)  # fmt: skip
+    shapes.text("set.indtxt", str(o.get("floor", "20")), look.mat("#ff9b2f", emit=3.0), 0.15,
+                (0, 0.70, 2.18), font_path=props.FONT)  # fmt: skip
+    shapes.rbox("set.panel", (0.05, 0.22, 0.62), look.mat("#2a2f35", rough=0.5), (w / 2 - 0.07, 0.42, 1.25), 0.01)  # fmt: skip
+    btn = look.mat("#e8e2d8", emit=0.6)
+    for i in range(6):
+        shapes.cylinder(f"set.btn{i}", 0.022, 0.012, btn,
+                        (w / 2 - 0.1, 0.36 + (i % 2) * 0.11, 1.46 - (i // 2) * 0.12), (0, 90, 0), segments=12)  # fmt: skip
+    shapes.cylinder("set.handrail", 0.022, d - 0.3, look.mat("#8d949b", rough=0.25, metal=0.8),
+                    (-w / 2 + 0.08, 0, 0.95), (90, 0, 0), segments=12)  # fmt: skip
+    roofed = o.get("ceiling", True) and not shaft
+    if roofed:
+        shapes.rbox("set.ceil", (w, d, 0.08), steel, (0, 0, h + 0.04), 0.01)
+    if shaft:
+        conc = look.pbr("concrete_floor_02", None, 2.5, fallback="#5b5f64")
+        rail_m = look.mat("#777d84", rough=0.25, metal=0.9)
+        for s in (-1, 1):
+            shapes.rbox(f"set.shaftside{s}", (0.3, d + 1.8, 26), conc, (s * (w / 2 + 0.5), 0.2, 13.0), 0.0)  # fmt: skip
+            shapes.rbox(f"set.guide{s}", (0.09, 0.14, 26), rail_m, (s * (w / 2 + 0.24), 0, 13.0), 0.01)  # fmt: skip
+        shapes.rbox("set.shaftback", (w + 1.6, 0.3, 26), conc, (0, d / 2 + 0.95, 13.0), 0.0)
+        cable = look.mat("#3c4044", rough=0.4, metal=0.7)
+        for i in range(8):
+            shapes.cylinder(f"set.cable{i}", 0.018, 24, cable, (-0.35 + i * 0.1, 0.15, h + 12.3), segments=8)  # fmt: skip
+        look.point((0, 0, 8.0), 600, "#9fb6c8", 1.2, "shaft")
+    if o.get("emergency"):
+        look.world("#0a0c10", "#141820", 0.15)
+        look.point((0, 0.2, h - 0.25), 140, "#ff5a4a", 0.25, "emergency")
+    else:
+        if not look.env("interior", 0.5, visible=False):
+            look.world("#20242b", "#2c323a", 0.4)
+        if roofed:  # a loose light panel would hang in mid-air once the ceiling is off
+            shapes.rbox("set.lamp", (0.9, 0.7, 0.03), look.mat("#fff6e2", emit=4.0), (0, -0.05, h - 0.03), 0.005)  # fmt: skip
+        look.point((0, -0.05, h - 0.2), 180, "#ffe9c6", 0.35, "cabin")
+    look.area((0, -2.6, 1.8), (0, 0.3, 1.2), 180, 2.2, "#ffffff", "fill")
+    return {
+        "spots": {"center": (0, -0.1), "left": (-0.5, -0.1), "right": (0.5, -0.1), "door": (0, 0.35)},
+        "target": (0, 0.2, 1.2),
+    }  # fmt: skip
+
+
 def street(o):
     rng = random.Random(o.get("seed", 3))
     if o.get("night"):
@@ -512,6 +570,7 @@ SETS = {
     "kitchen": kitchen,
     "office": office,
     "gym": gym,
+    "elevator": elevator,
     "street": street,
     "city": city,
     "park": park,

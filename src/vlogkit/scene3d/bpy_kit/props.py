@@ -138,7 +138,59 @@ def tv(name, o, p):
         (90, 0, 0),
         r,
     )
-    if o.get("text"):
+    if o.get("news"):  # a breaking-news broadcast: red tag, headline bar, ticker
+        shapes.plane(
+            f"{name}.bar",
+            (1.22, 0.16),
+            look.mat("#ffffff", emit=1.2),
+            (0, -0.034, 1.0),
+            (90, 0, 0),
+            r,
+        )
+        shapes.plane(
+            f"{name}.tag",
+            (0.36, 0.1),
+            look.mat("#d7261e", emit=2.0),
+            (-0.4, -0.036, 1.12),
+            (90, 0, 0),
+            r,
+        )
+        shapes.text(
+            f"{name}.tagt",
+            o.get("tag", "SON DAKİKA"),
+            look.mat("#ffffff", emit=3),
+            0.05,
+            (-0.4, -0.04, 1.12),
+            font_path=FONT,
+            parent=r,
+        )
+        shapes.text(
+            f"{name}.head",
+            o.get("text", ""),
+            look.mat("#111111"),
+            0.07,
+            (0, -0.04, 1.0),
+            font_path=FONT,
+            parent=r,
+        )
+        shapes.plane(
+            f"{name}.tick",
+            (1.22, 0.06),
+            look.mat("#14213d", emit=1.0),
+            (0, -0.034, 0.89),
+            (90, 0, 0),
+            r,
+        )
+        shapes.text(
+            f"{name}.tickt",
+            o.get("ticker", ""),
+            look.mat("#ffd23f", emit=2),
+            0.035,
+            (0, -0.04, 0.89),
+            font_path=FONT,
+            parent=r,
+        )
+    elif o.get("text"):
         shapes.text(
             f"{name}.txt",
             o["text"],
@@ -164,23 +216,32 @@ def laptop(name, o, p):
 
 
 def phone(name, o, p):
+    """A phone standing on its bottom edge, the screen towards -Y, an app on it."""
     r = _root(name, p)
     shapes.rbox(
         f"{name}.body",
-        (0.075, 0.012, 0.155),
-        look.mat("#1b1b1f", rough=0.25),
-        (0, 0, 0.08),
+        (0.075, 0.009, 0.155),
+        look.mat("#1b1b1f", rough=0.25, metal=0.3),
+        (0, 0, 0.0775),
         0.008,
         r,
     )
     shapes.plane(
         f"{name}.scr",
-        (0.066, 0.145),
-        look.mat(o.get("color", "#5ad1ff"), emit=1.4),
-        (0, -0.0065, 0.08),
+        (0.068, 0.146),
+        look.mat(o.get("color", "#0f1115"), emit=1.0),
+        (0, -0.0047, 0.0775),
         (90, 0, 0),
         r,
     )
+    # a social app: a picture, a red like, lines of text (reads as "a video on a phone")
+    shapes.plane(f"{name}.pic", (0.062, 0.07), look.mat(o.get("accent", "#3aa0ff"), emit=2.2),
+                 (0, -0.0049, 0.092), (90, 0, 0), r)  # fmt: skip
+    shapes.plane(f"{name}.like", (0.012, 0.012), look.mat("#ff3054", emit=3.0),
+                 (0.022, -0.005, 0.042), (90, 0, 0), r)  # fmt: skip
+    for i, w in enumerate((0.05, 0.036)):
+        shapes.plane(f"{name}.ln{i}", (w, 0.005), look.mat("#e8e8e8", emit=1.6),
+                     (-0.006 - (0.05 - w) / 2, -0.005, 0.048 - i * 0.012), (90, 0, 0), r)  # fmt: skip
     return r
 
 
@@ -428,31 +489,45 @@ def weight_bench(name, o, p):
 
 
 def door(name, o, p):
+    """A door in its frame; the leaf turns on `{name}.hinge` (the "open" key of a prop)."""
     r = _root(name, p)
     shapes.rbox(f"{name}.frame", (1.05, 0.12, 2.2), look.mat("#efe7da"), (0, 0, 1.1), 0.02, r)
+    shapes.rbox(
+        f"{name}.void", (0.94, 0.02, 2.1), look.mat("#15120f", rough=1), (0, 0.04, 1.05), 0.0, r
+    )
+    hinge = shapes.empty(f"{name}.hinge", (-0.46, -0.03, 0), r)
     shapes.rbox(
         f"{name}.leaf",
         (0.92, 0.08, 2.08),
         look.mat(o.get("color", "#a8744a"), rough=0.6),
-        (0, -0.03, 1.05),
+        (0.46, 0, 1.05),
         0.02,
-        r,
+        hinge,
     )
     shapes.sphere(
-        f"{name}.knob", 0.04, look.mat("#d4b05a", metal=1, rough=0.2), (0.36, -0.1, 1.0), parent=r
+        f"{name}.knob",
+        0.04,
+        look.mat("#d4b05a", metal=1, rough=0.2),
+        (0.82, -0.07, 1.0),
+        parent=hinge,
     )
     if o.get("text"):
         shapes.rbox(
-            f"{name}.plate", (0.5, 0.02, 0.22), look.mat("#ffffff"), (0, -0.08, 1.75), 0.01, r
+            f"{name}.plate",
+            (0.5, 0.02, 0.22),
+            look.mat("#ffffff"),
+            (0.46, -0.05, 1.75),
+            0.01,
+            hinge,
         )
         shapes.text(
             f"{name}.txt",
             o["text"],
             look.mat("#c0392b"),
             0.11,
-            (0, -0.095, 1.75),
+            (0.46, -0.065, 1.75),
             font_path=FONT,
-            parent=r,
+            parent=hinge,
         )
     return r
 
@@ -971,10 +1046,82 @@ def globe(name, o, p):
     return r
 
 
+MOON_DIR = ""  # assets/moon (NASA CGI Moon Kit), set by the runner
+
+
+def _moon_material():
+    """The Moon: NASA's LRO colour mosaic and height map (public domain); a procedural
+    stand-in when the files are not there."""
+    import os
+
+    have = bpy.data.materials.get("moon_surface")  # shots clear materials: look it up by name
+    if have is not None:
+        return have
+    m = bpy.data.materials.new("moon_surface")
+    m.use_nodes = True
+    nt = m.node_tree
+    bsdf = nt.nodes.get("Principled BSDF")
+    bsdf.inputs["Roughness"].default_value = 0.97
+    if "Specular IOR Level" in bsdf.inputs:
+        bsdf.inputs["Specular IOR Level"].default_value = 0.1
+    color = os.path.join(MOON_DIR, "moon_color_2k.jpg") if MOON_DIR else ""
+    height = os.path.join(MOON_DIR, "moon_height_1k.jpg") if MOON_DIR else ""
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    if color and os.path.exists(color):
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        tex.image = bpy.data.images.load(color, check_existing=True)
+        tex.projection = "SPHERE"
+        nt.links.new(coord.outputs["Object"], tex.inputs["Vector"])
+        bright = nt.nodes.new("ShaderNodeBrightContrast")
+        bright.inputs["Contrast"].default_value = 0.25
+        nt.links.new(tex.outputs["Color"], bright.inputs["Color"])
+        nt.links.new(bright.outputs["Color"], bsdf.inputs["Base Color"])
+        hsrc = None
+        if height and os.path.exists(height):
+            hsrc = nt.nodes.new("ShaderNodeTexImage")
+            hsrc.image = bpy.data.images.load(height, check_existing=True)
+            hsrc.image.colorspace_settings.name = "Non-Color"
+            hsrc.projection = "SPHERE"
+            nt.links.new(coord.outputs["Object"], hsrc.inputs["Vector"])
+        craters = nt.nodes.new("ShaderNodeTexVoronoi")  # small craters the map is too coarse for
+        craters.inputs["Scale"].default_value = 60.0
+        nt.links.new(coord.outputs["Object"], craters.inputs["Vector"])
+        add = nt.nodes.new("ShaderNodeMath")
+        add.operation = "MULTIPLY_ADD"
+        add.inputs[1].default_value = 0.15
+        nt.links.new(craters.outputs["Distance"], add.inputs[0])
+        if hsrc is not None:
+            nt.links.new(hsrc.outputs["Color"], add.inputs[2])
+        bump = nt.nodes.new("ShaderNodeBump")
+        bump.inputs["Strength"].default_value = 0.6
+        nt.links.new(add.outputs["Value"], bump.inputs["Height"])
+        nt.links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
+        m.diffuse_color = look.hex_rgba("#a9a7a2")
+        return m
+    seas = nt.nodes.new("ShaderNodeTexNoise")
+    seas.inputs["Scale"].default_value = 1.6
+    seas.inputs["Detail"].default_value = 3.0
+    ramp = nt.nodes.new("ShaderNodeValToRGB")
+    ramp.color_ramp.elements[0].position = 0.45
+    ramp.color_ramp.elements[0].color = look.hex_rgba("#5f5d58")
+    ramp.color_ramp.elements[1].position = 0.6
+    ramp.color_ramp.elements[1].color = look.hex_rgba("#d3d1ca")
+    nt.links.new(seas.outputs["Fac"], ramp.inputs["Fac"])
+    nt.links.new(ramp.outputs["Color"], bsdf.inputs["Base Color"])
+    craters = nt.nodes.new("ShaderNodeTexVoronoi")
+    craters.inputs["Scale"].default_value = 14.0
+    bump = nt.nodes.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = 0.45
+    nt.links.new(craters.outputs["Distance"], bump.inputs["Height"])
+    nt.links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
+    m.diffuse_color = look.hex_rgba("#bdbbb4")
+    return m
+
+
 def moon(name, o, p):
     r = _root(name, p)
     rad = o.get("r", 1.0)
-    shapes.sphere(f"{name}.m", rad, look.mat("#d9d9d4", rough=0.9), (0, 0, rad), parent=r)
+    shapes.sphere(f"{name}.m", rad, _moon_material(), (0, 0, rad), parent=r, segments=64, rings=32)
     return r
 
 
@@ -1030,6 +1177,174 @@ def crowd_person(name, o, p):
     return r
 
 
+def wanted(name, o, p):
+    """An ARANIYOR poster on a wall: a face silhouette, the name and the reward."""
+    r = _root(name, p)
+    z = o.get("z", 1.6)
+    shapes.rbox(
+        f"{name}.paper", (0.62, 0.01, 0.86), look.mat("#e9dcc0", rough=0.95), (0, 0, z), 0.003, r
+    )
+    shapes.text(
+        f"{name}.head",
+        o.get("title", "ARANIYOR"),
+        look.mat("#7a1d14"),
+        0.12,
+        (0, -0.008, z + 0.32),
+        font_path=FONT,
+        parent=r,
+    )
+    shapes.rbox(
+        f"{name}.photo", (0.36, 0.004, 0.36), look.mat("#c9b994"), (0, -0.006, z + 0.04), 0.002, r
+    )
+    ink = look.mat("#2b241c")
+    shapes.sphere(
+        f"{name}.headsil",
+        0.075,
+        ink,
+        (0, -0.01, z + 0.1),
+        scale=(1, 0.1, 1.2),
+        parent=r,
+        segments=16,
+        rings=8,
+    )
+    shapes.sphere(
+        f"{name}.shoulders",
+        0.15,
+        ink,
+        (0, -0.01, z - 0.1),
+        scale=(1, 0.1, 0.5),
+        parent=r,
+        segments=16,
+        rings=8,
+    )
+    shapes.text(
+        f"{name}.name",
+        o.get("text", ""),
+        ink,
+        0.06,
+        (0, -0.008, z - 0.22),
+        font_path=FONT,
+        parent=r,
+    )
+    shapes.text(
+        f"{name}.reward",
+        o.get("reward", "ÖDÜL"),
+        look.mat("#7a1d14"),
+        0.05,
+        (0, -0.008, z - 0.33),
+        font_path=FONT,
+        parent=r,
+    )
+    return r
+
+
+def map(name, o, p):  # shadows the builtin on purpose: the kind is "map"
+    """A wall map: land and sea, a title and red pins (`pins` in -1..1 of the map)."""
+    r = _root(name, p)
+    z, w, h = o.get("z", 1.6), o.get("w", 1.6), o.get("h", 1.0)
+    shapes.rbox(
+        f"{name}.board", (w + 0.06, 0.03, h + 0.06), look.mat("#6b4b2e"), (0, 0, z), 0.01, r
+    )
+    shapes.plane(
+        f"{name}.sea", (w, h), look.mat("#8fc6db", rough=0.9), (0, -0.017, z), (90, 0, 0), r
+    )
+    rng = __import__("random").Random(len(o.get("text", "")) + 7)
+    land = look.mat("#d8cf9e", rough=0.95)
+    for k in range(7):
+        sx, sz = rng.uniform(0.12, 0.38) * w, rng.uniform(0.08, 0.3) * h
+        shapes.sphere(
+            f"{name}.land{k}",
+            1.0,
+            land,
+            (rng.uniform(-0.35, 0.35) * w, -0.019, z + rng.uniform(-0.3, 0.3) * h),
+            scale=(sx, 0.004, sz),
+            parent=r,
+            segments=12,
+            rings=6,
+        )
+    pin = look.mat("#d7261e", rough=0.3)
+    for k, (u, v) in enumerate(o.get("pins", [[0.1, 0.05]])):
+        shapes.sphere(
+            f"{name}.pin{k}",
+            0.03,
+            pin,
+            (u * w / 2, -0.05, z + v * h / 2),
+            parent=r,
+            segments=12,
+            rings=6,
+        )
+    if o.get("text"):
+        shapes.text(
+            f"{name}.title",
+            o["text"],
+            look.mat("#1d1d1d"),
+            0.08,
+            (0, -0.025, z + h / 2 - 0.08),
+            font_path=FONT,
+            parent=r,
+        )
+    return r
+
+
+def phone_big(name, o, p):
+    """A phone the size of a door: a social post on its screen (#tag, likes, user)."""
+    r = _root(name, p)
+    z = o.get("z", 1.3)
+    shapes.rbox(
+        f"{name}.body", (1.0, 0.08, 2.0), look.mat("#111216", rough=0.25), (0, 0, z), 0.12, r
+    )
+    shapes.plane(
+        f"{name}.scr", (0.9, 1.86), look.mat("#ffffff", emit=0.9), (0, -0.042, z), (90, 0, 0), r
+    )
+    shapes.plane(
+        f"{name}.img",
+        (0.9, 0.9),
+        look.mat(o.get("color", "#3aa0ff"), emit=1.0),
+        (0, -0.044, z + 0.1),
+        (90, 0, 0),
+        r,
+    )
+    shapes.sphere(
+        f"{name}.avatar",
+        0.05,
+        look.mat("#ff7a59"),
+        (-0.36, -0.046, z + 0.72),
+        scale=(1, 0.2, 1),
+        parent=r,
+        segments=16,
+        rings=8,
+    )
+    shapes.text(
+        f"{name}.user",
+        o.get("user", "@pekiya"),
+        look.mat("#111111"),
+        0.05,
+        (-0.28, -0.046, z + 0.72),
+        align="LEFT",
+        font_path=FONT,
+        parent=r,
+    )
+    shapes.text(
+        f"{name}.tag",
+        o.get("text", "#pekiya"),
+        look.mat("#1d6fd1"),
+        0.07,
+        (0, -0.046, z - 0.52),
+        font_path=FONT,
+        parent=r,
+    )
+    shapes.text(
+        f"{name}.likes",
+        f"♥ {o.get('likes', '1,2 M')}",
+        look.mat("#e0245e"),
+        0.065,
+        (-0.2, -0.046, z - 0.7),
+        font_path=FONT,
+        parent=r,
+    )
+    return r
+
+
 KIT_ROT: dict[str, float] = {}  # per-kind turn so library models face -Y like the kit's own
 
 BUILDERS = {
@@ -1038,7 +1353,7 @@ BUILDERS = {
         bed, toilet, sink, desk, school_desk, chair, sofa, tv, laptop, phone, fridge, stove, counter,
         car, bus, tree, pine, bench, lamp_post, box, ball, barbell, weight_bench, door, window,
         plant, cup, burger, money, rocket, house, building, shop, sign, newspaper, screen, calendar,
-        clock, arrow, globe, moon, cloud, water_jet, crowd_person,
+        clock, arrow, globe, moon, cloud, water_jet, crowd_person, wanted, map, phone_big,
     )
 }  # fmt: skip
 
@@ -1142,6 +1457,54 @@ def kit_size(ob: bpy.types.Object) -> tuple[float, float, float] | None:
         max(p.y for p in pts) - min(p.y for p in pts),
         max(p.z for p in pts) - min(p.z for p in pts),
     )
+
+
+class Placed:
+    """A prop in the shot: what effects, hands and the camera need to know about it."""
+
+    is_prop = True
+
+    def __init__(self, root: bpy.types.Object):
+        self.root = root
+
+    def _box(self):
+        from mathutils import Vector
+
+        bpy.context.view_layer.update()
+        pts = []
+        for ob in [self.root, *self.root.children_recursive]:
+            if ob.type in ("MESH", "CURVE", "FONT") or ob.instance_type == "COLLECTION":
+                corners = (
+                    [ob.matrix_world @ Vector(c) for c in ob.bound_box]
+                    if ob.type != "EMPTY"
+                    else []
+                )
+                if ob.instance_type == "COLLECTION" and ob.instance_collection:
+                    for src in ob.instance_collection.all_objects:
+                        corners += [
+                            ob.matrix_world @ src.matrix_world @ Vector(c) for c in src.bound_box
+                        ]
+                pts += corners
+        if not pts:
+            p = self.root.matrix_world.translation
+            return p, p
+        lo = Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts)))
+        hi = Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
+        return lo, hi
+
+    def center(self):
+        lo, hi = self._box()
+        return (lo + hi) / 2
+
+    def width(self) -> float:
+        """How wide it looks from the front (or how tall, for a tall thing in a tall frame)."""
+        lo, hi = self._box()
+        d = hi - lo
+        return max(0.1, max(d.x, d.y * 0.5), d.z * 0.56)
+
+    def size(self) -> float:
+        lo, hi = self._box()
+        return max(0.1, (hi - lo).length)
 
 
 def place(kind: str, name: str, opts: dict | None = None, parent=None) -> bpy.types.Object:

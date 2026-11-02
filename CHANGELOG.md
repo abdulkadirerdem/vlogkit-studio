@@ -2,6 +2,44 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Sürümleme: [SemVer](https://semver.org/).
 
+## [0.19.0] - 2026-11-02
+
+### Eklendi
+- **3B: anlatılan her şey ekranda olur.** Bir cümle artık birden çok plan (`shots`): her plan bir kelime söylendiği anda başlar (`cue`), kamerayı, mekânı, oyuncuları, eşyaları, efektleri ya da görünümü değiştirir; değiştirmediği şey beat'ten gelir ve zaman akmaya devam eder (aynı hareket, yeni açı). Hareketler, efektler, eşya hareketleri, sayaç ve ses efektleri de bir kelimeye bağlanır (`"from": "zıplasaydı"`, `"at": "patladı"`). `3d plan` her planı ve 3 saniyeden uzun olanları gösterir; iç kesmelerde yumuşak whoosh.
+- **Efektler (`bpy_kit/fx.py`, `fx`):** çatlak (zemin/duvar, büyüyerek), parçalar, cam kırılması, patlama (ateş topu, ışık, duman, parça, sarsıntı), duman, ateş, kıvılcım, su baskını, akan sıvı ve birikinti, yağmur (para, konfeti, su, kar), flaş, kamera sarsıntısı, ışın, bir eşyayı ikiye bölme (Ay, Dünya, bina), belirme ve kaybolma. Hepsi anahtar karelerle kurulur: önizleme karesi tam render'la aynıdır.
+- **Etkileşim:** eşyalar hareket eder (`anim`: taşınır, döner, düşer, büyür, belirir, kaybolur), elde tutulur ve elden ele geçer (`hand`), kapılar menteşesinden açılır (`open`); oyuncular birbirine ya da bir eşyaya döner (`"facing": "veli"`); kamera bir eşyayı boyuna göre ya da birkaç kişiyi birlikte kadrajlar. Yeni hareketler: fly (3B yol boyunca uçar), give, dodge.
+- **Kalabalık (`bpy_kit/crowd.py`, `crowd`):** 6 farklı kişi kurulur, gerisi ucuz kopya; panik, sevinç, zıplama, yürüme, koşma, dans; uzak planlar için basit kalabalık.
+- **Görünümler (`scene3d/looks.py`, `look`):** güvenlik kamerası (siyah-beyaz, kumlu, REC, saat), canlı haber (SON DAKİKA bandı, manşet, kayan yazı, CANLI), telefonda viral video (beğeni sayacı tırmanır), eski film, gece görüşü. Render'dan sonra çizilir; görünüm değişince yeniden render gerekmez.
+- **Yeni eşyalar:** haber yayını açık televizyon, ARANIYOR afişi, duvar haritası, dev telefon ekranı.
+- **Paylaşım paketi (`publish.py`, `docs/yayin.md`):** bitmiş dikey video için YouTube Shorts, Instagram Reels ve TikTok'a ayrı başlık, açıklama, etiketler ve 1080x1920 kapak; Claude yazar, kişi paylaşır (platform API'si ve uygulama onayı yok). Paket videonun yanında `<video>.yayin.json`, kapaklar `<video>.kapak-<platform>.jpg`. Video bir senaryodan üretildiyse senaryonun başlık ve etiketleriyle başlar. Komutlar: `vlogkit yayin MP4 [--taslak]`, `yayin-kapak` (3B videoda kare verilmezse sayacın en büyük olduğu an; kapak altyazısız resimden), `yayin-kontrol` (platform sınırları: başlık 100, Instagram 5 etiket, açıklama uzunlukları; erişim uyarıları).
+- **Stüdyo: Paylaş düğmeleri:** sohbetteki her videonun altında YouTube, Instagram, TikTok. Açılan pencerede kapak, her metin için Kopyala, "Videoyu göster" (yükleme sayfasına sürüklemek için), platformun yükleme sayfası, "Paylaşıldı" işareti; paket yoksa "Paketi hazırla" Claude'a yazdırır.
+- **Elde tutma:** telefon avuçta durur, ekranı tutanın yüzüne döner (ekranında bir uygulama), elden ele geçerken iki el arasında yol alır.
+- **Ay:** NASA CGI Moon Kit dokusu ve yükseklik haritası (LRO, telifsiz; `assets/moon`). İkiye bölünmede yarımlar kesik yüzlerini kameraya çevirir, aradaki erimiş çekirdek parlar; uzayda parçalar düşmez, süzülür.
+- **Kanal sesi vurgusu:** referans sesin yazılı metni yanında durursa (`assets/voice/kanal.txt`) ses, referansın tınısıyla birlikte enerjisini ve vurgusunu da kopyalar.
+
+### Değişti
+- **Kanal sesi daha tutkulu:** yeni referans kayıt (Chatterbox, daha yüksek vurgu) ve yazılı metni; Qwen3 artık referansın enerjisini ve vurgusunu da kopyalıyor. Üç örnek arasından kulakla seçildi; perde oynaklığı eskisinden ~%30 fazla. Eski seslendirmeler önbellekte kalmaz, yeniden üretilir.
+
+### Düzeltildi
+- 3B jestler (şok, işaret, sevinç...) yazıldığı andan önce de görünüyordu; artık kendi zaman penceresinde, yumuşak geçişle oynar. Bir hareketten önceki bekleme süresi bekleme animasyonundan kısa olunca render "Unable to add strip" hatasıyla duruyordu; artık karakter o süre boyunca bekler.
+
+## [0.18.4] - 2026-11-02
+
+### Eklendi
+- **Asansör mekânı (`3d kit` → `elevator`):** çelik kabin, kapı kanatları, kat levhası (`set_opts.floor`), düğme paneli, tutamak ve tavan lambası. `set_opts`: `open` (kapılar açık), `ceiling: false` (tepeden çekim), `shaft` (kabinin üstündeki kuyu: beton, kılavuz rayları, sekiz taşıyıcı halat; tavanı kaldırır), `emergency` (kırmızı acil ışık), `floor_color`. Asansör, düşme ve kapalı kalma senaryoları artık stüdyo fonunda taklit edilmiyor.
+- **`vlogkit 3d senaryo-kontrol --tum`:** klasördeki bütün senaryoları tek komutta doğrular (arşiv dahil), her satırda kimliğiyle; bir tanesi bile bozuksa komut hata döner.
+
+### Düzeltildi
+- **Prompt rehberinde maddeli "Claude ne yapar" blokları sayfaya hiç çıkmıyordu** (`prompts.py`): satır sonunda metin yoksa altındaki maddeler artık toplanıyor (`Prompt.does_items`) ve kartta liste olarak çiziliyor. S3, B1, B2 ve benzeri kartların açıklamaları geri geldi.
+
+## [0.18.3] - 2026-11-02
+
+### Eklendi
+- **Senaryolar sayfası (Stüdyo, `scene3d/scenarios.py`, `docs/senaryo.md`):** Claude viral olabilecek 3B "Peki ya?" fikirlerini web'de araştırır, beş ölçütle puanlar (merak, tırmanış, görsellik, sayılar, yorum), ortalaması 7,5'in altındakileri eler, kalanları sahne sahne yazar (her cümlenin ekranda olacak olayı, sayaç, efekt, kapanış sorusu, sonraki video ipucu, platform başlıkları ve etiketler, kaynaklar). Senaryolar `projects/_senaryolar/` altında JSON; sayfada puanıyla listelenir, ayrıntısı tablo olarak açılır. "Bu senaryoyu çek" seçili senaryoyu 3B işine verir; durum (yeni, seçildi, üretiliyor, üretildi, arşiv) sayfada görünür. Yeni iş türü "Senaryo araştır"; komutlar `3d senaryolar`, `3d senaryo-kontrol`, `3d senaryo-durum`. Prompt rehberinde "3B animasyon" bölümü (B1, B2).
+
+### Düzeltildi
+- Windows testinin uçtan uca videosu kanal sesiyle seslendiriliyor (eski Pocket sesini istiyordu).
+
 ## [0.18.2] - 2026-11-02
 
 ### Değişti

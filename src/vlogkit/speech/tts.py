@@ -33,6 +33,9 @@ ENGINES = ("auto", "qwen", "pocket", "system")
 QWEN_PACKAGE = "qwen-tts"
 QWEN_MODEL = "erkamk/qwen3-0.6b-tr"
 CHANNEL_VOICE = Path(__file__).resolve().parents[3] / "assets" / "voice" / "kanal.wav"
+# What the reference says: with it the clone takes the reference's delivery too (its energy, pace,
+# the way it hits the key word), not only its timbre.
+CHANNEL_TEXT = CHANNEL_VOICE.with_suffix(".txt")
 QWEN_WORKER = Path(__file__).with_name("qwen_worker.py")
 QWEN_LICENSE = {
     "title": "Qwen3-TTS (Türkçe ince ayar, erkamk/qwen3-0.6b-tr); kanal sesi Chatterbox (Resemble AI) ile üretildi",
@@ -346,6 +349,9 @@ def _qwen_many(jobs: list[tuple[Line, str | None, Path]]) -> None:
     spec = {
         "model": QWEN_MODEL,
         "ref": str(CHANNEL_VOICE),
+        "ref_text": CHANNEL_TEXT.read_text(encoding="utf-8").strip()
+        if CHANNEL_TEXT.exists()
+        else None,
         "items": [{"text": spell(ln.text), "out": str(p)} for ln, _, p in jobs],
     }
     job = jobs[0][2].parent / "_qwen_job.json"
@@ -389,7 +395,10 @@ def speak(
         if eng == "pocket" and (not voice or voice not in POCKET_VOICES):
             voice = "male_1"
         if eng == "qwen":  # one narrator for every video: the line's voice/emotion do not apply
-            voice = "kanal-" + hashlib.sha1(CHANNEL_VOICE.read_bytes()).hexdigest()[:8]
+            ref = CHANNEL_VOICE.read_bytes() + (
+                CHANNEL_TEXT.read_bytes() if CHANNEL_TEXT.exists() else b""
+            )
+            voice = "kanal-" + hashlib.sha1(ref).hexdigest()[:8]
         tag = _key(ln, eng, voice) + (
             "-vf" + hashlib.sha1(voice_file.read_bytes()).hexdigest()[:8]
             if voice_file and eng == "pocket"

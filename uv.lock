@@ -228,7 +228,7 @@ wheels = [
 
 [[package]]
 name = "vlogkit"
-version = "0.18.2"
+version = "0.19.0"
 source = { editable = "." }
 dependencies = [
     { name = "pillow" },

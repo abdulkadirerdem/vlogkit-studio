@@ -43,7 +43,7 @@ const LABEL = {
   S3: "Uzun videodan Short'lar", S4: "Short serisi planla", S5: "Meme varyantı", S6: "Hook A/B", S7: "Müziğe göre Reels",
   S8: "Trend şarkı varyantları", S9: "Beğendiğin kurgunun tarzıyla", U5: "Konuşma denemelerinden", U6: "Anlatım ekle", U7: "Açılış konuşması",
   U1: "Yatay vlog kur", U2: "Uzun videoyu cilala", U3: "Resolve'a aktar", U4: "Boşlukları kes", R1: "Düzeltme yap",
-  R2: "Varyantları karşılaştır", R3: "Varyantları birleştir", R4: "Müzik seç", Y1: "Yayın paketi", Y2: "Teslim kontrolü",
+  R2: "Varyantları karşılaştır", R3: "Varyantları birleştir", R4: "Müzik seç", B1: "Senaryo araştır", B2: "3B video", Y1: "Yayın paketi", Y2: "Teslim kontrolü",
   G1: "vlogkit'e özellik ekle", G2: "Öğrenileni kaydet", G3: "Rehberi güncelle", G4: "Öneriyi uygula",
 };
 const HOME_TASKS = ["K1", "K2", "S1", "S2", "S3", "S7", "Y1"];
@@ -63,6 +63,8 @@ const TYPES = [
     line: "Hareketli grafik (çekimsiz, faceless); ham çekim kesimi yok" },
   { id: "3d", label: "3B animasyon", hint: "Blender, dikey, seslendirmeli", effort: "high", plan: true, cut: false,
     line: "3B animasyon (Blender, scene.json, dikey 9:16, Türkçe seslendirme; ham çekim yok; docs/3d.md)" },
+  { id: "senaryo", label: "Senaryo araştır", hint: "Viral 3B 'Peki ya?' fikirleri", effort: "high", plan: false, cut: false,
+    line: "Senaryo araştırması: 3B 'Peki ya?' kanalı için viral senaryolar (docs/senaryo.md); video üretme, senaryoları projects/_senaryolar/ altına JSON olarak yaz" },
   { id: "pack", label: "Kapak ve başlık", hint: "Yayın paketi", effort: "high", plan: false, cut: false,
     line: "Kapak, başlık ve açıklama; video derlenmez" },
   { id: "ask", label: "Soru", hint: "Kısa yanıt", effort: "medium", plan: false, cut: false,
@@ -70,7 +72,7 @@ const TYPES = [
 ];
 const typeOf = (id) => TYPES.find((x) => x.id === id) || TYPES[0];
 // a task from the guide says its type: Short and long-video stages, the publishing pack
-const TASK_TYPE = { short: "short", uzun: "vlog", Y1: "pack" };
+const TASK_TYPE = { short: "short", uzun: "vlog", Y1: "pack", B1: "senaryo", ucb: "3d" };
 // "Kaynak 4K ise 4K teslim et." goes only with a 4K source (a folder: Claude checks its clips)
 const FOURK = /\b4K\b/;
 const fourK = () => !!S.video && (S.video.is_dir || Math.max(S.video.width || 0, S.video.height || 0) >= 3840);
@@ -670,6 +672,7 @@ function drawLicenses() {
   box.replaceChildren(head, body);
 }
 function goHome() {
+  closeScenarios();
   resetLicenses();
   if (S.es) { S.es.close(); S.es = null; }
   S.job = null; history.replaceState(null, "", location.pathname);
@@ -687,6 +690,7 @@ function goHome() {
 $("#newJob").onclick = goHome;
 
 async function openJob(id) {
+  closeScenarios();
   if (S.es) { S.es.close(); S.es = null; }
   let job;
   try { job = await api(`/api/jobs/${id}`); } catch { return goHome(); }
@@ -706,6 +710,130 @@ async function openJob(id) {
   autosize(); syncControls(); refreshJobs().catch(() => {});
   stick = true; toBottom();
   if (job.status === "running") stream(id);
+}
+
+/* ------------------------------------------------------------- scenarios (3B) */
+// Researched, scored, fully written "Peki ya?" ideas waiting in projects/_senaryolar/. Claude
+// writes them (a "senaryo" job, docs/senaryo.md); one click hands the chosen one to a 3B job.
+const SCORE_LABEL = { merak: "Merak", tirmanis: "Tırmanış", gorsel: "Görsellik", hesap: "Sayılar", yorum: "Yorum" };
+const STATUS_LABEL = { yeni: "Yeni", secildi: "Seçildi", uretiliyor: "Üretiliyor", uretildi: "Üretildi", arsiv: "Arşiv" };
+const scenBox = () => $("#scenarios");
+function closeScenarios() {
+  const box = scenBox();
+  if (!box || box.hidden) return;
+  box.hidden = true; box.replaceChildren();
+  $("#main").classList.remove("scen-open");
+}
+function openScenarios(id) {
+  if (S.es) { S.es.close(); S.es = null; }
+  S.job = null; resetLicenses();
+  $("#main").classList.remove("home"); $("#main").classList.add("scen-open");
+  scenBox().hidden = false;
+  history.replaceState(null, "", id ? `#senaryo:${id}` : "#senaryolar");
+  (id ? drawScenario(id) : drawScenarios()).catch((e) => {
+    scenBox().replaceChildren(el("div", { class: "scen-inner" }, el("p", { class: "scen-empty", text: `Okunamadı: ${e.message}` })));
+  });
+  refreshJobs().catch(() => {});
+}
+$("#scenariosBtn").onclick = () => openScenarios();
+
+const statusChip = (st) => el("span", { class: `chip st-${st}`, text: STATUS_LABEL[st] || st });
+
+async function drawScenarios() {
+  const showAll = saved.get("scen.all", false);
+  const { dir, items } = await api(`/api/scenarios${showAll ? "?archived=1" : ""}`);
+  const dirIn = el("input", { type: "text", placeholder: "Yön (isteğe bağlı): örn. uzay, vücut, para, doğa olayları…",
+    value: saved.get("scen.dir", "") });
+  const count = el("select", { "aria-label": "Kaç senaryo" },
+    ...[3, 5, 8].map((n) => el("option", { value: String(n), text: `${n} senaryo` })));
+  count.value = String(saved.get("scen.n", 5));
+  const form = el("form", { class: "scen-research", onsubmit: (e) => {
+    e.preventDefault();
+    saved.set("scen.dir", dirIn.value.trim()); saved.set("scen.n", Number(count.value));
+    researchScenarios(dirIn.value.trim(), Number(count.value));
+  } }, dirIn, count, el("button", { class: "primary", type: "submit", text: "Yeni senaryolar araştır" }));
+  const cards = items.map((s) => el("button", { class: "scen-card", type: "button", onclick: () => openScenarios(s.id) },
+    el("div", { class: "scen-meta" }, el("span", { class: "scen-score", text: s.total ? s.total.toFixed(1) : "–" }),
+      statusChip(s.status), s.problems.length ? el("span", { class: "chip bad", text: `${s.problems.length} sorun` }) : null),
+    el("b", { text: s.title }),
+    s.hook ? el("span", { class: "hook", text: s.hook }) : null,
+    el("div", { class: "scen-meta" },
+      ...Object.keys(SCORE_LABEL).map((k) => el("span", { class: "chip", text: `${SCORE_LABEL[k]} ${s.scores[k] ?? "–"}` }))),
+    el("div", { class: "scen-meta", text: [s.duration_s ? `~${s.duration_s} sn` : null, `${s.beats} sahne`, s.created].filter(Boolean).join(" · ") })));
+  const toggle = el("label", { class: "scen-meta" }, el("input", { type: "checkbox", checked: showAll, onchange: (e) => {
+    saved.set("scen.all", e.target.checked); drawScenarios(); } }), "Arşivi de göster");
+  scenBox().replaceChildren(el("div", { class: "scen-inner" },
+    el("div", {}, el("h1", { text: "Senaryolar" }),
+      el("p", { class: "lead", text: "Claude viral olabilecek 'Peki ya?' fikirlerini araştırır, puanlar ve sahne sahne yazar. Birini seç, 3B videosu en ince ayrıntısıyla üretilsin." })),
+    form,
+    items.length ? el("div", { class: "scen-grid" }, ...cards)
+      : el("p", { class: "scen-empty", text: "Henüz senaryo yok. Yukarıdan araştırmayı başlat: Claude birkaç dakika içinde puanlı senaryoları buraya yazar." }),
+    el("div", { class: "scen-meta" }, toggle, el("span", { text: dir }))));
+}
+
+async function drawScenario(id) {
+  const s = await api(`/api/scenarios/${encodeURIComponent(id)}`);
+  const block = (title, ...kids) => el("section", { class: "scen-block" }, el("h3", { text: title }), ...kids);
+  const rows = (s.beats || []).map((b, i) => el("tr", {},
+    el("td", { text: String(i + 1) }), el("td", { text: b.say || "" }),
+    el("td", { class: "vis", text: [b.visual, b.counter ? `Sayaç: ${b.counter}` : null, b.fx ? `Efekt: ${b.fx}` : null].filter(Boolean).join(" · ") })));
+  const titles = s.titles || {};
+  const titleLines = [...(titles.youtube || []).map((t) => `YouTube: ${t}`),
+    titles.instagram ? `Instagram: ${titles.instagram}` : null, titles.tiktok ? `TikTok: ${titles.tiktok}` : null].filter(Boolean);
+  const busy = s.status === "uretiliyor" || s.status === "secildi";
+  scenBox().replaceChildren(el("div", { class: "scen-inner scen-detail" },
+    el("div", { class: "scen-actions" }, el("button", { class: "tool", type: "button", text: "← Senaryolar", onclick: () => openScenarios() })),
+    el("div", {}, el("div", { class: "scen-meta" }, el("span", { class: "scen-score", text: s.total ? s.total.toFixed(1) : "–" }), statusChip(s.status || "yeni"),
+      s.project ? el("span", { class: "chip", text: `Proje: ${s.project}` }) : null),
+      el("h1", { text: s.title }), s.logline ? el("p", { class: "lead", text: s.logline }) : null),
+    el("div", { class: "scen-actions" },
+      el("button", { class: "primary", type: "button", disabled: !!s.problems.length,
+        title: s.problems.length ? "Önce sorunlar giderilmeli" : "Claude bu senaryoyu 3B videoya dönüştürür",
+        text: busy ? "Yeniden çek" : s.status === "uretildi" ? "Tekrar çek" : "Bu senaryoyu çek", onclick: () => produceScenario(s) }),
+      s.status === "arsiv"
+        ? el("button", { class: "tool", type: "button", text: "Arşivden çıkar", onclick: () => setScenarioStatus(s.id, "yeni") })
+        : el("button", { class: "tool", type: "button", text: "Arşivle", onclick: () => setScenarioStatus(s.id, "arsiv") }),
+      el("button", { class: "tool", type: "button", text: "Dosya", title: s.file, onclick: () => reveal(s.file) })),
+    s.problems.length ? block("Sorunlar", el("ul", {}, ...s.problems.map((p) => el("li", { text: p })))) : null,
+    block("Açılış (ilk 2 saniye)", el("p", { text: s.hook || "" })),
+    el("div", { class: "scen-scores" }, ...Object.keys(SCORE_LABEL).map((k) =>
+      el("span", {}, SCORE_LABEL[k], el("b", { text: String((s.scores || {})[k] ?? "–") }))),
+      s.duration_s ? el("span", {}, "Süre", el("b", { text: `~${s.duration_s} sn` })) : null),
+    s.why ? block("Neden tutar", el("p", { text: s.why })) : null,
+    block(`Sahneler (${(s.beats || []).length})`, el("table", { class: "scen-table" },
+      el("thead", {}, el("tr", {}, el("th", { text: "#" }), el("th", { text: "Anlatım" }), el("th", { text: "Ekranda" }))),
+      el("tbody", {}, ...rows))),
+    s.ending || s.next_teaser ? block("Kapanış", s.ending ? el("p", { text: s.ending }) : null,
+      s.next_teaser ? el("p", { class: "lead", text: `Sonraki video: ${s.next_teaser}` }) : null) : null,
+    titleLines.length || (s.hashtags || []).length ? block("Başlıklar ve etiketler",
+      ...titleLines.map((t) => el("p", { text: t })),
+      (s.hashtags || []).length ? el("p", { class: "lead", text: s.hashtags.join(" ") }) : null) : null,
+    (s.sources || []).length ? block("Kaynaklar", el("ul", {}, ...s.sources.map((x) =>
+      el("li", {}, x.url ? el("a", { href: x.url, target: "_blank", rel: "noopener", text: x.title || x.url }) : x.title)))) : null));
+}
+
+async function setScenarioStatus(id, status) {
+  try { await post(`/api/scenarios/${encodeURIComponent(id)}/status`, { status }); openScenarios(id); }
+  catch (e) { toast(`Değiştirilemedi: ${e.message}`); }
+}
+
+function researchScenarios(direction, n) {
+  goHome(); clearVideo(); setType("senaryo");
+  input.value = [`"Peki ya?" 3B kanalı için viral olabilecek ${n} yeni senaryo araştır ve yaz.`,
+    direction ? `Yön: ${direction}.` : "Yön serbest: en çok tutacak konuları sen bul.",
+    "docs/senaryo.md'deki yöntemi ve puanlamayı izle; mevcut senaryoları (projects/_senaryolar/) tekrar etme.",
+    "Her senaryoyu ayrı JSON dosyası olarak yaz ve `vlogkit 3d senaryo-kontrol` ile doğrula. Video üretme."].join("\n");
+  submit();
+}
+
+async function produceScenario(s) {
+  try { await post(`/api/scenarios/${encodeURIComponent(s.id)}/status`, { status: "secildi" }); }
+  catch (e) { return toast(`Seçilemedi: ${e.message}`); }
+  goHome(); clearVideo(); setType("3d");
+  input.value = [`Bu senaryoyu seçiyorum: "${s.title}"`, `Senaryo: ${s.file}`,
+    "Senaryoyu en ince ayrıntısına kadar 3B videoya dönüştür: her cümle ekranda bir olay olsun, sahnedeki 'visual' tarifine sadık kal, sayaç ve efektleri uygula.",
+    `Başlarken \`vlogkit 3d senaryo-durum ${s.id} uretiliyor --proje <proje>\`, bitince \`vlogkit 3d senaryo-durum ${s.id} uretildi\` çalıştır.`].join("\n");
+  submit();
 }
 
 function syncControls() {
@@ -981,7 +1109,7 @@ function outputs(files) {
       const tile = el("div", { class: `tile${f.kind === "video" ? " wide" : ""}`, title: f.path }, body,
         el("div", { class: "row" }, el("a", { href: url, target: "_blank", rel: "noopener", text: base(f.path) }),
           el("button", { class: "rv", type: "button", text: "Finder", title: "Finder'da göster", onclick: () => reveal(f.path) })));
-      if (f.kind === "video") tile.append(timelineFor(body, f.path));
+      if (f.kind === "video") tile.append(publishRow(f.path), timelineFor(body, f.path));
       g.append(tile);
     }
     wrap.append(g);
@@ -992,6 +1120,94 @@ function outputs(files) {
       el("button", { class: "rv", type: "button", text: "Finder", onclick: () => reveal(f.path) })))));
   }
   return wrap;
+}
+/* ------------------------------------------------------------------ publishing (Shorts, Reels, TikTok) */
+// No platform API: the package (<video>.yayin.json, docs/yayin.md) is written by Claude; here each
+// platform's text gets a Copy button, the cover is shown, the upload page opens, the person posts.
+const PLATFORMS = [["youtube", "YouTube"], ["instagram", "Instagram"], ["tiktok", "TikTok"]];
+const PUB_NOTE = {
+  youtube: "Yükleme sayfasına videoyu sürükle, başlık ve açıklamayı yapıştır. Kapak: YouTube uygulamasında yüklerken kapak dosyasını ya da videodaki kareyi seç.",
+  instagram: "Oluştur (+) > Gönderi: videoyu sürükle, Reel olarak paylaşılır. Kapak: \"Kapağı düzenle\" > bilgisayardan ekle ile kapak dosyasını seç.",
+  tiktok: "Videoyu sürükle, açıklamayı yapıştır. Kapak: \"Kapağı düzenle\"de aşağıdaki saniyedeki kareyi seç, yazıyı kapak dosyasındaki gibi ekle.",
+};
+function publishRow(path) {
+  return el("div", { class: "pub-row" }, el("span", { class: "pub-lbl", text: "Paylaş:" }),
+    ...PLATFORMS.map(([id, label]) => el("button", { class: "tool", type: "button", text: label,
+      title: `${label} için başlık, açıklama, etiketler ve kapak`, onclick: () => openPublish(path, id) })));
+}
+const pubState = { video: null, platform: "youtube" };
+async function openPublish(video, platform) {
+  pubState.video = video; pubState.platform = platform || pubState.platform;
+  $("#pubVideo").textContent = base(video);
+  $("#publish").hidden = false;
+  $("#pubBody").replaceChildren(el("p", { class: "hint", text: "Okunuyor…" }));
+  try { drawPublish(await api(`/api/publish?video=${encodeURIComponent(video)}`)); }
+  catch (e) { $("#pubBody").replaceChildren(el("p", { class: "hint", text: `Okunamadı: ${e.message}` })); }
+}
+function closePublish() { $("#publish").hidden = true; }
+$("#pubClose").onclick = closePublish;
+$("#publish").addEventListener("click", (e) => { if (e.target.id === "publish") closePublish(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#publish").hidden) closePublish(); });
+
+async function copyText(text, what) {
+  try { await navigator.clipboard.writeText(text); toast(`${what} kopyalandı`); }
+  catch { toast("Kopyalanamadı: metni seçip elle kopyala"); }
+}
+function askPackage(video, again) {
+  const text = [`${video} için ${again ? "yayın paketini yeniden yaz" : "yayın paketi hazırla"} (docs/yayin.md): YouTube Shorts, Instagram Reels ve TikTok metinleri ve kapaklar.`,
+    `\`vlogkit yayin ${video} --taslak\` ile başla (senaryodan gelen başlıklar ve etiketler), \`vlogkit yayin-kapak\` ile kapakları üret, \`vlogkit yayin-kontrol\` sorunsuz çıkana kadar düzelt. Video derleme.`].join("\n");
+  closePublish();
+  if (!S.job) { goHome(); setType("pack"); }
+  input.value = text;
+  submit();
+}
+function drawPublish(d) {
+  const box = $("#pubBody");
+  const tabs = el("div", { class: "pub-tabs", role: "tablist" }, ...PLATFORMS.map(([id, label]) => {
+    const p = d.platforms[id];
+    return el("button", { type: "button", role: "tab", class: id === pubState.platform ? "on" : "",
+      "aria-selected": String(id === pubState.platform),
+      onclick: () => { pubState.platform = id; drawPublish(d); } }, label, p && p.posted ? " ✓" : "");
+  }));
+  if (!d.exists) {
+    box.replaceChildren(tabs, el("div", { class: "pub-empty" },
+      el("p", { text: "Bu video için yayın paketi yok. Claude üç platformun başlığını, açıklamasını, etiketlerini ve kapağını izlenmeyi en yükseğe çıkaracak şekilde hazırlasın:" }),
+      el("button", { class: "pop-btn primary", type: "button", text: "Paketi hazırla", onclick: () => askPackage(d.video, false) })));
+    return;
+  }
+  const p = d.platforms[pubState.platform];
+  if (!p) {
+    box.replaceChildren(tabs, el("div", { class: "pub-empty" },
+      el("p", { text: "Pakette bu platform yok." }),
+      el("button", { class: "pop-btn", type: "button", text: "Paketi yeniden yaz", onclick: () => askPackage(d.video, true) })));
+    return;
+  }
+  const cover = p.cover
+    ? el("img", { src: media(p.cover), alt: "Kapak", onclick: () => openLight(media(p.cover)) })
+    : el("div", { class: "pub-nocover", text: "Kapak yok" });
+  const fieldsEl = p.fields.map((f) => el("div", { class: "pub-field" },
+    el("div", { class: "pub-flabel" }, el("b", { text: f.label }), el("small", { text: `${[...f.text].length} karakter` }),
+      el("button", { class: "tool", type: "button", text: "Kopyala", onclick: () => copyText(f.text, f.label) })),
+    el("pre", { text: f.text || "—" })));
+  const issues = [...p.problems.map((x) => el("li", { class: "bad", text: x })), ...p.warnings.map((x) => el("li", { text: x }))];
+  const tiktokAt = pubState.platform === "tiktok" && d.cover_at != null
+    ? el("p", { class: "hint", text: `Kapak karesi: ${stamp(d.cover_at)} (${d.cover_at} sn)` }) : null;
+  box.replaceChildren(tabs, el("div", { class: "pub-main" },
+    el("div", { class: "pub-cover" }, cover,
+      p.cover ? el("button", { class: "tool", type: "button", text: "Kapağı göster", onclick: () => reveal(p.cover) }) : null),
+    el("div", { class: "pub-text" },
+      ...fieldsEl,
+      issues.length ? el("ul", { class: "pub-issues" }, ...issues) : null,
+      el("p", { class: "hint", text: PUB_NOTE[pubState.platform] }), tiktokAt,
+      el("div", { class: "pub-actions" },
+        el("button", { class: "pop-btn", type: "button", text: "Videoyu göster", title: "Yükleme sayfasına sürüklemek için", onclick: () => reveal(d.video) }),
+        el("a", { class: "pop-btn primary", href: p.url, target: "_blank", rel: "noopener", text: `${p.label} yükleme sayfası` })),
+      el("div", { class: "pub-actions" },
+        el("label", { class: "pub-posted" }, el("input", { type: "checkbox", checked: !!p.posted, onchange: async (e) => {
+          try { drawPublish(await post("/api/publish/posted", { video: d.video, platform: pubState.platform, posted: e.target.checked })); }
+          catch (err) { toast(err.message); }
+        } }), p.posted ? `Paylaşıldı (${p.posted})` : "Paylaşıldı olarak işaretle"),
+        el("button", { class: "tool", type: "button", text: "Paketi yeniden yaz", onclick: () => askPackage(d.video, true) })))));
 }
 /* ------------------------------------------------------------------ timeline under a video */
 // The edit as tracks (shots, texts, chapters, notes) under the player: a click plays that moment,
@@ -1622,7 +1838,9 @@ async function boot() {
   if (lastVideo) setVideo(lastVideo);
   await refreshJobs().catch(() => {});
   const id = location.hash.slice(1);
-  if (id && S.jobs.some((j) => j.id === id)) openJob(id); else goHome();
+  if (id === "senaryolar") openScenarios();
+  else if (id.startsWith("senaryo:")) openScenarios(id.slice(8));
+  else if (id && S.jobs.some((j) => j.id === id)) openJob(id); else goHome();
   setInterval(() => refreshJobs().catch(() => {}), 4000);
   checkSetup();
   checkUpdate();
