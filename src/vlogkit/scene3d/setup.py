@@ -12,6 +12,7 @@ from __future__ import annotations
 import os
 import platform
 
+from vlogkit.config import BUILD_DIR
 from vlogkit.scene3d import blender, library
 from vlogkit.speech import tts
 
@@ -32,10 +33,8 @@ def rows() -> list[dict]:
         bdetail = (
             "3B sahneleri render eder. blender.org/download adresinden kur, sonra bu ekranı yenile."
         )
-    have_voice = tts.pocket_installed()
-    vdetail = (
-        "Türkçe anlatım, internetsiz ve ücretsiz (Pocket TTS, 6 ses). 3B animasyon için gerekli."
-    )
+    have_voice = tts.qwen_installed() and (BUILD_DIR / "voices" / ".qwen_ready").exists()
+    vdetail = "Kanal sesi: Türkçe anlatım, internetsiz ve ücretsiz (Qwen3 Türkçe). 3B animasyon için gerekli."
     return [
         {
             "id": "blender",
@@ -58,7 +57,7 @@ def rows() -> list[dict]:
             "id": "voice",
             "label": "Türkçe ses modeli",
             "detail": vdetail,
-            "size": "~1,2 GB",
+            "size": "~5 GB",
             "done": have_voice,
             "optional": True,
         },
@@ -82,15 +81,19 @@ def run(step: str, run_task) -> None:
 
         run_task("step:blender", [cmd], after=after)
     elif step == "voice":
-        env_cmd = tts.install_pocket_cmd()
+        steps = [] if tts.qwen_installed() else [tts.install_qwen_cmd()]
 
-        def warm() -> None:  # downloads the model weights once (the first line takes a while)
-            from vlogkit.config import BUILD_DIR
+        def warm() -> (
+            None
+        ):  # downloads the model weights once (~4 GB, the first line takes a while)
+            tts._tool_dir.cache_clear()
+            tts.speak([tts.Line("Kanal sesi hazır.")], BUILD_DIR / "voices", engine="qwen")
+            (BUILD_DIR / "voices" / ".qwen_ready").write_text("ok")
 
-            tts.speak([tts.Line("Merhaba.")], BUILD_DIR / "voices", engine="pocket")
+        env_cmd = steps
 
         os.environ.setdefault("UV_HTTP_TIMEOUT", "900")
-        run_task("step:voice", [env_cmd], after=warm)
+        run_task("step:voice", env_cmd, after=warm)
     elif step == "lib3d":
         from vlogkit.ui import setup as ui_setup
 

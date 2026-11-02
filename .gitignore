@@ -29,6 +29,9 @@ build/
 # Browser automation snapshots
 .playwright-mcp/
 
+# the channel voice reference ships with vlogkit (generated, MIT)
+!assets/voice/kanal.wav
+
 # Your own work: never part of vlogkit's updates
 /projects/*
 !/projects/_template/

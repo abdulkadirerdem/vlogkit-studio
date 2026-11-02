@@ -26,7 +26,20 @@ from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
 
-ENGINES = ("auto", "pocket", "system")
+ENGINES = ("auto", "qwen", "pocket", "system")
+# The channel voice: Qwen3-TTS fine-tuned on Turkish (Apache-2.0), always speaking as the one
+# reference recording below (made with Chatterbox's own voice, MIT), so every video has the same
+# narrator. Digits are spelled out first: the model reads them badly.
+QWEN_PACKAGE = "qwen-tts"
+QWEN_MODEL = "erkamk/qwen3-0.6b-tr"
+CHANNEL_VOICE = Path(__file__).resolve().parents[3] / "assets" / "voice" / "kanal.wav"
+QWEN_WORKER = Path(__file__).with_name("qwen_worker.py")
+QWEN_LICENSE = {
+    "title": "Qwen3-TTS (Türkçe ince ayar, erkamk/qwen3-0.6b-tr); kanal sesi Chatterbox (Resemble AI) ile üretildi",
+    "author": "Qwen (Alibaba), erkamk; Resemble AI",
+    "license": "Apache-2.0 (model), MIT (Chatterbox)",
+    "page": "https://huggingface.co/erkamk/qwen3-0.6b-tr",
+}
 POCKET_PACKAGE = "pocket-tts-turkish"
 POCKET_REPO = "wite-tech/pocket-tts-turkish"
 POCKET_VOICES = {
@@ -106,6 +119,49 @@ def _tool_dir() -> Path | None:  # asked once: the studio polls the setup rows e
     return Path(r.stdout.strip()) if r.returncode == 0 and r.stdout.strip() else None
 
 
+def _tool_python(package: str, env_var: str) -> Path | None:
+    env = os.environ.get(env_var)
+    if env:
+        return Path(env)
+    d = _tool_dir()
+    if not d:
+        return None
+    base = d / package
+    for p in (base / "Scripts" / "python.exe", base / "bin" / "python"):
+        if p.exists():
+            return p
+    return None
+
+
+def qwen_python() -> Path | None:
+    """The Python of the qwen-tts tool environment (the channel voice), when installed."""
+    return _tool_python(QWEN_PACKAGE, "VLOGKIT_QWEN_PYTHON")
+
+
+def qwen_installed() -> bool:
+    return qwen_python() is not None
+
+
+def install_qwen_cmd() -> list[str]:
+    """Its own isolated environment (torch never enters vlogkit's); the weights (~4 GB) come
+    with the first line spoken."""
+    uv = _uv()
+    if not uv:
+        raise RuntimeError("uv bulunamadı: vlogkit kurulumunu yeniden çalıştır")
+    return [
+        uv,
+        "tool",
+        "install",
+        QWEN_PACKAGE,
+        "--python",
+        "3.12",
+        "--with",
+        "soundfile",
+        "--with",
+        "setuptools<81",
+    ]
+
+
 def pocket_python() -> Path | None:
     """The Python of the pocket-tts-turkish tool environment, when installed."""
     env = os.environ.get("VLOGKIT_POCKET_PYTHON")
@@ -149,8 +205,8 @@ def pick_engine(engine: str = "auto") -> str:
         return engine
     # The system voices (macOS Yelda, Windows Tolga) sound robotic: never chosen on their own; a
     # project can still ask for "system" explicitly (a quick draft without the model).
-    if pocket_installed():
-        return "pocket"
+    if qwen_installed():
+        return "qwen"  # the channel voice; Pocket and the system voices only when asked for
     raise RuntimeError(
         "Türkçe ses modeli kurulu değil: Ayarlar > Kurulum > Türkçe ses modeli (ya da `vlogkit 3d install-voice`)"
     )
@@ -281,6 +337,39 @@ def _pocket_many(jobs: list[tuple[Line, str | None, Path]], voice_file: Path | N
         raise RuntimeError("Pocket TTS çalışmadı: " + " | ".join(tail))
 
 
+def _qwen_many(jobs: list[tuple[Line, str | None, Path]]) -> None:
+    from vlogkit.speech.sayilar import spell
+
+    py = qwen_python()
+    if not py:
+        raise RuntimeError("Türkçe ses modeli kurulu değil: Ayarlar > Kurulum > Türkçe ses modeli")
+    spec = {
+        "model": QWEN_MODEL,
+        "ref": str(CHANNEL_VOICE),
+        "items": [{"text": spell(ln.text), "out": str(p)} for ln, _, p in jobs],
+    }
+    job = jobs[0][2].parent / "_qwen_job.json"
+    job.write_text(json.dumps(spec, ensure_ascii=False), encoding="utf-8")
+    env = {
+        **os.environ,
+        "PYTHONUTF8": "1",
+        "PYTHONIOENCODING": "utf-8",
+        "PYTORCH_ENABLE_MPS_FALLBACK": "1",
+    }
+    r = subprocess.run(
+        [str(py), str(QWEN_WORKER), str(job)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=env,
+    )
+    job.unlink(missing_ok=True)
+    if r.returncode != 0:
+        tail = (r.stderr or r.stdout).strip().splitlines()[-6:]
+        raise RuntimeError("Türkçe ses modeli çalışmadı: " + " | ".join(tail))
+
+
 def speak(
     lines: list[Line],
     out_dir: Path,
@@ -299,6 +388,8 @@ def speak(
                 voice = None
         if eng == "pocket" and (not voice or voice not in POCKET_VOICES):
             voice = "male_1"
+        if eng == "qwen":  # one narrator for every video: the line's voice/emotion do not apply
+            voice = "kanal-" + hashlib.sha1(CHANNEL_VOICE.read_bytes()).hexdigest()[:8]
         tag = _key(ln, eng, voice) + (
             "-vf" + hashlib.sha1(voice_file.read_bytes()).hexdigest()[:8]
             if voice_file and eng == "pocket"
@@ -307,7 +398,9 @@ def speak(
         plan.append((ln, voice, out_dir / f"{tag}.wav"))
     todo = [(ln, v, p) for ln, v, p in plan if not p.exists() or p.stat().st_size < 1000]
     if todo:
-        if eng == "pocket":
+        if eng == "qwen":
+            _qwen_many(todo)
+        elif eng == "pocket":
             _pocket_many(todo, voice_file)
         else:
             for ln, v, p in todo:

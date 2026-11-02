@@ -248,14 +248,15 @@ class Scene3DEdit(Edit):
         if any(p.parent.name == "voice" for p in [b.speech for b in self.beats if b.speech]):
             from vlogkit.speech import tts
 
-            if (
-                tts.pick_engine(
+            if tts.pick_engine(
+                os.environ.get("VLOGKIT_TTS")
+                or (self.spec.get("voice") or {}).get("engine", "auto")
+            ) in ("pocket", "qwen"):
+                eng = tts.pick_engine(
                     os.environ.get("VLOGKIT_TTS")
                     or (self.spec.get("voice") or {}).get("engine", "auto")
                 )
-                == "pocket"
-            ):
-                L = tts.POCKET_LICENSE
+                L = tts.QWEN_LICENSE if eng == "qwen" else tts.POCKET_LICENSE
                 out[".ses-lisans.md"] = (
                     f"# Seslendirme\n\n- {L['title']}: {L['author']}\n- Lisans: {L['license']}\n- {L['page']}\n"
                 )

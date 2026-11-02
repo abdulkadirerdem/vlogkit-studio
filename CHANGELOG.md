@@ -2,6 +2,11 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Sürümleme: [SemVer](https://semver.org/).
 
+## [0.18.2] - 2026-11-02
+
+### Değişti
+- **Tek kanal sesi:** 3B videolar artık Qwen3-TTS'in Türkçe ince ayarıyla (Apache-2.0), hep aynı referans sesle (`assets/voice/kanal.wav`, Chatterbox'ın kendi sesiyle üretildi, MIT) seslendirilir; video başına ses ve duygu seçimi yok. Pocket TTS ve sistem sesleri yalnız açıkça istenince. Sayılar seslendirmeden önce Türkçe kelimeye çevrilir (`speech/sayilar.py`: "1.250" → "bin iki yüz elli", "%38" → "yüzde otuz sekiz"). Kurulum ekranındaki "Türkçe ses modeli" ve `vlogkit 3d install-voice` bunu kurar (~5 GB, bir kez).
+
 ## [0.18.1] - 2026-11-02
 
 ### Düzeltildi

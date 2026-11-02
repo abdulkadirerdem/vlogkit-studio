@@ -31,7 +31,7 @@ def status() -> None:
         f"{_ok(b['ok'])} Blender                 {b['path'] or '-'} {b['version'] or ''} {'' if b['ok'] else '(' + b['why'] + ')'}"
     )
     typer.echo(
-        f"{_ok(tts.pocket_installed())} Türkçe ses modeli       Pocket TTS ({tts.POCKET_PACKAGE}){'' if tts.pocket_installed() else ' -> vlogkit 3d install-voice'}"
+        f"{_ok(tts.qwen_installed())} Türkçe ses modeli       kanal sesi, Qwen3 Türkçe ({tts.QWEN_MODEL}){'' if tts.qwen_installed() else ' -> vlogkit 3d install-voice'}"
     )
     from vlogkit.scene3d import library
 
@@ -58,18 +58,20 @@ def fetch() -> None:
 
 @app.command("install-voice")
 def install_voice() -> None:
-    """Türkçe ses modelini (Pocket TTS, ~1 GB ile birlikte torch) ayrı bir ortama kur."""
+    """Kanal sesini (Qwen3 Türkçe, kendi ortamında) kur ve modeli indir (~5 GB, bir kez)."""
     import subprocess
 
+    from vlogkit.config import BUILD_DIR
     from vlogkit.speech import tts
 
-    if tts.pocket_installed():
-        typer.echo("zaten kurulu")
-        return
-    subprocess.run(
-        tts.install_pocket_cmd(), check=True, env={**os.environ, "UV_HTTP_TIMEOUT": "900"}
-    )
-    typer.echo("✅ kuruldu; model ilk kullanımda iner (~440 MB)")
+    if not tts.qwen_installed():
+        subprocess.run(
+            tts.install_qwen_cmd(), check=True, env={**os.environ, "UV_HTTP_TIMEOUT": "900"}
+        )
+        tts._tool_dir.cache_clear()
+    typer.echo("model indiriliyor ve deneniyor (ilk sefer birkaç dakika)...")
+    s = tts.speak([tts.Line("Kanal sesi hazır.")], BUILD_DIR / "voices", engine="qwen")[0]
+    typer.echo(f"✅ hazır: {s.path} ({s.duration:.1f} sn)")
 
 
 @app.command()
@@ -235,7 +237,9 @@ def voice(
         list[str] | None,
         typer.Option("--voice", "-v", help="male_1 ... female_3 (tekrarlanabilir)"),
     ] = None,
-    engine: Annotated[str, typer.Option(help="auto | pocket | system")] = "auto",
+    engine: Annotated[
+        str, typer.Option(help="auto (kanal sesi) | qwen | pocket | system")
+    ] = "auto",
     emotion: Annotated[
         str | None, typer.Option(help="Pocket: notr, mutlu, sakin, heyecanli, uzgun, kizgin")
     ] = None,
@@ -245,14 +249,18 @@ def voice(
     from vlogkit.speech import tts
 
     eng = tts.pick_engine(engine)
-    voices = voice_id or (
-        list(tts.POCKET_VOICES) if eng == "pocket" else (tts.system_voices()[:1] or [""])
+    voices = (
+        voice_id
+        or ([""] if eng == "qwen" else None)
+        or (list(tts.POCKET_VOICES) if eng == "pocket" else (tts.system_voices()[:1] or [""]))
     )
     out = BUILD_DIR / "voices"
     said = tts.speak([tts.Line(text, v or None, emotion) for v in voices], out, eng)
     typer.echo("Seçim: Hangi ses?")
     for i, (v, s) in enumerate(zip(voices, said, strict=True), 1):
-        desc = tts.POCKET_VOICES.get(v, "sistem sesi")
-        named = out / f"ses-{v or 'sistem'}-{s.path.stem[:6]}.wav"
+        desc = "kanal sesi" if eng == "qwen" else tts.POCKET_VOICES.get(v, "sistem sesi")
+        named = out / f"ses-{v or ('kanal' if eng == 'qwen' else 'sistem')}-{s.path.stem[:6]}.wav"
         shutil.copyfile(s.path, named)
-        typer.echo(f"{i}. {v or 'sistem'} ({desc}, {s.duration:.1f} sn) — {named}")
+        typer.echo(
+            f"{i}. {v or ('kanal sesi' if eng == 'qwen' else 'sistem')} ({desc}, {s.duration:.1f} sn) — {named}"
+        )
