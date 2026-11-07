@@ -44,9 +44,16 @@ def validate(s: dict) -> list[str]:
             out.append(f"'{k}' gerekli")
     if s.get("id") and not _ID.match(s["id"]):
         out.append("id: küçük harf, rakam ve tire (ör. herkes-ayni-anda-ziplasa)")
+    from vlogkit.scene3d import formats
+
+    if s.get("format") and s["format"] not in formats.FORMATS:
+        out.append(f"format: {', '.join(formats.FORMATS)}")
+    lo, hi = formats.FORMATS.get(
+        s.get("format") or formats.DEFAULT, formats.FORMATS[formats.DEFAULT]
+    )["beats"]
     beats = s.get("beats") or []
-    if beats and not 6 <= len(beats) <= 16:
-        out.append(f"beats: 6-16 cümle olmalı ({len(beats)} var)")
+    if beats and not lo <= len(beats) <= hi:
+        out.append(f"beats: {lo}-{hi} cümle olmalı ({len(beats)} var)")
     for i, b in enumerate(beats, 1):
         if not str(b.get("say", "")).strip():
             out.append(f"beat {i}: 'say' (anlatım cümlesi) boş")
@@ -79,6 +86,7 @@ def summary(s: dict, file: Path) -> dict:
         "hook": s.get("hook", ""),
         "logline": s.get("logline", ""),
         "duration_s": s.get("duration_s"),
+        "format": s.get("format") or "pekiya",
         "beats": len(s.get("beats") or []),
         "scores": s.get("scores") or {},
         "total": total(s),

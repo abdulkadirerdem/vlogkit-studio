@@ -1,6 +1,6 @@
 # vlogkit Prompt Rehberi
 
-<!-- meta: vlogkit=0.19.0; updated=2026-11-02; artifact=https://claude.ai/artifact/WQakjmnPnJ95AJ1kyQPdPW -->
+<!-- meta: vlogkit=0.21.0; updated=2026-11-07; artifact=https://claude.ai/artifact/WQakjmnPnJ95AJ1kyQPdPW -->
 
 Yeni bir vlog'u Claude'a vlogkit ile kurgulatırken kullanacağın hazır prompt'lar. Hepsi vlogkit'in bugünkü yeteneklerine göre yazıldı. vlogkit geliştikçe bu dosya da güncellenir: kaynak `docs/prompts.md`, sayfa `scripts/build_prompts_page.py` ile üretilip artifact olarak yayınlanır. Aynı dosya `vlogkit ui` arayüzündeki görev listesini de besler: arayüzde bir görevi seçince prompt buradan gelir ve seçtiğin video ile formdaki bağlam bilgileri doldurulur.
 
@@ -192,6 +192,26 @@ Claude ne yapar:
 - Teslim: müziksiz dosya, rehber ritim sesli önizleme ve `.muzik.txt` (başlangıç saniyesi, hizalanacak kesme, TikTok, Reels ve Shorts notları). Örnek: `projects/kackar-reels`.
 
 Not: BPM ve söz zamanları topluluk verisi (~±0,3 sn). Şarkıyı uygulamada eklerken nottaki kesmeyi vuruşa hizalamak gerekir; Instagram'da Meta'nın Edits uygulamasında ses dalgasıyla hizalamak en kolayı. Trend ses çoğu zaman şarkının bir kesiti ya da hızlandırılmış sürümüdür: uygulamadaki sesin drop saniyesini söylersen hizalama tutar. Şarkı işletme hesabında çıkmayabilir. Shorts'ta telifli şarkılı video 60 sn'yi geçmesin.
+
+#### Ekran kaydını yavaş zoomla editle (sad edit)
+
+Ne zaman: Elinde bir ekran kaydı var (bir profil, sohbet, belge aşağı kaydırılıyor) ve o kayıttan yavaş, sinematik bir dikey edit istiyorsun: şu kısım görünsün, yavaşça şuraya inilsin, şuraya zoom yapılsın.
+
+```text
+<ekran kaydı dosyası> ile <10-15> saniyelik dikey bir edit yap: en başta <neyin görüneceği>,
+sonra yavaşça aşağı inilsin (aradakilerin önemi yok), <hangi bölüme> gelip biraz daha büyütülsün,
+en sonda <hangi satıra> zoom yapılsın. <Sad edit | enerjik> tadında olsun, müziği ben ekleyeceğim.
+Önce plan ve örnek kareler göster, onaylayınca derle.
+```
+
+Claude ne yapar:
+- Kaydın kendi kaydırmasını kullanmaz (hızlı ve sarsıntılıdır): kareleri birleştirip tek bir uzun sayfa görüntüsü çıkarır (`video/pagescroll.py`), kamerayı o sayfanın üzerinde gezdirir. Hareket istediğin kadar yavaş ve alt piksel hassasiyetinde akıcı olur.
+- Tarayıcı çubuğunu, yapışkan başlığı, mesaj kutusunu ve yan sütunu kadraj dışında bırakır — başkalarının ad ve fotoğrafları teslime girmez.
+- Kadrajları derlemeden önce tek kare olarak gösterir: hedef yazının kaç kat büyütüleceğini ve okunur kalıp kalmayacağını orada görürsün.
+- Zoom kademeleri, bekleme süreleri ve sondaki vurgu darbesi anahtar karelerle kurulur; açılış siyahtan değil karanlıktan gelir (ilk kare Reels'te kapak karesi).
+- Teslim sessizdir: şarkıyı Reels / TikTok uygulamasının kütüphanesinden sen eklersin.
+
+Sınır: Teslim çözünürlüğü kaydın çözünürlüğüdür. Yüksek DPI ekran kaydında yazı 7-8 kat büyütmeye dayanır; 100 pikselden dar bir hedef (küçük bir tarih, bir rozet) tek başına kadrajlanınca okunmaz. Oran kaydın oranından farklı olacaksa (yatay kayıt → 9:16) Claude önce sorar.
 
 #### Beğendiğin bir kurgunun tarzıyla
 

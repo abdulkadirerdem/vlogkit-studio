@@ -2,6 +2,34 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Sürümleme: [SemVer](https://semver.org/).
 
+## [0.21.0] - 2026-11-07
+
+### Eklendi
+- **3B formatları (`scene3d/formats.py`, `docs/formats/`):** her video bir format seçer (`"format"`); format kanıtlanmış bir kısa video kalıbıdır (hikâye yapısı, ekran dili, altyazı biçimi, tempo, kontrol listesi). `3d new --format <id>` projeyi formatın çalışılmış örneğiyle açar. Senaryolar sayfası formata göre araştırır, kartta formatı gösterir. İlk iki format:
+  - **Peki ya?** (`pekiya`): 7 adımlık kalıp (soğuk açılış, kurallar, tırmanan sonuçlar, gerçek sayı, dönüş, insani an, çözülmemiş kapanış).
+  - **Kesitten inşa** (`kesit`): pasta gibi kesilmiş bir bahçede gündelik bir şey adım adım inşa edilir: "Eğer… Ama… O yüzden… Buna ___ denir." Tek kelime altyazı; sahne beat'ten beat'e birikir (`carry`: her beat yalnız eklediğini yazar, `remove` çıkarır). Çalışılmış örnek: "Bahçendeki çukur nasıl kuyu olur?"
+- **Kesit kiti:** `cutaway` mekânı (çimli, toprak katmanlı, çatlak dokulu kesit bloğu; iki katlı ev, çit, ağaçlar; yaz, sonbahar, kış), `pit` (bowl, box, shelf, trench, tunnel; yüzeyin altında bant için `top`), `layer` (su, bulanık su, kum, çakıl, taş, beton, asfalt, membran, buz…; tabandan yükselerek dolar), `pipe`, `tank`, `hand_pump`, `fish`, `lily_pad`. Diorama ölçeğinde kamera (mekân kendi ölçeğini söyler).
+- **Gerçek kelime zamanları:** seslendirme whisper ile dinlenip her kelimenin zamanı ölçülür; olaylar, kesmeler ve altyazı tahmine değil sese oturur (sayılarda fark yarım saniyeye kadar çıkıyordu). Whisper yoksa eski hece tahmini.
+- **`3d kontak`:** render'dan önce her planın ortasından bir kare tek sayfada: plan no, zaman, söylenen kelimeler, telefon arayüzünün kapattığı alanlar.
+- **`3d kontrol`:** bitmiş videonun makine kontrolü: seslendirme senaryoyla eşleşiyor mu (whisper), ölü an, 3 sn'den uzun plan, kısa kalan altyazı, ses seviyesi.
+- **`3d puanla`:** kör puan: yeni bir Claude oturumu yalnız izleyicinin gördüğünü görür, 7 satırda 70 üzerinden puanlar, en zayıf yeri ve 3 düzeltme yazar.
+
+## [0.20.0] - 2026-11-04
+
+### Eklendi
+- **Kaydırılan ekran kaydından yavaş kamera hareketi (`video/pagescroll.py`):** Birinin bir sayfayı (profil, sohbet, belge) kaydırdığı ekran kaydı sayfanın tamamını taşır ama kendi kaydırması sarsıntılıdır — 4 sn'lik savurmadan 13 sn'lik yavaş bir iniş kesilemiyordu. `stitch` kareleri satır parlaklığı imzasıyla eşleyip tek bir uzun sayfa görüntüsüne yapıştırıyor (`Column` ile yalnız kayan içerik sütunu; tarayıcı çubuğu, yapışkan başlık ve yan sütun dışarıda). Eşleme tek bir "en iyi" kaydırmaya güvenmiyor: savurmanın en hızlı yerinde yalnız birkaç yüz satır örtüşüyor ve çoğu boş kart zemini olduğu için birden çok kaydırma neredeyse aynı puanı alıyor (bu kayıtta 262, 294, 342, 433 arasında 0,5 fark vardı); adaylar sayfanın şimdiye kadar birleşmiş uzun bağlamına göre puanlanıp seçiliyor (`_shifts` + `_place`). Tek eşlemeyle sayfanın iki bölümü (Hakkında, Faaliyet) eziliyor ve bir satır ortadan kesiliyordu. `move` o sayfanın üzerinde `Key(t, cx, cy, w)` anahtar kareleriyle pencere gezdiriyor: alt piksel hassasiyetinde (ffmpeg `zoompan` tam sayıya yuvarlayıp basamak yapıyor), genişlik geometrik aradeğerli, `ease` ile hızlanan/yavaşlayan iniş, aynı değerli iki anahtarla bekleme, kısa genişlik düşüşüyle vurgu darbesi. Grade/vinyet/fade aynı encode'da (`filters`), kareler bir kez örnekleniyor. Yüksek DPI kaydında yazı 7-8 kat büyütmeye dayanıyor.
+- **Sessiz teslim (`AudioGraph.silent`):** Şarkısı uygulamadan (Reels / TikTok kütüphanesi) eklenecek videolar için sessiz ses yatağı; mp4 yine bir ses kanalı taşıyor.
+
+### Düzeltildi
+- **`vlogkit analyze` müziksiz kayıtlarda tamamen çöküyordu:** aubio bazı dosyalarda (sessiz ekran kaydı) segfault veriyor. `beats`/`tempo` artık `BeatsUnavailable` fırlatıyor, `analyze` vuruş listesini atlayıp raporu yazıyor ("Vuruşlar: okunamadı" + nedeni), `vlogkit beats` tracebook yerine tek satır hata basıyor.
+- **Sessiz mikste sonsuz kazanç:** `loudness.normalize` -inf LUFS'tan -14 LUFS'a giderken kazancı hesaplayamıyordu; -70 LUFS altındaki miks artık olduğu gibi yazılıyor.
+
+## [0.19.1] - 2026-11-03
+
+### Eklendi
+- **Süresi değişen plan yeniden render edilmiyor:** anlatım yavaşlayınca ya da bir cümle yeniden yazılınca bütün video baştan render ediliyordu. Her plan artık uzunluktan bağımsız bir "şekil" de taşıyor: kelimeye bağlı zamanlar planın süresine oranlanır (`plan._stretched`), efektlerin mutlak süresi (`dur`) olduğu gibi kalır, karşılaştırma %3 toleranslıdır (`plan.same_shape`) — kare sayıları tam sayı olduğu için aynı plan başka tempoda birebir aynı sayıları vermez. İçerik aynı, yalnız süre değiştiyse diskteki kareler yeni uzunluğa göre örneklenir (`plan.mark_reuse`, `plan.source_frame`) ve Blender hiç çalışmaz. Sınır ±%33. Günlükte `önbellekten uzatıldı (90 → 99 kare)` diye görünür; örnek: tempo 0,9'a inince 30 planın 12'si karelerini korudu (1579 kare yerine 865 render).
+- **Anlatım hızı (`scene.json` → `voice.speed`, 0,5-2,0):** kanal sesinin hızı referans kayıttan geliyordu ve `speed` alanı yok sayılıyordu; artık seslendirilen satır perdesi bozulmadan yavaşlatılıyor ya da hızlandırılıyor (`tts.retime`, ffmpeg atempo). Daha sakin ve ağır bir anlatım için `"voice": {"speed": 0.9}`.
+
 ## [0.19.0] - 2026-11-02
 
 ### Eklendi

@@ -715,6 +715,11 @@ async function openJob(id) {
 /* ------------------------------------------------------------- scenarios (3B) */
 // Researched, scored, fully written "Peki ya?" ideas waiting in projects/_senaryolar/. Claude
 // writes them (a "senaryo" job, docs/senaryo.md); one click hands the chosen one to a 3B job.
+// 3B formatları (scene3d/formats.py ile aynı): araştırma formu ve kartlar
+const FORMATS = {
+  pekiya: { title: "Peki ya?", line: "Bir 'peki ya' sorusu, sonuçlar tırmanarak ekranda olur" },
+  kesit: { title: "Kesitten inşa", line: "Pasta gibi kesilmiş bir bahçede bir şey adım adım inşa edilir: Eğer… Ama… O yüzden…" },
+};
 const SCORE_LABEL = { merak: "Merak", tirmanis: "Tırmanış", gorsel: "Görsellik", hesap: "Sayılar", yorum: "Yorum" };
 const STATUS_LABEL = { yeni: "Yeni", secildi: "Seçildi", uretiliyor: "Üretiliyor", uretildi: "Üretildi", arsiv: "Arşiv" };
 const scenBox = () => $("#scenarios");
@@ -744,17 +749,20 @@ async function drawScenarios() {
   const { dir, items } = await api(`/api/scenarios${showAll ? "?archived=1" : ""}`);
   const dirIn = el("input", { type: "text", placeholder: "Yön (isteğe bağlı): örn. uzay, vücut, para, doğa olayları…",
     value: saved.get("scen.dir", "") });
+  const fmt = el("select", { "aria-label": "Format" },
+    ...Object.entries(FORMATS).map(([id, f]) => el("option", { value: id, text: f.title, title: f.line })));
+  fmt.value = saved.get("scen.fmt", "pekiya");
   const count = el("select", { "aria-label": "Kaç senaryo" },
     ...[3, 5, 8].map((n) => el("option", { value: String(n), text: `${n} senaryo` })));
   count.value = String(saved.get("scen.n", 5));
   const form = el("form", { class: "scen-research", onsubmit: (e) => {
     e.preventDefault();
-    saved.set("scen.dir", dirIn.value.trim()); saved.set("scen.n", Number(count.value));
-    researchScenarios(dirIn.value.trim(), Number(count.value));
-  } }, dirIn, count, el("button", { class: "primary", type: "submit", text: "Yeni senaryolar araştır" }));
+    saved.set("scen.dir", dirIn.value.trim()); saved.set("scen.n", Number(count.value)); saved.set("scen.fmt", fmt.value);
+    researchScenarios(dirIn.value.trim(), Number(count.value), fmt.value);
+  } }, dirIn, fmt, count, el("button", { class: "primary", type: "submit", text: "Yeni senaryolar araştır" }));
   const cards = items.map((s) => el("button", { class: "scen-card", type: "button", onclick: () => openScenarios(s.id) },
     el("div", { class: "scen-meta" }, el("span", { class: "scen-score", text: s.total ? s.total.toFixed(1) : "–" }),
-      statusChip(s.status), s.problems.length ? el("span", { class: "chip bad", text: `${s.problems.length} sorun` }) : null),
+      statusChip(s.status), el("span", { class: "chip", text: (FORMATS[s.format] || FORMATS.pekiya).title }), s.problems.length ? el("span", { class: "chip bad", text: `${s.problems.length} sorun` }) : null),
     el("b", { text: s.title }),
     s.hook ? el("span", { class: "hook", text: s.hook }) : null,
     el("div", { class: "scen-meta" },
@@ -817,9 +825,10 @@ async function setScenarioStatus(id, status) {
   catch (e) { toast(`Değiştirilemedi: ${e.message}`); }
 }
 
-function researchScenarios(direction, n) {
+function researchScenarios(direction, n, fmt = "pekiya") {
   goHome(); clearVideo(); setType("senaryo");
-  input.value = [`"Peki ya?" 3B kanalı için viral olabilecek ${n} yeni senaryo araştır ve yaz.`,
+  const f = FORMATS[fmt] || FORMATS.pekiya;
+  input.value = [`3B kanalı için viral olabilecek ${n} yeni senaryo araştır ve yaz. Format: "${f.title}" (${fmt}): ${f.line}; docs/formats/${fmt}.md kalıbına uy, her senaryoya "format": "${fmt}" yaz.`,
     direction ? `Yön: ${direction}.` : "Yön serbest: en çok tutacak konuları sen bul.",
     "docs/senaryo.md'deki yöntemi ve puanlamayı izle; mevcut senaryoları (projects/_senaryolar/) tekrar etme.",
     "Her senaryoyu ayrı JSON dosyası olarak yaz ve `vlogkit 3d senaryo-kontrol` ile doğrula. Video üretme."].join("\n");
@@ -831,6 +840,7 @@ async function produceScenario(s) {
   catch (e) { return toast(`Seçilemedi: ${e.message}`); }
   goHome(); clearVideo(); setType("3d");
   input.value = [`Bu senaryoyu seçiyorum: "${s.title}"`, `Senaryo: ${s.file}`,
+    `Format: ${s.format || "pekiya"} (docs/formats/${s.format || "pekiya"}.md; scene.json'a "format": "${s.format || "pekiya"}").`,
     "Senaryoyu en ince ayrıntısına kadar 3B videoya dönüştür: her cümle ekranda bir olay olsun, sahnedeki 'visual' tarifine sadık kal, sayaç ve efektleri uygula.",
     `Başlarken \`vlogkit 3d senaryo-durum ${s.id} uretiliyor --proje <proje>\`, bitince \`vlogkit 3d senaryo-durum ${s.id} uretildi\` çalıştır.`].join("\n");
   submit();

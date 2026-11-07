@@ -36,6 +36,7 @@ names, so a wrong name is fixed before a minute of rendering is spent.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import re
 from pathlib import Path
@@ -62,6 +63,9 @@ _TOP = {
     "captions",
     "notes",
     "cut_whoosh",
+    "format",
+    "carry",
+    "hook",
 }
 _BEAT = {
     "say",
@@ -79,6 +83,7 @@ _BEAT = {
     "fx",
     "crowd",
     "look",
+    "remove",
 }
 _SHOT = {"cue", "set", "set_opts", "actors", "props", "camera", "fx", "crowd", "look", "notes"}
 _FX = {"kind", "at", "pos", "on", "to", "size", "dur", "color", "n", "level", "item", "area",
@@ -188,6 +193,12 @@ def _check_props(where: str, say: str, props, actors: set[str], out: list[str]) 
             )
         if p.get("id"):
             ids.add(p["id"])
+        if p.get("kind") == "layer":
+            pits = {q.get("id") for q in props or [] if q.get("kind") == "pit"}
+            if p.get("pit") not in pits:
+                out.append(
+                    f"{pw}: layer için pit: bu planda bir pit id'si ({_names(pits) or 'pit yok'})"
+                )
         for k, m in enumerate(p.get("anim") or [], 1):
             for x in set(m) - _PROP_ANIM:
                 out.append(f"{pw} anim {k}: bilinmeyen alan '{x}' (olanlar: {_names(_PROP_ANIM)})")
@@ -301,11 +312,22 @@ def _check_scope(
 
 
 def validate(spec: dict) -> list[str]:
+    """Every problem at once. A build-up format (`carry`) is checked as it will be rendered: each
+    beat with what it carries from the beats before."""
+    from vlogkit.scene3d import formats
+
     out: list[str] = []
+    if spec.get("format") and spec["format"] not in formats.FORMATS:
+        out.append(f"format '{spec['format']}' yok (olanlar: {_names(formats.FORMATS)})")
+    with contextlib.suppress(KeyError, TypeError, AttributeError):  # malformed: named below
+        spec = formats.expand(spec)
     for k in set(spec) - _TOP:
         out.append(f"üst düzeyde bilinmeyen alan '{k}' (olanlar: {_names(_TOP)})")
     if not spec.get("output"):
         out.append("output gerekli: ~/yt-vlogs altında, uzantısız yol (ör. 'peki-ya/ziplama')")
+    cap = spec.get("captions", True)
+    if not isinstance(cap, bool) and cap not in ("chunk", "word"):
+        out.append("captions: true | false | 'chunk' (2-3 kelime) | 'word' (tek kelime)")
     if spec.get("quality", "normal") not in QUALITY:
         out.append(f"quality: {_names(QUALITY)}")
     voice = spec.get("voice") or {}

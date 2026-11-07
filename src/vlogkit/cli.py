@@ -667,9 +667,14 @@ def beats(song: Path) -> None:
     import json
     from dataclasses import asdict
 
+    from vlogkit.analysis.beats import BeatsUnavailable
     from vlogkit.analysis.music import analyze, report
 
-    m = analyze(song)
+    try:
+        m = analyze(song)
+    except BeatsUnavailable as e:
+        typer.echo(f"✗ {e}", err=True)
+        raise typer.Exit(1) from e
     for line in report(m):
         typer.echo(line)
     out = BUILD_DIR / "analysis" / song.stem / "music.json"

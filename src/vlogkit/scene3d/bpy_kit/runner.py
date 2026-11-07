@@ -209,9 +209,13 @@ def build_shot(plan: dict, shot: dict) -> int:
     sc.frame_start, sc.frame_end = 1, span
     info = sets.build(shot["set"], shot.get("set_opts") or {})
     placed: dict[str, props.Placed] = {}
-    for i, pr in enumerate(shot.get("props", [])):
+    props.PITS.clear()
+    # pits first: they dig the ground the layers then fill
+    order = sorted(enumerate(shot.get("props", [])), key=lambda ip: ip[1].get("kind") != "pit")
+    for i, pr in order:
         ob = props.place(pr["kind"], f"prop{i}", pr)
         placed[pr.get("id") or f"prop{i}"] = props.Placed(ob)
+    props.bake_ground()
     actors, scale_of = {}, {}
     real = []
     for a in shot.get("actors", []):
@@ -291,6 +295,8 @@ def build_shot(plan: dict, shot: dict) -> int:
     cam = camera.make(shot.get("camera", {}).get("lens", 35))
     cspec = dict(shot.get("camera", {}))
     cspec.setdefault("_default_target", info.get("target", (0, 0, 1)))
+    cspec.setdefault("_scale", info.get("camera_scale", 1.0))
+    cspec.setdefault("_lift", info.get("camera_lift", 0.0))
     if "on" not in cspec and actors:
         cspec["on"] = next(iter(actors))
     targets = {**placed, **actors}
@@ -326,7 +332,14 @@ def render_shot(plan: dict, shot: dict, only: list[int] | None = None) -> None:
         print(f"VKFRAME {shot['id']} {f} {n}", flush=True)
     if not only:
         (out / "done.json").write_text(
-            json.dumps({"key": shot["key"], "frames": n, "seconds": round(time.time() - t, 1)})
+            json.dumps(
+                {
+                    "key": shot["key"],
+                    "shape": shot.get("shape"),
+                    "frames": n,
+                    "seconds": round(time.time() - t, 1),
+                }
+            )
         )
 
 
@@ -355,6 +368,11 @@ def main() -> None:
     only = plan.get("only")  # {"shot_id": [frames]} for previews
     for shot in plan["shots"]:
         if only is not None and shot["id"] not in only:
+            continue
+        if only is None and shot.get("reuse"):
+            # only the length changed (slower narration, a reworded line): the frames on disk
+            # tell the same shot and the host resamples them (vlogkit.scene3d.plan.mark_reuse)
+            print(f"VKSKIP {shot['id']}", flush=True)
             continue
         done = Path(shot["out"]) / "done.json"
         if only is None and done.exists():

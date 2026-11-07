@@ -78,14 +78,24 @@ def install_voice() -> None:
 def new(
     name: str,
     title: Annotated[str, typer.Option(help="Videonun sorusu / başlığı")] = "Peki ya ...?",
+    fmt: Annotated[
+        str, typer.Option("--format", "-f", help="pekiya | kesit (docs/formats/)")
+    ] = "pekiya",
 ) -> None:
-    """Şablondan yeni 3B proje: scene.json + edit.py + NOTES.md."""
+    """Şablondan yeni 3B proje: scene.json + edit.py + NOTES.md. Bir format seçilirse sahne o
+    formatın çalışılmış örneğiyle başlar (docs/formats/<format>.md)."""
     from vlogkit.config import PROJECTS_DIR
+    from vlogkit.scene3d import formats
 
+    if fmt not in formats.FORMATS:
+        raise typer.BadParameter(f"format: {', '.join(formats.FORMATS)}")
     dest = PROJECTS_DIR / name
     if dest.exists():
         raise typer.BadParameter(f"{dest} zaten var")
-    shutil.copytree(TEMPLATE, dest)
+    shutil.copytree(TEMPLATE, dest, ignore=shutil.ignore_patterns("scene_*.json"))
+    example = TEMPLATE / f"scene_{fmt}.json"
+    if example.exists():
+        shutil.copyfile(example, dest / "scene.json")
     scene = json.loads((dest / "scene.json").read_text(encoding="utf-8"))
     scene["title"] = title
     scene["output"] = f"3d/{name}"
@@ -257,6 +267,8 @@ def plan(project: str) -> None:
                 f"      {s['id']:<5} {s['at']:6.2f} +{dur:3.1f} sn  {s['set']:<10} "
                 f"{cam.get('frame', 'medium')}/{cam.get('move', 'push'):<8} {extra}"
             )
+            if b.index == len(e.beats) - 1 and s is shots[-1] and e.spec.get("end"):
+                dur -= float(e.spec["end"].get("seconds", 2.0))  # the end card is not a held shot
             if dur > 3.2:
                 long.append(f"{s['id']} ({dur:.1f} sn)")
     typer.echo(
@@ -268,28 +280,23 @@ def plan(project: str) -> None:
         )
 
 
-@app.command()
-def preview(
-    project: str,
-    at: Annotated[list[float], typer.Option("--at", "-t", help="Saniye (tekrarlanabilir)")],
-    quality: Annotated[str, typer.Option(help="draft | normal | high")] = "draft",
-) -> None:
-    """Belirli anları Blender'da tek kare render et, üstüne sayaç ve altyazıyı koy (PNG)."""
+def _frames_at(
+    e, times: list[float], quality: str, out_dir: Path
+) -> list[tuple[float, dict, Path]]:
+    """Render single frames at these times (with the counter, captions and looks on top)."""
     from PIL import Image
 
     from vlogkit.graphics.render import compose_frame
     from vlogkit.scene3d import blender, framing, plan
     from vlogkit.scene3d.edit import looked
 
-    e = _edit(project)
     p = e.render_plan(quality)
     only: dict[str, list[int]] = {}
     want = []
-    for t in at:
+    for t in times:
         shot, f = plan.shot_at(p, t, float(e.fps))
         only.setdefault(shot["id"], []).append(f)
         want.append((t, shot, f))
-    out_dir = e.ctx.work / "preview3d"
     for s in p["shots"]:
         s["out"] = str(out_dir / s["id"])
     p["only"] = only
@@ -299,6 +306,7 @@ def preview(
     edges = framing.Collector({s["id"]: s["at"] for s in p["shots"]})
     blender.run(plan_path, edges.feed)
     els = e.elements()
+    out = []
     for t, shot, f in want:
         src = Path(shot["out"]) / f"{f:05d}.png"
         frame = looked(shot, f, src) if shot.get("look") else Image.open(src)
@@ -306,9 +314,119 @@ def preview(
         bg.alpha_composite(compose_frame(els, t, e.layout.size))
         path = out_dir / f"onizleme_{t:06.2f}.jpg"
         bg.convert("RGB").save(path, quality=88)
-        typer.echo(path)
+        out.append((t, shot, path))
     for note in edges.notes():
         typer.echo(note)
+    return out
+
+
+@app.command()
+def preview(
+    project: str,
+    at: Annotated[list[float], typer.Option("--at", "-t", help="Saniye (tekrarlanabilir)")],
+    quality: Annotated[str, typer.Option(help="draft | normal | high")] = "draft",
+) -> None:
+    """Belirli anları Blender'da tek kare render et, üstüne sayaç ve altyazıyı koy (PNG)."""
+    e = _edit(project)
+    for _t, _shot, path in _frames_at(e, list(at), quality, e.ctx.work / "preview3d"):
+        typer.echo(path)
+
+
+@app.command()
+def kontak(
+    project: str,
+    quality: Annotated[str, typer.Option(help="draft | normal | high")] = "draft",
+    cols: Annotated[int, typer.Option(help="Satırdaki kare sayısı")] = 6,
+) -> None:
+    """Render'dan önce her planın ortasından bir kare: tek sayfada plan no, zaman, söylenen
+    kelimeler ve telefon arayüzünün kapattığı alanlar (kırmızı). Read ile bak, sonra render."""
+    from PIL import Image, ImageDraw
+
+    from vlogkit.graphics.style import font, unsafe_zones
+
+    e = _edit(project)
+    p = e.render_plan("draft")
+    times = [s["at"] + s["frames"] / float(e.fps) / 2 for s in p["shots"]]
+    frames = _frames_at(e, times, quality, e.ctx.work / "kontak")
+    w = 300
+    h = round(w * e.layout.h / e.layout.w)
+    rows = (len(frames) + cols - 1) // cols
+    label = 64
+    sheet = Image.new("RGB", (cols * w, rows * (h + label)), "#111214")
+    d = ImageDraw.Draw(sheet)
+    words = [(wd, a) for b in e.beats for wd, a, _z in b.words]
+    for i, (_t, shot, path) in enumerate(frames):
+        im = Image.open(path).convert("RGB").resize((w, h))
+        ov = Image.new("RGBA", im.size, (0, 0, 0, 0))
+        od = ImageDraw.Draw(ov)
+        k = w / e.layout.w
+        for _name, (x0, y0, x1, y1) in unsafe_zones(e.layout.size):
+            od.rectangle(
+                (x0 * k, y0 * k, x1 * k, y1 * k),
+                fill=(255, 40, 40, 16),
+                outline=(255, 60, 60, 200),
+                width=2,
+            )
+        im = Image.alpha_composite(im.convert("RGBA"), ov).convert("RGB")
+        x, y = (i % cols) * w, (i // cols) * (h + label)
+        sheet.paste(im, (x, y))
+        end = shot["at"] + shot["frames"] / float(e.fps)
+        said = " ".join(wd for wd, a in words if shot["at"] - 0.05 <= a < end)[:44]
+        d.text((x + 6, y + h + 4), f"{shot['id']}  {shot['at']:.1f}s +{shot['frames'] / float(e.fps):.1f}",
+               font=font("ExtraBold", 18), fill="#ffd23f")  # fmt: skip
+        d.text((x + 6, y + h + 28), said, font=font("SemiBold", 15), fill="#e8e8e8")
+    out = e.ctx.work / "kontak.jpg"
+    sheet.save(out, quality=86)
+    typer.echo(out)
+
+
+def _delivered(e) -> Path:
+    from vlogkit.config import VLOGS_ROOT
+
+    video = VLOGS_ROOT / f"{e.spec['output']}.mp4"
+    if not video.exists():
+        raise typer.BadParameter(f"{video} yok: önce derle (3d render)")
+    return video
+
+
+@app.command()
+def kontrol(project: str) -> None:
+    """Bitmiş videonun makine kontrolü: seslendirme senaryoyla eşleşiyor mu (whisper), ölü an
+    (3 sn'den uzun hiç değişmeyen görüntü), 3 sn'den uzun plan, okunamayacak kadar kısa
+    altyazı, ses seviyesi. `!` satırlarını düzelt ya da nedenini yaz."""
+    from vlogkit.scene3d import quality
+
+    e = _edit(project)
+    rep = quality.check(e, _delivered(e))
+    for line in rep.lines():
+        typer.echo(line)
+    out = e.ctx.work / "kontrol.json"
+    out.write_text(json.dumps({"problems": rep.problems, "notes": rep.notes, "stats": rep.stats},
+                              ensure_ascii=False, indent=1), encoding="utf-8")  # fmt: skip
+    if rep.problems:
+        raise typer.Exit(1)
+
+
+@app.command()
+def puanla(project: str) -> None:
+    """Paylaşmadan önce kör puan: yeni bir Claude oturumu yalnız izleyicinin gördüğünü (2 sn'de
+    bir kare, anlatım, sayılar) görür ve 7 satırlık tabloyla 70 üzerinden puanlar; en zayıf yeri
+    ve en etkili 3 düzeltmeyi yazar. Aboneliği kullanır (birkaç dakika)."""
+    from vlogkit.scene3d import quality
+
+    e = _edit(project)
+    video = _delivered(e)
+    rep = quality.check(e, video)
+    res = quality.rate(e, video, rep)
+    (e.ctx.work / "puan.json").write_text(
+        json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8"
+    )
+    for k, q in quality.RUBRIC:
+        typer.echo(f"{res.get('puanlar', {}).get(k, '?'):>3}  {k:<10} {q}")
+    typer.echo(f"Toplam: {res['toplam']}/{res['en_fazla']}")
+    typer.echo(f"En zayıf: {res.get('en_zayif', '')}")
+    for d in res.get("duzeltmeler", []):
+        typer.echo(f"- {d}")
 
 
 @app.command()

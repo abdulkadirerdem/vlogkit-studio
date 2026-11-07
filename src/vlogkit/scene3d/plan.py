@@ -62,6 +62,93 @@ def word_times(text: str, t0: float, length: float) -> list[tuple[str, float, fl
     return out
 
 
+def measured_word_times(
+    text: str, wav: Path | None, t0: float, length: float
+) -> list[tuple[str, float, float]] | None:
+    """Word times read from the voice itself (whisper word timestamps, aligned to the script's
+    words). A script word whisper did not hear the same way (a number read out, a name) is placed
+    by syllables between its heard neighbours. None when whisper is not installed or hears too
+    little of the line: the caller falls back to the syllable estimate."""
+    if wav is None or not Path(wav).exists():
+        return None
+    try:
+        from vlogkit.analysis.transcribe import transcribe
+        from vlogkit.config import tools
+
+        if not tools().whisper_cli:
+            return None
+        heard = transcribe(wav, "tr", words=True, vocab=False, prompt=None)
+    except Exception:  # no model, a failed run: the estimate is still good enough
+        return None
+    words = text.split()
+    script = [norm_word(w) for w in words]
+    got = [(norm_word(h.text), h.start, h.end) for h in heard if norm_word(h.text)]
+    if not words or len(got) < max(1, len(words) // 3):
+        return None
+    import difflib
+
+    sm = difflib.SequenceMatcher(None, script, [g[0] for g in got], autojunk=False)
+    times: list[tuple[float, float] | None] = [None] * len(words)
+    for a, b, n in sm.get_matching_blocks():
+        for k in range(n):
+            times[a + k] = (got[b + k][1], got[b + k][2])
+    # near misses (a suffix heard differently): pair the leftovers inside each gap one to one
+    for tag, i1, i2, j1, j2 in sm.get_opcodes():
+        if tag == "replace" and i2 - i1 == j2 - j1:
+            for k in range(i2 - i1):
+                times[i1 + k] = (got[j1 + k][1], got[j1 + k][2])
+    if sum(t is not None for t in times) < max(1, len(words) // 2):
+        return None
+    # fill the unheard words by syllables between the heard ones
+    est = word_times(text, 0.0, length)
+    out: list[tuple[str, float, float]] = []
+    i = 0
+    while i < len(words):
+        if times[i] is not None:
+            out.append((words[i], t0 + times[i][0], t0 + times[i][1]))
+            i += 1
+            continue
+        j = i
+        while j < len(words) and times[j] is None:
+            j += 1
+        lo = times[i - 1][1] if i > 0 else 0.0
+        hi = times[j][0] if j < len(words) else length
+        span = sum(e - b for _, b, e in est[i:j]) or 1.0
+        t = lo
+        for k in range(i, j):
+            d = (est[k][2] - est[k][1]) / span * max(0.05, hi - lo)
+            out.append((words[k], t0 + t, t0 + t + d))
+            t += d
+        i = j
+    # whisper starts the first word late (it hears the attack, not the onset)
+    if out and out[0][1] - t0 > est[0][1] + 0.2:
+        w, _, e = out[0]
+        out[0] = (w, t0 + est[0][1], e)
+    return out
+
+
+def word_groups(
+    words: list[tuple[str, float, float]], min_on: float = 0.3, max_words: int = 3
+) -> list[tuple[str, float, float]]:
+    """One word at a time, but a word too short to read ("O", "su", "Ama") goes up with the
+    next one ("O yüzden"), never across the end of a sentence."""
+    out: list[tuple[str, float, float]] = []
+    i = 0
+    while i < len(words):
+        j = i + 1
+        while (
+            j < len(words)
+            and j - i < max_words
+            and words[j][1] - words[i][1] < min_on
+            and not re.search(r"[.!?;:]$", words[j - 1][0])
+        ):
+            j += 1
+        grp = words[i:j]
+        out.append((" ".join(w for w, _, _ in grp), grp[0][1], grp[-1][2]))
+        i = j
+    return out
+
+
 def chunks(
     words: list[tuple[str, float, float]], max_words: int = 3, max_chars: int = 18
 ) -> list[tuple[str, float, float]]:
@@ -111,7 +198,8 @@ def narrate(spec: dict, work: Path, engine: str | None = None) -> list[Beat]:
                 s.path,
                 at,
                 s.duration,
-                word_times(b["say"].replace("\n", " "), at, s.duration),
+                measured_word_times(b["say"].replace("\n", " "), s.path, at, s.duration)
+                or word_times(b["say"].replace("\n", " "), at, s.duration),
                 b,
             )
         )
@@ -300,6 +388,86 @@ def beat_shots(b: Beat, fps: float) -> list[dict]:
     return out
 
 
+# When the beat gets longer every cue slides with it, so cues are kept as a fraction of the shot.
+# `dur` is not a cue: an effect lasts the seconds the author asked for, whatever the beat does.
+_TIME_KEYS = ("t", "t0", "t1")
+
+
+def _stretched(node, k: float):
+    """The shot with every time divided by `k`: the same action, told slower or faster.
+
+    Two shots with the same stretched form differ only in length (the narration got slower, a
+    sentence was rewritten), so the frames already on disk can be resampled instead of rendered
+    again.
+    """
+    if isinstance(node, dict):
+        out = {}
+        for key, v in node.items():
+            if key in _TIME_KEYS and isinstance(v, (int, float)):
+                out[key] = round(v / k, 4)
+            elif key == "talk":  # [[start, end], ...], plain numbers
+                out[key] = [[round(x / k, 4) for x in pair] for pair in v]
+            else:
+                out[key] = _stretched(v, k)
+        return out
+    if isinstance(node, list):
+        return [_stretched(v, k) for v in node]
+    return node
+
+
+def same_shape(a, b, tol: float = 0.03) -> bool:
+    """Two stretched shots tell the same thing: numbers may differ by `tol` (of the shot).
+
+    Frame counts are integers and word times are measured, so the same shot at another tempo
+    normalizes to almost-equal numbers (1.4028 vs 1.4030), never to identical ones.
+    """
+    if isinstance(a, dict) and isinstance(b, dict):
+        return a.keys() == b.keys() and all(same_shape(a[k], b[k], tol) for k in a)
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(same_shape(x, y, tol) for x, y in zip(a, b, strict=True))
+    if isinstance(a, bool) or isinstance(b, bool):
+        return a is b
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+        return abs(a - b) <= tol
+    return a == b
+
+
+def mark_reuse(p: dict, tol: float = 0.03, span: tuple[float, float] = (0.75, 1.34)) -> list[str]:
+    """Flag the shots whose frames are already on disk and only need resampling; returns their
+    report lines. A shot is reused when its content matches and its length changed by < a third:
+    slowing the narration must not re-render a video that did not change."""
+    out = []
+    for s in p["shots"]:
+        done = Path(s["out"]) / "done.json"
+        try:
+            had = json.loads(done.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        n = int(had.get("frames") or 0)
+        if had.get("key") == s["key"] or not n:
+            continue  # untouched (the runner skips it) or nothing usable
+        if span[0] <= n / s["frames"] <= span[1] and same_shape(had.get("shape"), s["shape"], tol):
+            s["reuse"] = True
+            out.append(f"{s['id']} önbellekten uzatıldı ({n} → {s['frames']} kare)")
+    return out
+
+
+def frames_on_disk(out: Path, want: int) -> int:
+    """How many frames this shot actually has (a reused shot kept its old length)."""
+    try:
+        had = int(json.loads((out / "done.json").read_text(encoding="utf-8"))["frames"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return want
+    return had or want
+
+
+def source_frame(f: int, want: int, have: int) -> int:
+    """Frame `f` of `want` taken from a shot that has `have` frames (evenly resampled)."""
+    if have == want:
+        return f
+    return max(1, min(have, int((f - 0.5) * have / want) + 1))
+
+
 def render_plan(
     spec: dict,
     beats: list[Beat],
@@ -322,6 +490,12 @@ def render_plan(
                     [keyed, kit, engine, q, size, fps], sort_keys=True, ensure_ascii=False
                 ).encode()
             ).hexdigest()[:16]
+            # the same shot told slower or faster: kept as a structure, compared with a tolerance
+            same = {k: v for k, v in keyed.items() if k not in ("start", "frames", "span")}
+            shot["shape"] = {
+                "shot": _stretched(same, shot["frames"] / fps),
+                "render": [kit, engine, q, list(size)],
+            }
             shot["out"] = str(frames_dir / shot["id"])
             shots.append(shot)
     return {

@@ -38,6 +38,11 @@ def normalize(
     )
     if verbose:
         print(f"  raw mix: {raw}")
+    if raw.integrated < -70:  # sessiz teslim (şarkı uygulamadan eklenecek): kazanç uygulanmaz
+        if verbose:
+            print("  sessiz miks: ses normalize edilmedi")
+        graph.render(["-c:a", "pcm_s24le", str(out)], "volume=0dB")
+        return measure(out)
     gain = target - raw.integrated
     got = raw
     for i in range(max_iter):

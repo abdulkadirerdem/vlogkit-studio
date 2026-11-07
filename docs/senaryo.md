@@ -60,7 +60,8 @@ doğrulanamayanlar.
 
 ## 4. Dosya
 
-Kimlik (`id`) dosya adıyla aynı: küçük harf, rakam, tire. `status` `"yeni"`, `created` bugünün
+Format: `"format": "pekiya"` (varsayılan) ya da `"kesit"`; formatın belgesindeki kalıba göre yaz
+(`docs/formats/<format>.md`; cümle sayısı formata göre: pekiya 6-16, kesit 14-28). Kimlik (`id`) dosya adıyla aynı: küçük harf, rakam, tire. `status` `"yeni"`, `created` bugünün
 tarihi, `project` `null`.
 
 ```json

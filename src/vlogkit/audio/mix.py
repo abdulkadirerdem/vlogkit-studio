@@ -97,6 +97,14 @@ class AudioGraph:
         self.stems[label] = stem or ("main" if re.match(r"\[\d+:a\]", chain) else "sfx")
         return label
 
+    def silent(self) -> str:
+        """A silent bed for a delivery that has no sound of its own (the viewer's app adds the
+        song: a trend track on Reels / TikTok). Keeps the mp4's audio track, so players and the
+        platforms' own editors still see one."""
+        return self.chain(
+            f"anullsrc=r={SAMPLE_RATE}:cl=stereo,atrim=end_sample={self.samples}", stem="main"
+        )
+
     def append(self, label: str, filters: str) -> None:
         """More filters at the end of an existing chain (e.g. a timeline duck on the camera
         sound a parent edit already built). The label and its stem stay the same."""

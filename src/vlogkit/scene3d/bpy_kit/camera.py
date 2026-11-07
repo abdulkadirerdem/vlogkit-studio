@@ -105,12 +105,19 @@ def animate(
         tz *= k
     elif frame not in ("aerial", "top") and not isinstance(on, (list, tuple)):
         tz *= k
+    # a set made at diorama scale (the cutaway yard) frames points and its centre further away
+    is_actor = isinstance(on, str) and on in actors and not getattr(actors[on], "is_prop", False)
+    if not is_actor and not (isinstance(on, str) and getattr(actors.get(on), "is_prop", False)):
+        sc = float(spec.get("_scale", 1.0))
+        dist *= sc
+        hz *= sc
     elif isinstance(on, (list, tuple)) and len(on) > 2 and not _group(on, actors):
         tz = 0
     target = base + Vector((0, 0, tz)) + Vector(spec.get("offset", (0, 0, 0)))
     angle = float(spec.get("angle", 0))
     tilt = float(spec.get("tilt", 0))
     dist *= float(spec.get("zoom", 1.0))
+    hz += dist * float(spec.get("_lift", 0.0))  # a set may ask to be seen from a little above
     if spec.get("lens"):
         cam.data.lens = float(spec["lens"])
     move = spec.get("move", "push")

@@ -46,7 +46,10 @@ def analyze(
         segs = transcribe.transcribe(src, lang)
         data["speech"] = [asdict(s) | {"suspicious": s.suspicious} for s in segs]
     if music and info.has_audio and t.aubio:
-        data["beats"] = beats_mod.beats(src)
+        try:
+            data["beats"] = beats_mod.beats(src)
+        except beats_mod.BeatsUnavailable as e:  # müziksiz / sessiz kayıtlarda aubio çöküyor
+            data["beats_error"] = str(e)
 
     (out / "report.json").write_text(json.dumps(data, indent=2, ensure_ascii=False))
     (out / "report.md").write_text(_markdown(src, info, data))
@@ -90,6 +93,8 @@ def _markdown(src: Path, info, d: dict) -> str:
         gaps = [y - x for x, y in pairwise(b)]
         avg = sum(gaps) / len(gaps) if gaps else 0
         lines.append(f"- **Vuruşlar:** {len(b)} adet, ortalama aralık {avg:.2f} sn")
+    if "beats_error" in d:
+        lines.append(f"- **Vuruşlar:** okunamadı ({d['beats_error']})")
     if "speech" in d:
         lines += ["", "## Konuşma", ""]
         if not d["speech"]:

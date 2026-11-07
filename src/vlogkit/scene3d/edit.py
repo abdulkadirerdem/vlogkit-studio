@@ -37,6 +37,7 @@ from vlogkit.video.graph import PRORES_HQ
 FPS = 30
 CAPTION_Y = 1010  # mid-frame, over the action, clear of the bottom title block
 CAPTION_SIZE = 104
+WORD_SIZE = 124  # a single word on screen reads bigger
 
 
 def looked(shot: dict, f: int, src: Path):
@@ -67,7 +68,9 @@ class Scene3DEdit(Edit):
     # ------------------------------------------------------------------ data
     @cached_property
     def spec(self) -> dict:
-        return specmod.load(self.project_dir / "scene.json")
+        from vlogkit.scene3d import formats
+
+        return formats.expand(specmod.load(self.project_dir / "scene.json"))
 
     @cached_property
     def beats(self) -> list[plan.Beat]:
@@ -109,9 +112,11 @@ class Scene3DEdit(Edit):
     # ------------------------------------------------------------------ base: Blender
     def build_base(self, out: Path) -> None:
         p = self.render_plan()
+        for line in plan.mark_reuse(p):  # same shot, new length: resample, do not render again
+            print(f"   3B: {line}", flush=True)
         plan_path = self.ctx.work / "render_plan.json"
         plan_path.write_text(json.dumps(p, ensure_ascii=False, indent=1), encoding="utf-8")
-        total = sum(s["frames"] for s in p["shots"])
+        total = sum(s["frames"] for s in p["shots"] if not s.get("reuse"))
         done = [0]
 
         edges = framing.Collector({s["id"]: s["at"] for s in p["shots"]})
@@ -135,8 +140,9 @@ class Scene3DEdit(Edit):
         seq.mkdir(parents=True)
         n = 0
         for shot in p["shots"]:
+            have = plan.frames_on_disk(Path(shot["out"]), shot["frames"])
             for f in range(1, shot["frames"] + 1):
-                src = Path(shot["out"]) / f"{f:05d}.png"
+                src = Path(shot["out"]) / f"{plan.source_frame(f, shot['frames'], have):05d}.png"
                 dst = seq / f"{n:06d}.png"
                 if shot.get("look"):  # the security camera, the news, the phone: drawn on top
                     looked(shot, f, src).save(dst)
@@ -170,10 +176,13 @@ class Scene3DEdit(Edit):
     def elements(self) -> list:
         els: list = []
         end = self.spec.get("end")
-        caps = self.spec.get("captions", True)
+        from vlogkit.scene3d import formats
+
+        mode = formats.caption_mode(self.spec)
         for b in self.beats:
-            if caps and b.raw.get("caption", True):
-                groups = plan.chunks(b.words)
+            if mode != "off" and b.raw.get("caption", True):
+                # word mode: one word at a time, bigger (the build-up formats)
+                groups = plan.word_groups(b.words) if mode == "word" else plan.chunks(b.words)
                 for k, (text, t0, t1) in enumerate(groups):
                     # each group stays until the next one starts (no two on screen at once); the
                     # last one holds a beat after the line so it can be read
@@ -183,11 +192,18 @@ class Scene3DEdit(Edit):
                             tr_upper(text),
                             t0,
                             until,
-                            size=CAPTION_SIZE,
+                            size=CAPTION_SIZE if mode != "word" else WORD_SIZE,
                             cy=CAPTION_Y,
                             layout=self.layout,
                         )
                     )
+        hook = self.spec.get("hook")
+        if hook and hook.get("text"):  # the promise as a headline over the first seconds
+            from vlogkit.graphics.captions import HookTitle
+
+            els.append(
+                HookTitle(tr_upper(hook["text"]), 0.0, float(hook.get("seconds", 2.6)), self.layout)
+            )
         hud = self.spec.get("hud")
         if hud:
             keys = []

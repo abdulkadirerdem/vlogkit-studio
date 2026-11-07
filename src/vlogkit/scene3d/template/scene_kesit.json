@@ -1,0 +1,1445 @@
+{
+ "title": "Bahçendeki çukur nasıl kuyu olur?",
+ "format": "kesit",
+ "output": "3d/kesit",
+ "quality": "normal",
+ "cast": {},
+ "beats": [
+  {
+   "say": "Bu kuyu bahçene bedava su verir. Peki nasıl yapılır?",
+   "set": "cutaway",
+   "set_opts": {
+    "season": "summer"
+   },
+   "props": [
+    {
+     "kind": "pit",
+     "id": "kuyu",
+     "shape": "box",
+     "size": [
+      1.4,
+      1.4,
+      5.6
+     ],
+     "at": [
+      0,
+      0
+     ]
+    },
+    {
+     "kind": "pit",
+     "id": "akifer",
+     "shape": "trench",
+     "size": [
+      14.4,
+      15.4,
+      1.1
+     ],
+     "top": 4.3,
+     "at": [
+      0,
+      7.6
+     ]
+    },
+    {
+     "kind": "layer",
+     "id": "akifer_tas",
+     "pit": "akifer",
+     "material": "gravel",
+     "color": "#56707e",
+     "from": -5.4,
+     "to": -4.3
+    },
+    {
+     "kind": "layer",
+     "id": "orgu",
+     "pit": "kuyu",
+     "material": "stone",
+     "shell": true,
+     "t": 0.18,
+     "from": -5.6,
+     "to": 0.15
+    },
+    {
+     "kind": "layer",
+     "id": "cakil",
+     "pit": "kuyu",
+     "material": "gravel",
+     "from": -5.6,
+     "to": -5.0
+    },
+    {
+     "kind": "layer",
+     "id": "su",
+     "pit": "kuyu",
+     "material": "water",
+     "from": -5.0,
+     "to": -3.9
+    },
+    {
+     "kind": "pipe",
+     "id": "boru",
+     "path": [
+      [
+       0.35,
+       0.3,
+       -5.2
+      ],
+      [
+       0.35,
+       0.3,
+       -1.5
+      ],
+      [
+       0.35,
+       0.0,
+       -1.5
+      ],
+      [
+       3.6,
+       0.0,
+       -1.5
+      ],
+      [
+       3.6,
+       0.0,
+       -0.25
+      ],
+      [
+       3.6,
+       0.25,
+       -0.25
+      ],
+      [
+       3.6,
+       0.25,
+       1.1
+      ]
+     ],
+     "r": 0.06,
+     "color": "#30363c"
+    },
+    {
+     "kind": "hand_pump",
+     "id": "pompa",
+     "at": [
+      3.6,
+      0.25,
+      0.0
+     ]
+    },
+    {
+     "kind": "tank",
+     "id": "tabla",
+     "size": [
+      2.8,
+      1.5,
+      0.22
+     ],
+     "color": "#a6a39d",
+     "at": [
+      0,
+      0.76,
+      0
+     ]
+    }
+   ],
+   "fx": [
+    {
+     "kind": "pour",
+     "pos": [
+      3.38,
+      0.25,
+      0.95
+     ],
+     "at": 0.0,
+     "dur": 3.0,
+     "size": 0.6
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "medium",
+      "on": [
+       3.6,
+       0.25,
+       0.6
+      ],
+      "angle": -22,
+      "tilt": 0.3,
+      "move": "push"
+     }
+    },
+    {
+     "cue": "Peki",
+     "camera": {
+      "frame": "wide",
+      "on": "kuyu",
+      "angle": 24,
+      "tilt": 0.8,
+      "zoom": 0.75,
+      "move": "pull"
+     }
+    }
+   ],
+   "sfx": [
+    {
+     "id": "whoosh",
+     "at": "Peki"
+    }
+   ]
+  },
+  {
+   "say": "Bahçene derin bir çukur kazarsan, dibinde su birikir.",
+   "set": "cutaway",
+   "set_opts": {
+    "season": "summer"
+   },
+   "props": [
+    {
+     "kind": "pit",
+     "id": "kuyu",
+     "shape": "box",
+     "size": [
+      1.4,
+      1.4,
+      5.6
+     ],
+     "at": [
+      0,
+      0
+     ]
+    },
+    {
+     "kind": "layer",
+     "id": "su",
+     "pit": "kuyu",
+     "material": "water",
+     "from": -5.6,
+     "to": -3.9,
+     "scale": [
+      1,
+      1,
+      0.01
+     ],
+     "anim": [
+      {
+       "at": "birikir",
+       "scale": [
+        1,
+        1,
+        1
+       ],
+       "dur": 1.4,
+       "ease": "out"
+      }
+     ]
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "wide",
+      "on": "kuyu",
+      "angle": -26,
+      "tilt": 0.9,
+      "zoom": 0.7,
+      "move": "push"
+     }
+    },
+    {
+     "cue": "dibinde",
+     "camera": {
+      "frame": "medium",
+      "on": [
+       0,
+       0,
+       -4.4
+      ],
+      "angle": 18,
+      "move": "push"
+     }
+    }
+   ],
+   "sfx": [
+    {
+     "id": "whoosh",
+     "at": "kazarsan"
+    }
+   ],
+   "remove": "all",
+   "hud": {
+    "value": 1,
+    "text": "1 · KAZ"
+   }
+  },
+  {
+   "say": "Çünkü taşların arasında saklı bir su katmanı var.",
+   "props": [
+    {
+     "kind": "pit",
+     "id": "akifer",
+     "shape": "trench",
+     "size": [
+      14.4,
+      15.4,
+      1.1
+     ],
+     "top": 4.3,
+     "at": [
+      0,
+      7.6
+     ]
+    },
+    {
+     "kind": "layer",
+     "id": "akifer_tas",
+     "pit": "akifer",
+     "material": "gravel",
+     "from": -5.4,
+     "to": -4.3,
+     "color": "#56707e"
+    },
+    {
+     "kind": "arrow",
+     "id": "ok1",
+     "at": [
+      2.4,
+      -0.25,
+      -4.85
+     ],
+     "tilt": 90,
+     "rot": 90,
+     "scale": 0.6,
+     "color": "#ffffff"
+    },
+    {
+     "kind": "arrow",
+     "id": "ok2",
+     "at": [
+      -2.4,
+      -0.25,
+      -4.85
+     ],
+     "tilt": 90,
+     "rot": -90,
+     "scale": 0.6,
+     "color": "#ffffff"
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "wide",
+      "on": [
+       0,
+       0,
+       -4.8
+      ],
+      "angle": 34,
+      "tilt": 0.3,
+      "zoom": 0.6,
+      "move": "orbit"
+     }
+    },
+    {
+     "cue": "katmanı",
+     "camera": {
+      "frame": "medium",
+      "on": [
+       3.2,
+       0,
+       -4.85
+      ],
+      "angle": -10,
+      "move": "push"
+     }
+    }
+   ],
+   "sfx": [
+    {
+     "id": "pop",
+     "at": "taşların"
+    }
+   ]
+  },
+  {
+   "say": "Buna [yeraltı suyu] denir.",
+   "remove": [
+    "ok1",
+    "ok2"
+   ],
+   "camera": {
+    "frame": "close",
+    "on": [
+     -2.5,
+     0,
+     -4.85
+    ],
+    "angle": 12,
+    "move": "pull"
+   },
+   "props": [
+    {
+     "kind": "sign",
+     "id": "etiket1",
+     "text": "YERALTI SUYU",
+     "stand": false,
+     "z": 0,
+     "size": 0.2,
+     "color": "#ffffff",
+     "text_color": "#111111",
+     "at": [
+      -2.5,
+      -0.12,
+      -4.05
+     ]
+    }
+   ]
+  },
+  {
+   "say": "Ama ilk yağmurda kuyunun duvarları içine çöker.",
+   "props": [
+    {
+     "kind": "layer",
+     "id": "cokme",
+     "pit": "kuyu",
+     "material": "soil",
+     "from": -5.6,
+     "to": -4.5
+    }
+   ],
+   "fx": [
+    {
+     "kind": "debris",
+     "pos": [
+      0,
+      0.3,
+      -1.2
+     ],
+     "at": "çöker",
+     "n": 22
+    },
+    {
+     "kind": "shake",
+     "at": "çöker",
+     "amount": 0.04
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "wide",
+      "on": "kuyu",
+      "angle": -28,
+      "tilt": 0.6,
+      "zoom": 0.6,
+      "move": "static"
+     }
+    },
+    {
+     "cue": "çöker",
+     "camera": {
+      "frame": "medium",
+      "on": [
+       0,
+       0,
+       -3.0
+      ],
+      "angle": 22,
+      "move": "shake"
+     }
+    }
+   ],
+   "sfx": [
+    {
+     "id": "impact",
+     "at": "çöker"
+    }
+   ],
+   "remove": [
+    "etiket1"
+   ]
+  },
+  {
+   "say": "O yüzden duvarları taşla örersin.",
+   "remove": [
+    "cokme"
+   ],
+   "props": [
+    {
+     "kind": "layer",
+     "id": "orgu",
+     "pit": "kuyu",
+     "material": "stone",
+     "shell": true,
+     "t": 0.18,
+     "from": -5.6,
+     "to": 0.15,
+     "scale": [
+      1,
+      1,
+      0.01
+     ],
+     "anim": [
+      {
+       "at": "taşla",
+       "scale": [
+        1,
+        1,
+        1
+       ],
+       "dur": 1.6,
+       "ease": "out"
+      }
+     ]
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "medium",
+      "on": [
+       0,
+       0,
+       -2.6
+      ],
+      "angle": -16,
+      "move": "rise"
+     }
+    },
+    {
+     "cue": "örersin",
+     "camera": {
+      "frame": "wide",
+      "on": "kuyu",
+      "angle": 26,
+      "zoom": 0.62,
+      "move": "push"
+     }
+    }
+   ],
+   "sfx": [
+    {
+     "id": "pop",
+     "at": "taşla"
+    }
+   ],
+   "hud": {
+    "value": 2,
+    "text": "2 · TAŞ ÖR",
+    "at": "yüzden"
+   }
+  },
+  {
+   "say": "Ama su bulanık, içinde kum ve çamur var.",
+   "props": [
+    {
+     "kind": "layer",
+     "id": "su",
+     "pit": "kuyu",
+     "material": "murky",
+     "from": -5.6,
+     "to": -3.9
+    }
+   ],
+   "camera": {
+    "frame": "close",
+    "on": [
+     0,
+     0,
+     -4.6
+    ],
+    "angle": -14,
+    "move": "push"
+   }
+  },
+  {
+   "say": "O yüzden dibe kalın bir çakıl tabakası serersin.",
+   "props": [
+    {
+     "kind": "layer",
+     "id": "cakil",
+     "pit": "kuyu",
+     "material": "gravel",
+     "from": -5.6,
+     "to": -5.0,
+     "scale": [
+      1,
+      1,
+      0.01
+     ],
+     "anim": [
+      {
+       "at": "çakıl",
+       "scale": [
+        1,
+        1,
+        1
+       ],
+       "dur": 0.9,
+       "ease": "out"
+      }
+     ]
+    }
+   ],
+   "camera": {
+    "frame": "medium",
+    "on": [
+     0,
+     0,
+     -5.0
+    ],
+    "angle": 20,
+    "move": "orbit"
+   },
+   "sfx": [
+    {
+     "id": "pop",
+     "at": "çakıl"
+    }
+   ],
+   "hud": {
+    "value": 3,
+    "text": "3 · ÇAKIL SER",
+    "at": "yüzden"
+   }
+  },
+  {
+   "say": "Su çakıldan süzülür ve berraklaşır.",
+   "props": [
+    {
+     "kind": "layer",
+     "id": "su",
+     "pit": "kuyu",
+     "material": "water",
+     "from": -5.0,
+     "to": -3.9
+    },
+    {
+     "kind": "arrow",
+     "id": "ok3",
+     "at": [
+      0.3,
+      -0.25,
+      -4.6
+     ],
+     "tilt": 180,
+     "scale": 0.45,
+     "color": "#ffffff"
+    },
+    {
+     "kind": "arrow",
+     "id": "ok4",
+     "at": [
+      -0.3,
+      -0.25,
+      -4.6
+     ],
+     "tilt": 180,
+     "scale": 0.45,
+     "color": "#ffffff"
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "close",
+      "on": [
+       0,
+       0,
+       -4.7
+      ],
+      "angle": -8,
+      "move": "push"
+     }
+    },
+    {
+     "cue": "berraklaşır",
+     "camera": {
+      "frame": "medium",
+      "on": "kuyu",
+      "angle": 22,
+      "zoom": 0.8,
+      "move": "push"
+     }
+    }
+   ]
+  },
+  {
+   "say": "Ama her gün kovayla 20 litre çekmek kolunu koparır.",
+   "remove": [
+    "ok3",
+    "ok4"
+   ],
+   "props": [
+    {
+     "kind": "pipe",
+     "id": "ip",
+     "path": [
+      [
+       0,
+       0.35,
+       1.4
+      ],
+      [
+       0,
+       0.35,
+       -3.6
+      ]
+     ],
+     "r": 0.015,
+     "color": "#b9935a"
+    },
+    {
+     "kind": "tank",
+     "id": "kova",
+     "shape": "drum",
+     "size": [
+      0.32,
+      0.32,
+      0.36
+     ],
+     "color": "#8a8f96",
+     "at": [
+      0,
+      0.35,
+      -3.95
+     ],
+     "anim": [
+      {
+       "at": "çekmek",
+       "by": [
+        0,
+        0,
+        4.2
+       ],
+       "dur": 2.2,
+       "ease": "inout"
+      }
+     ]
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "medium",
+      "on": [
+       0,
+       0,
+       -3.4
+      ],
+      "angle": 24,
+      "move": "rise"
+     }
+    },
+    {
+     "cue": "kolunu",
+     "camera": {
+      "frame": "wide",
+      "on": "kuyu",
+      "angle": -24,
+      "zoom": 0.6,
+      "move": "static"
+     }
+    }
+   ]
+  },
+  {
+   "say": "O yüzden kuyuya bir boru indirip üstüne el pompası koyarsın.",
+   "remove": [
+    "ip",
+    "kova"
+   ],
+   "props": [
+    {
+     "kind": "pipe",
+     "id": "boru",
+     "path": [
+      [
+       0.35,
+       0.3,
+       1.1
+      ],
+      [
+       0.35,
+       0.3,
+       -5.2
+      ]
+     ],
+     "r": 0.06,
+     "color": "#30363c"
+    },
+    {
+     "kind": "hand_pump",
+     "id": "pompa",
+     "at": [
+      0.35,
+      0.3,
+      0.2
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "pompası",
+       "scale": 1.0,
+       "dur": 0.35,
+       "ease": "back"
+      }
+     ]
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "medium",
+      "on": [
+       0.35,
+       0,
+       -2.4
+      ],
+      "angle": 16,
+      "move": "fall"
+     }
+    },
+    {
+     "cue": "pompası",
+     "camera": {
+      "frame": "close",
+      "on": [
+       0.35,
+       0.3,
+       0.6
+      ],
+      "angle": -18,
+      "tilt": 0.4,
+      "move": "push"
+     }
+    }
+   ],
+   "sfx": [
+    {
+     "id": "pop",
+     "at": "pompası"
+    }
+   ],
+   "hud": {
+    "value": 4,
+    "text": "4 · POMPA",
+    "at": "yüzden"
+   }
+  },
+  {
+   "say": "Kolu her bastırışında boru suyu yukarı emer.",
+   "props": [
+    {
+     "kind": "arrow",
+     "id": "ok5",
+     "at": [
+      0.75,
+      -0.25,
+      -3.2
+     ],
+     "tilt": 180,
+     "scale": 0.45,
+     "color": "#ffffff"
+    },
+    {
+     "kind": "arrow",
+     "id": "ok6",
+     "at": [
+      0.75,
+      -0.25,
+      -1.6
+     ],
+     "tilt": 180,
+     "scale": 0.45,
+     "color": "#ffffff"
+    }
+   ],
+   "fx": [
+    {
+     "kind": "pour",
+     "pos": [
+      0.55,
+      0.3,
+      0.95
+     ],
+     "at": "emer",
+     "dur": 1.2,
+     "size": 0.5
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "wide",
+      "on": "kuyu",
+      "angle": 30,
+      "zoom": 0.6,
+      "move": "orbit"
+     }
+    },
+    {
+     "cue": "yukarı",
+     "camera": {
+      "frame": "close",
+      "on": [
+       0.35,
+       0.3,
+       0.6
+      ],
+      "angle": -20,
+      "tilt": 0.4,
+      "move": "push"
+     }
+    }
+   ]
+  },
+  {
+   "say": "Ama yağmur, yüzeydeki kiri de kuyuya taşır.",
+   "remove": [
+    "ok5",
+    "ok6"
+   ],
+   "props": [
+    {
+     "kind": "layer",
+     "id": "su",
+     "pit": "kuyu",
+     "material": "murky",
+     "from": -5.0,
+     "to": -3.9
+    },
+    {
+     "kind": "arrow",
+     "id": "ok7",
+     "at": [
+      -1.3,
+      -0.25,
+      -0.8
+     ],
+     "tilt": 0,
+     "scale": 0.5,
+     "color": "#ffffff"
+    },
+    {
+     "kind": "arrow",
+     "id": "ok8",
+     "at": [
+      1.3,
+      -0.25,
+      -0.8
+     ],
+     "tilt": 0,
+     "scale": 0.5,
+     "color": "#ffffff"
+    }
+   ],
+   "fx": [
+    {
+     "kind": "rain",
+     "item": "water",
+     "at": 0.05,
+     "area": [
+      -4,
+      -1,
+      4,
+      3
+     ],
+     "n": 160
+    }
+   ],
+   "sfx": [
+    {
+     "id": "whoosh",
+     "at": "yağmur"
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "wide",
+      "on": [
+       0,
+       0,
+       -1.5
+      ],
+      "angle": -26,
+      "tilt": 0.8,
+      "zoom": 0.65,
+      "move": "push"
+     }
+    },
+    {
+     "cue": "kuyuya",
+     "camera": {
+      "frame": "medium",
+      "on": [
+       0,
+       0,
+       -1.6
+      ],
+      "angle": 18,
+      "tilt": 0.2,
+      "move": "push"
+     }
+    }
+   ]
+  },
+  {
+   "say": "O yüzden kuyunun ağzını betonla kapatırsın.",
+   "remove": [
+    "ok7",
+    "ok8"
+   ],
+   "props": [
+    {
+     "kind": "layer",
+     "id": "su",
+     "pit": "kuyu",
+     "material": "water",
+     "from": -5.0,
+     "to": -3.9
+    },
+    {
+     "kind": "tank",
+     "id": "tabla",
+     "size": [
+      2.8,
+      1.5,
+      0.22
+     ],
+     "color": "#a6a39d",
+     "at": [
+      0,
+      0.76,
+      0
+     ],
+     "scale": [
+      1,
+      1,
+      0.01
+     ],
+     "anim": [
+      {
+       "at": "betonla",
+       "scale": [
+        1,
+        1,
+        1
+       ],
+       "dur": 0.6,
+       "ease": "out"
+      }
+     ]
+    }
+   ],
+   "camera": {
+    "frame": "medium",
+    "on": [
+     0,
+     0.5,
+     0.1
+    ],
+    "angle": 22,
+    "tilt": 0.9,
+    "move": "push"
+   },
+   "sfx": [
+    {
+     "id": "impact",
+     "at": "betonla"
+    }
+   ],
+   "hud": {
+    "value": 5,
+    "text": "5 · KAPAK",
+    "at": "yüzden"
+   }
+  },
+  {
+   "say": "Buna [kuyu başı] denir.",
+   "camera": {
+    "frame": "medium",
+    "on": [
+     -0.6,
+     0.2,
+     0.2
+    ],
+    "angle": -14,
+    "tilt": 0.4,
+    "move": "orbit"
+   },
+   "props": [
+    {
+     "kind": "sign",
+     "id": "etiket2",
+     "text": "KUYU BAŞI",
+     "stand": false,
+     "z": 0,
+     "size": 0.22,
+     "color": "#ffffff",
+     "text_color": "#111111",
+     "at": [
+      -1.9,
+      -0.12,
+      0.45
+     ]
+    }
+   ]
+  },
+  {
+   "say": "Ama kış gelir ve borudaki su donar.",
+   "set_opts": {
+    "season": "winter"
+   },
+   "props": [
+    {
+     "kind": "pipe",
+     "id": "boru",
+     "path": [
+      [
+       0.35,
+       0.3,
+       1.1
+      ],
+      [
+       0.35,
+       0.3,
+       -5.2
+      ]
+     ],
+     "r": 0.07,
+     "color": "#dbeef6"
+    }
+   ],
+   "fx": [
+    {
+     "kind": "rain",
+     "item": "snow",
+     "at": 0.0,
+     "area": [
+      -5,
+      -1,
+      5,
+      6
+     ],
+     "n": 140
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "wide",
+      "on": "kuyu",
+      "angle": -20,
+      "tilt": 0.6,
+      "zoom": 0.58,
+      "move": "push"
+     }
+    },
+    {
+     "cue": "borudaki",
+     "camera": {
+      "frame": "medium",
+      "on": [
+       0.35,
+       0,
+       -1.0
+      ],
+      "angle": 16,
+      "tilt": -2.4,
+      "move": "push"
+     }
+    }
+   ],
+   "remove": [
+    "etiket2"
+   ]
+  },
+  {
+   "say": "Donan su genleşir ve boruyu çatlatır.",
+   "fx": [
+    {
+     "kind": "sparks",
+     "pos": [
+      0.35,
+      0.0,
+      -0.9
+     ],
+     "at": "çatlatır",
+     "n": 18,
+     "size": 0.5,
+     "color": "#e8f6ff"
+    },
+    {
+     "kind": "shake",
+     "at": "çatlatır",
+     "amount": 0.03
+    }
+   ],
+   "camera": {
+    "frame": "medium",
+    "on": [
+     0.35,
+     0,
+     -0.9
+    ],
+    "angle": -12,
+    "tilt": -2.4,
+    "move": "push"
+   },
+   "sfx": [
+    {
+     "id": "impact",
+     "at": "çatlatır"
+    }
+   ],
+   "props": null
+  },
+  {
+   "say": "Ama toprak, 1 metreden derinde donmaz.",
+   "props": [
+    {
+     "kind": "pipe",
+     "id": "cizgi",
+     "path": [
+      [
+       -7,
+       -0.03,
+       -1.0
+      ],
+      [
+       7,
+       -0.03,
+       -1.0
+      ]
+     ],
+     "r": 0.02,
+     "color": "#ffffff"
+    },
+    {
+     "kind": "sign",
+     "id": "etiket",
+     "at": [
+      -3.2,
+      -0.08,
+      -1.4
+     ],
+     "text": "DONMA ÇİZGİSİ",
+     "stand": false,
+     "z": 0,
+     "size": 0.32,
+     "color": "#1b1b1b",
+     "text_color": "#ffffff"
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "wide",
+      "on": [
+       -1.5,
+       0,
+       -1.1
+      ],
+      "angle": 10,
+      "zoom": 0.55,
+      "move": "pan"
+     }
+    },
+    {
+     "cue": "donmaz",
+     "camera": {
+      "frame": "medium",
+      "on": [
+       0.35,
+       0,
+       -1.0
+      ],
+      "angle": -18,
+      "tilt": -1.6,
+      "move": "push"
+     }
+    }
+   ]
+  },
+  {
+   "say": "O yüzden boruyu donma çizgisinin altından geçirirsin.",
+   "props": [
+    {
+     "kind": "pipe",
+     "id": "boru",
+     "path": [
+      [
+       0.35,
+       0.3,
+       -5.2
+      ],
+      [
+       0.35,
+       0.3,
+       -1.5
+      ],
+      [
+       0.35,
+       0.0,
+       -1.5
+      ],
+      [
+       3.6,
+       0.0,
+       -1.5
+      ],
+      [
+       3.6,
+       0.0,
+       -0.25
+      ],
+      [
+       3.6,
+       0.25,
+       -0.25
+      ],
+      [
+       3.6,
+       0.25,
+       1.1
+      ]
+     ],
+     "r": 0.06,
+     "color": "#30363c"
+    },
+    {
+     "kind": "hand_pump",
+     "id": "pompa",
+     "at": [
+      0.35,
+      0.3,
+      0.2
+     ],
+     "anim": [
+      {
+       "at": "altından",
+       "to": [
+        3.6,
+        0.25,
+        0.0
+       ],
+       "dur": 0.9,
+       "ease": "inout"
+      }
+     ]
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "wide",
+      "on": [
+       1.8,
+       0,
+       -1.2
+      ],
+      "angle": -18,
+      "tilt": 0.4,
+      "zoom": 0.6,
+      "move": "push"
+     }
+    },
+    {
+     "cue": "geçirirsin",
+     "camera": {
+      "frame": "medium",
+      "on": [
+       3.6,
+       0.3,
+       -0.4
+      ],
+      "angle": 24,
+      "move": "orbit"
+     }
+    }
+   ],
+   "sfx": [
+    {
+     "id": "pop",
+     "at": "geçirirsin"
+    }
+   ],
+   "hud": {
+    "value": 6,
+    "text": "6 · BORU",
+    "at": "yüzden"
+   }
+  },
+  {
+   "say": "Ve kuyunun suyu bütün kış akar.",
+   "fx": [
+    {
+     "kind": "pour",
+     "pos": [
+      3.8,
+      0.3,
+      0.95
+     ],
+     "at": "akar",
+     "dur": 2.0,
+     "size": 0.5
+    }
+   ],
+   "props": null,
+   "shots": [
+    {
+     "camera": {
+      "frame": "medium",
+      "on": [
+       3.6,
+       0.3,
+       0.5
+      ],
+      "angle": -16,
+      "tilt": 0.6,
+      "move": "push"
+     }
+    },
+    {
+     "cue": "bütün",
+     "camera": {
+      "frame": "wide",
+      "on": "kuyu",
+      "angle": 24,
+      "zoom": 0.65,
+      "move": "orbit"
+     }
+    }
+   ]
+  },
+  {
+   "say": "Tebrikler, artık bahçende bir kuyu var.",
+   "camera": {
+    "frame": "wide",
+    "on": "kuyu",
+    "angle": -26,
+    "tilt": 0.9,
+    "zoom": 0.7,
+    "move": "pull"
+   },
+   "props": null
+  }
+ ],
+ "end": {
+  "tag": "SIRADAKİ",
+  "title": "BODRUM",
+  "seconds": 1.2
+ },
+ "hook": {
+  "text": "BAHÇENDE [BEDAVA SU]\n6 METRE AŞAĞIDA",
+  "seconds": 2.8
+ },
+ "hud": {
+  "label": "KUYU"
+ }
+}

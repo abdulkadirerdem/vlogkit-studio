@@ -10,6 +10,8 @@ from __future__ import annotations
 import math
 import random
 
+import bpy
+
 from . import look, props, shapes
 
 R = math.radians
@@ -562,6 +564,227 @@ def world_view(o):
     return {"spots": {"center": (0, -3.5, 0)}, "target": (0, 0, 0)}
 
 
+# --------------------------------------------------------------------------- cutaway (kesit)
+CUT_W, CUT_D, CUT_H = 14.0, 15.0, 16.0  # the diorama block: width (x), depth (y), soil depth (z)
+STRATA_DEPTH = 5.0  # the layers are drawn over the top 5 m; below that it is all bedrock
+
+
+def _strata_material(name: str = "set.strata"):
+    """Soil cut open: dark topsoil, brown earth, an orange clay band, grey bedrock; noisy borders,
+    pebbles and cracks in the bump (the side of a cake, read in a second)."""
+    have = bpy.data.materials.get(name)
+    if have is not None:
+        return have
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    p = nt.nodes.get("Principled BSDF")
+    p.inputs["Roughness"].default_value = 0.95
+    # world position: the block and every pit wall dug into it share one set of layers
+    coord = nt.nodes.new("ShaderNodeNewGeometry")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Position"], sep.inputs[0])
+    wob = nt.nodes.new("ShaderNodeTexNoise")  # wavy layer borders
+    wob.inputs["Scale"].default_value = 0.9
+    nt.links.new(coord.outputs["Position"], wob.inputs["Vector"])
+    mix = nt.nodes.new("ShaderNodeMath")
+    mix.operation = "MULTIPLY_ADD"
+    mix.inputs[1].default_value = 0.45
+    nt.links.new(wob.outputs["Fac"], mix.inputs[0])
+    nt.links.new(sep.outputs["Z"], mix.inputs[2])
+    ramp = nt.nodes.new("ShaderNodeValToRGB")  # z (m, negative below the lawn) -> colour
+    els = ramp.color_ramp.elements
+    stops = [(0.0, "#433a33"), (0.30, "#524438"), (0.40, "#6c4a31"), (0.47, "#674530"),
+             (0.56, "#5a3c27"), (0.84, "#4d321f"), (0.94, "#3a2517"), (1.0, "#2e1f14")]  # fmt: skip
+    els[0].position, els[0].color = stops[0][0], look.hex_rgba(stops[0][1])
+    els[1].position, els[1].color = stops[-1][0], look.hex_rgba(stops[-1][1])
+    for pos, col in stops[1:-1]:
+        e = els.new(pos)
+        e.color = look.hex_rgba(col)
+    to01 = nt.nodes.new("ShaderNodeMapRange")  # -5..0 m -> 0..1
+    to01.inputs["From Min"].default_value = -STRATA_DEPTH
+    to01.inputs["From Max"].default_value = 0.2
+    nt.links.new(mix.outputs["Value"], to01.inputs["Value"])
+    nt.links.new(to01.outputs["Result"], ramp.inputs["Fac"])
+    grain = nt.nodes.new("ShaderNodeTexNoise")
+    grain.inputs["Scale"].default_value = 9.0
+    grain.inputs["Detail"].default_value = 6.0
+    nt.links.new(coord.outputs["Position"], grain.inputs["Vector"])
+    tint = nt.nodes.new("ShaderNodeMix")
+    tint.data_type = "RGBA"
+    tint.blend_type = "MULTIPLY"
+    tint.inputs["Factor"].default_value = 0.35
+    nt.links.new(ramp.outputs["Color"], tint.inputs["A"])
+    nt.links.new(grain.outputs["Color"], tint.inputs["B"])
+    cracks = nt.nodes.new("ShaderNodeTexVoronoi")  # dry cracks: dark lines between clods
+    cracks.feature = "DISTANCE_TO_EDGE"
+    cracks.inputs["Scale"].default_value = 1.9
+    if "Randomness" in cracks.inputs:
+        cracks.inputs["Randomness"].default_value = 1.0
+    warp = nt.nodes.new("ShaderNodeTexNoise")  # bend the cells: clods, not paving stones
+    warp.inputs["Scale"].default_value = 1.4
+    warp.inputs["Detail"].default_value = 4.0
+    nt.links.new(coord.outputs["Position"], warp.inputs["Vector"])
+    bent = nt.nodes.new("ShaderNodeVectorMath")
+    bent.operation = "MULTIPLY_ADD"
+    bent.inputs[1].default_value = (0.55, 0.55, 0.55)
+    nt.links.new(warp.outputs["Color"], bent.inputs[0])
+    nt.links.new(coord.outputs["Position"], bent.inputs[2])
+    nt.links.new(bent.outputs["Vector"], cracks.inputs["Vector"])
+    edge = nt.nodes.new("ShaderNodeMapRange")
+    edge.inputs["From Min"].default_value = 0.0
+    edge.inputs["From Max"].default_value = 0.035
+    edge.inputs["To Min"].default_value = 0.62
+    edge.inputs["To Max"].default_value = 1.0
+    nt.links.new(cracks.outputs["Distance"], edge.inputs["Value"])
+    dark = nt.nodes.new("ShaderNodeMix")
+    dark.data_type = "RGBA"
+    dark.blend_type = "MULTIPLY"
+    dark.inputs["Factor"].default_value = 1.0
+    nt.links.new(tint.outputs["Result"], dark.inputs["A"])
+    nt.links.new(edge.outputs["Result"], dark.inputs["B"])
+    nt.links.new(dark.outputs["Result"], p.inputs["Base Color"])
+    pebbles = nt.nodes.new("ShaderNodeTexVoronoi")
+    pebbles.inputs["Scale"].default_value = 7.0
+    nt.links.new(coord.outputs["Position"], pebbles.inputs["Vector"])
+    bump_in = nt.nodes.new("ShaderNodeMath")
+    bump_in.operation = "ADD"
+    nt.links.new(pebbles.outputs["Distance"], bump_in.inputs[0])
+    nt.links.new(grain.outputs["Fac"], bump_in.inputs[1])
+    bump = nt.nodes.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = 0.55
+    nt.links.new(bump_in.outputs["Value"], bump.inputs["Height"])
+    nt.links.new(bump.outputs["Normal"], p.inputs["Normal"])
+    m.diffuse_color = look.hex_rgba("#5a3b24")
+    return m
+
+
+def _lawn_material(winter: bool):
+    if winter:
+        return look.mat("#dfe7ee", rough=0.9)
+    m = bpy.data.materials.get("set.lawn")
+    if m is not None:
+        return m
+    m = bpy.data.materials.new("set.lawn")
+    m.use_nodes = True
+    nt = m.node_tree
+    p = nt.nodes.get("Principled BSDF")
+    p.inputs["Roughness"].default_value = 0.9
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    stripes = nt.nodes.new("ShaderNodeTexWave")  # mowing stripes
+    stripes.inputs["Scale"].default_value = 0.35
+    nt.links.new(coord.outputs["Object"], stripes.inputs["Vector"])
+    noise = nt.nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = 30.0
+    nt.links.new(coord.outputs["Object"], noise.inputs["Vector"])
+    ramp = nt.nodes.new("ShaderNodeValToRGB")
+    ramp.color_ramp.elements[0].color = look.hex_rgba("#4f8f2f")
+    ramp.color_ramp.elements[1].color = look.hex_rgba("#6fae3c")
+    add = nt.nodes.new("ShaderNodeMath")
+    add.operation = "MULTIPLY_ADD"
+    add.inputs[1].default_value = 0.25
+    nt.links.new(noise.outputs["Fac"], add.inputs[0])
+    nt.links.new(stripes.outputs["Fac"], add.inputs[2])
+    nt.links.new(add.outputs["Value"], ramp.inputs["Fac"])
+    nt.links.new(ramp.outputs["Color"], p.inputs["Base Color"])
+    bump = nt.nodes.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = 0.3
+    nt.links.new(noise.outputs["Fac"], bump.inputs["Height"])
+    nt.links.new(bump.outputs["Normal"], p.inputs["Normal"])
+    m.diffuse_color = look.hex_rgba("#5f9e35")
+    return m
+
+
+def _villa(at, winter: bool, color: str = "#e9e4da") -> None:
+    """A two-storey family house: plaster walls, white-framed windows with shutters, a tiled
+    gable roof, a chimney, a front door and a porch light."""
+    x0, y0 = at
+    w, d, h = 10.0, 5.0, 6.0
+    wall = look.pbr("painted_plaster_wall", color, 2.0, fallback=color)
+    shapes.rbox("set.house", (w, d, h), wall, (x0, y0, h / 2), 0.02)
+    shapes.rbox("set.plinth", (w + 0.1, d + 0.1, 0.45), look.mat("#8d8a84", rough=0.9), (x0, y0, 0.22), 0.01)  # fmt: skip
+    roof_m = look.mat("#f2f4f6" if winter else "#a94a32", rough=0.75)
+    for side in (-1, 1):  # two roof planes meeting at the ridge
+        pl = shapes.rbox(f"set.roof{side}", (w + 0.6, d * 0.62, 0.16), roof_m,
+                         (x0, y0 + side * d * 0.25, h + 1.05), 0.02)  # fmt: skip
+        pl.rotation_euler = (R(-38 * side), 0, 0)
+    gable = look.pbr("painted_plaster_wall", color, 2.0, fallback=color)
+    for sx in (-1, 1):  # the triangles under the roof at both ends
+        tri = shapes.cylinder(f"set.gable{sx}", d * 0.58, 0.2, gable,
+                              (x0 + sx * (w / 2 - 0.1), y0, h + 0.05), (0, 90, 0), segments=3)  # fmt: skip
+        tri.rotation_euler = (R(90), R(90), 0)
+        tri.scale = (1.0, 0.62, 1.0)
+    shapes.rbox("set.chimney", (0.7, 0.7, 2.2), look.mat("#8a4a3a", rough=0.85), (x0 + w * 0.3, y0 + 0.6, h + 1.4), 0.02)  # fmt: skip
+    glass = look.mat("#2c3a46", rough=0.08, spec=0.9)
+    frame = look.mat("#fbfbfa", rough=0.5)
+    shutter = look.mat("#2f4a63", rough=0.6)
+    for row, z in enumerate((1.8, 4.4)):
+        for col in range(5):
+            if row == 0 and col == 2:
+                continue  # the door goes there
+            x = x0 - w / 2 + 1.0 + col * (w - 2.0) / 4
+            shapes.rbox(
+                f"set.wf{row}{col}", (1.0, 0.08, 1.4), frame, (x, y0 - d / 2 - 0.02, z), 0.01
+            )
+            shapes.rbox(
+                f"set.wg{row}{col}", (0.84, 0.06, 1.24), glass, (x, y0 - d / 2 - 0.05, z), 0.0
+            )
+            for sx in (-1, 1):
+                shapes.rbox(f"set.sh{row}{col}{sx}", (0.36, 0.06, 1.4), shutter,
+                            (x + sx * 0.72, y0 - d / 2 - 0.04, z), 0.01)  # fmt: skip
+    shapes.rbox("set.door", (1.3, 0.1, 2.4), look.mat("#f7f7f5", rough=0.4), (x0, y0 - d / 2 - 0.03, 1.2), 0.02)  # fmt: skip
+    shapes.rbox("set.doorglass", (1.0, 0.08, 1.9), glass, (x0, y0 - d / 2 - 0.07, 1.25), 0.0)
+    shapes.rbox("set.step", (2.0, 0.8, 0.22), look.mat("#a8a49c", rough=0.9), (x0, y0 - d / 2 - 0.4, 0.11), 0.02)  # fmt: skip
+
+
+def cutaway(o):
+    """The yard cut open like a cake: a block of lawn and soil whose front face is the cut, a
+    two-storey house at the back, a fence, a tree. Pits (`pit` props) are dug into the block and
+    cut in half by the front face; `layer` props fill them (water, gravel, concrete...).
+    `opts`: "season" summer | autumn | winter, "house" false, "w"/"d" block size."""
+    winter = o.get("season") == "winter"
+    w, d, hh = float(o.get("w", CUT_W)), float(o.get("d", CUT_D)), CUT_H
+    if winter:  # a cold blue sky and a low sun: snow must not wash the frame out
+        look.world("#7f97ad", "#c4d0db", 0.75)
+        look.sun(2.0, 5, (32, 10, 25), "#dfe8f2")
+    else:
+        if not look.env("outdoor", 1.0, 150):
+            look.world("#a6d8f7", "#fbf5e9", 1.0)
+        look.sun(3.6, 6, (48, 6, 35))
+    # a soft fill from the camera side: the cut face looks at the camera, away from the sun
+    look.area((0, -16, 1.0), (0, 0, -2.5), 2600 if not winter else 2000, 24, "#fff3e6")
+    strata = _strata_material()
+    lawn = _lawn_material(winter)
+    # the block: one mesh, lawn on top, the strata everywhere else (pits dug later inherit strata)
+    soil = shapes.rbox("set.soil", (w, d, hh), strata, (0, d / 2, -hh / 2), 0.0)
+    soil.data.materials.append(lawn)
+    for poly in soil.data.polygons:
+        if poly.normal.z > 0.9:
+            poly.material_index = 1
+    if o.get("house", True):
+        _villa((0, d - 4.2), winter, o.get("house_color", "#e9e4da"))
+    fence = look.mat("#f1efe9" if not winter else "#e8e8e6", rough=0.7)
+    for i in range(int(w / 0.6) + 1):  # a picket fence along the back edge
+        shapes.rbox(
+            f"set.picket{i}", (0.09, 0.05, 1.1), fence, (-w / 2 + i * 0.6, d - 0.3, 0.55), 0.01
+        )
+    shapes.rbox("set.rail", (w, 0.05, 0.08), fence, (0, d - 0.32, 0.8), 0.0)
+    rng = random.Random(3)
+    for i, (x, y) in enumerate(((-w / 2 + 1.2, d - 2.0), (w / 2 - 1.3, d - 1.6))):
+        props.place(
+            "tree",
+            f"set.tree{i}",
+            {"at": (x, y), "h": rng.uniform(4.0, 5.5), "rot": rng.uniform(0, 360)},
+        )
+    for i in range(6):
+        props.place(rng.choice(("bush", "flowers", "shrub")), f"set.bush{i}",
+                    {"at": (rng.uniform(-w / 2 + 0.6, w / 2 - 0.6), d - 0.9 - rng.uniform(0, 0.5)),
+                     "scale": rng.uniform(0.6, 0.9), "rot": rng.uniform(0, 360)})  # fmt: skip
+    # diorama scale: "medium" on a point is three times as far as on a person; seen from above
+    return {"spots": {"center": (0, 1.5), "cut": (0, 0)}, "target": (0, 0.0, -1.2),
+            "camera_scale": 3.0, "camera_lift": 0.22}  # fmt: skip
+
+
 SETS = {
     "room": room,
     "bedroom_night": bedroom_night,
@@ -571,6 +794,7 @@ SETS = {
     "office": office,
     "gym": gym,
     "elevator": elevator,
+    "cutaway": cutaway,
     "street": street,
     "city": city,
     "park": park,

@@ -374,6 +374,25 @@ def _qwen_many(jobs: list[tuple[Line, str | None, Path]]) -> None:
     if r.returncode != 0:
         tail = (r.stderr or r.stdout).strip().splitlines()[-6:]
         raise RuntimeError("Türkçe ses modeli çalışmadı: " + " | ".join(tail))
+    for ln, _, p in jobs:  # the model has no speed of its own: retime after it, pitch untouched
+        retime(p, ln.speed)
+
+
+def retime(path: Path, speed: float) -> None:
+    """Slow down (< 1) or speed up (> 1) a spoken line in place, keeping its pitch.
+
+    The channel voice speaks at the reference recording's pace; this is the only way to ask for a
+    calmer, heavier delivery (`voice.speed` in scene.json). ffmpeg's atempo takes 0.5-2.0.
+    """
+    if abs(speed - 1.0) < 0.01:
+        return
+    if not 0.5 <= speed <= 2.0:
+        raise RuntimeError(f"voice.speed 0,5 ile 2,0 arasında olmalı (verilen: {speed})")
+    from vlogkit.ff import ffmpeg
+
+    tmp = path.with_name(path.stem + ".retime.wav")
+    ffmpeg(["-y", "-i", path, "-filter:a", f"atempo={speed:.3f}", tmp])
+    tmp.replace(path)
 
 
 def speak(
