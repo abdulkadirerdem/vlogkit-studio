@@ -2,6 +2,11 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Sürümleme: [SemVer](https://semver.org/).
 
+## [0.22.1] - 2026-11-08
+
+### Düzeltildi
+- Yeni kanal sesinin referansı (`assets/voice/kanal-vox.wav`) güncellemeyle gelmiyordu (`.wav` dosyaları güncellemenin dışında tutuluyor, bu dosya istisnaya eklenmemişti): 0.22.0'da kanal sesi eski Qwen sesine düşüyordu.
+
 ## [0.22.0] - 2026-11-08
 
 ### Değişti

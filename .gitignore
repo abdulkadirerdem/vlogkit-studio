@@ -31,6 +31,7 @@ build/
 
 # the channel voice reference ships with vlogkit (generated, MIT)
 !assets/voice/kanal.wav
+!assets/voice/kanal-vox.wav
 
 # Your own work: never part of vlogkit's updates
 /projects/*
