@@ -54,7 +54,9 @@ doğrulanamayanlar.
 - **Efekt (`fx`):** çatlak, su taşması, kıvılcım, duman, kırılma, patlama, uçuş, ölçek gösterimi…
 - **Kapanış (`ending`):** sonucu tek cümleyle bağla ve yorum sorusu sor ("Sen olsan ne yapardın?").
 - **Sonraki video (`next_teaser`):** bir sonraki "Peki ya?" sorusunu kısaca ima et.
-- **Dil:** konuşma dili, kısa cümleler, Türkçe. Sayıları rakamla yaz (seslendirme okur).
+- **Dil:** konuşma dili, kısa cümleler, Türkçe. Sayıları rakamla yaz (seslendirme okur; "5. gün"
+  "beşinci gün" okunur). Kanal sesi iki ünlü arasındaki "ğ"yi bazen yutar ("doğrusu" → "dorusu"):
+  cümlenin vurgulu ilk kelimesini böyle bir kelimeyle başlatma ("Doğru olan şu:" gibi kur).
 - **Yayın metni:** `titles.youtube` (3 alternatif, 60 karakter altı), `titles.instagram`,
   `titles.tiktok`, `hashtags` (5-8, `#pekiya` dahil).
 

@@ -2,6 +2,27 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Sürümleme: [SemVer](https://semver.org/).
 
+## [0.23.0] - 2026-11-08
+
+### Eklendi
+- **Geri sayım** `"timer"` (soru sırasında 3-2-1 halkası) ve damga anında ekran kenarlarının kırmızı/yeşil parlaması. Oyun formatı felaketle açılır, soruya süre koyar, izleyiciye "sen hangisini seçmiştin?" diye döner.
+
+### Değişti
+- **Gerçek insanlar (2. aşama, kütüphane 4):** karakterler artık MakeHuman gövdeleri (CC0): 14 kişi (çocuk, genç, orta yaşlı, yaşlı; kadın ve erkek; zayıf ve kilolu; farklı ten renkleri), gerçek deri, saç, kıyafet ve ayakkabı. Yüz ifadeleri (sevinç, şaşkınlık, üzüntü, öfke, korku...), göz kırpma ve konuşurken ağız hareketi (ARKit yüz birimleri). Tüm hareketler bu gövdelere aktarıldı; kollar ve bacaklar kayıttaki yönde. Tişörtler senaryodaki gömlek rengine boyanır; kıyafetlerdeki MakeHuman logosu temizlendi. Senaryoda kişi adıyla seçilebilir (`"person"`). Eski kütüphaneyle çalışmaya devam eder; kurulum ekranı yeni sürümü önerir (~610 MB).
+- **Daha doğal karakterler (1. aşama):** Mesh2Motion'ın CC0 lisanslı 221 hareket kaydı kütüphaneye eklendi (baş sallama, evet/hayır, alkış, şaşırma, kollarını kavuşturma, telefonla konuşma, uyuma, yere oturup ağlama, dua, titreme, kapı çalma...). Herkes kendi duruşuyla ve kendi anında başlar (kalabalık aynı anda kıpırdamaz); altta nefes, ağırlık aktarma ve etrafa bakınma katmanı. Oturan/yatan kişi yatağın, kanepenin üstüne kendiliğinden yerleşir (bacaklar yatağın içinde kalmıyor). Kas dokusu yumuşatıldı, kollar normal insan kalınlığında.
+- Tam sayı sayaçlar (gün) geçişte küsurat göstermez ("7,5" yerine 7 → 8).
+
+### Düzeltildi
+- Kollar artık hareketler arasında kendi etrafında dönmüyor: hareket kayıtlarının bir kısmı aynı dönüşü ters işaretli dörtlüyle (quaternion) yazıyordu, ikisi harmanlanınca kol uzun yoldan, 360 derece dönüyordu. Bütün kayıtlar tek işarete çevrildi (kütüphane yeniden üretildi).
+- Duman ve patlama yumuşak: kenara doğru saydamlaşan, gürültüyle dağılan bulutlar (önceden sert kenarlı toplar); patlamanın rengi parlamadan bembeyaz olmuyor.
+- Sıra sayısı okuması gerçekten seslendirmeye geçer: seslendirme önbelleği okunan metni de anahtarına katar (önceden düzeltmeden önce kaydedilmiş "beş, gün" sesi yeniden kullanılıyordu).
+- Kol ve el hareketleri ani değil: hesaplanan jestler (şok, korku, üzüntü, omuz silkme, sevinç) gerçek hareket kayıtlarıyla değiştirildi; kalan jestlerin ve hareketler arası geçişlerin süresi iki katı, kafa dönüşleri daha yavaş.
+- Seslendirme sıra sayılarını okur: "5. gün" → "beşinci gün", "29. gün" → "yirmi dokuzuncu gün" (önceden "beş. gün").
+- Ekran kartları (sayaç, terim) kendi cümlelerinin bittiği kesmede kaybolur; bir sonraki planın üstünde soluk kalmıyorlar. `pull` kamerası geriye doğru görüş çizgisi boyunca çekilir (bir önceki `push`'un bittiği yerden kesintisiz devam edebilir).
+- Kesit örneği: "Çünkü" anında kamera kesmeyle zıplamıyor, sudan geriye çekilerek yeraltı suyunu açıyor; oklar o kelimede beliriyor.
+- Ölçek formatı: kapanışta cevapsız soru yok; bonus gerçek (Dünya'nın içine ~50 Ay) ve izleyicinin ilk tahminini soran yorum sorusu.
+- Kanal sesi 8 GB belleği olan Windows bilgisayarda da açılıyor: VoxCPM2 doğrudan bfloat16 kuruluyor ve ağırlıklar kopyalanmadan dosyadan okunuyor (en yüksek bellek 11,8 GB → 6,6 GB, ses bit bit aynı). Bellek yine yetmezse traceback yerine ne yapılacağı yazıyor.
+
 ## [0.22.1] - 2026-11-08
 
 ### Düzeltildi

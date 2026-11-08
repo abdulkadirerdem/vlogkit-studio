@@ -38,6 +38,13 @@ class Collector:
             at = self.seconds.get(d.get("shot", ""))
             when = f" ({at:.1f} sn)".replace(".", ",") if at is not None else ""
             missing = round(100 * (1 - float(d.get("visible", 0))))
+            if d.get("kind") == "blocked":
+                out.append(
+                    f'!  {d.get("shot", "?")}{when}: kamera "{d.get("text", "")}" eşyasına bakıyor '
+                    f'ama "{d.get("by", "")}" ile örtülü (içinde ya da arkasında): eşyayı boş bir '
+                    "yere ya da kamerayı başka açıya taşı"
+                )
+                continue
             out.append(
                 f'!  {d.get("shot", "?")}{when}: "{d.get("text", "")}" yazısının '
                 f"%{missing}'i kadraj dışında{where}"

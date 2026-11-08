@@ -131,6 +131,94 @@ def _prop_moves(pr: dict, placed: props.Placed, fps: float, span: int) -> None:
         fx._ease(hinge, "out")
 
 
+def _seat_top(x: float, y: float, people: set) -> float | None:
+    """The highest seat-like surface (below 1.2 m) under the point: a bed, a sofa, a chair."""
+    from mathutils import Vector
+
+    best = None
+    for ob in bpy.context.scene.objects:
+        if ob.type != "MESH" or ob.hide_render or ob.name.startswith("set.soil"):
+            continue
+        top = ob
+        while top.parent is not None:
+            top = top.parent
+        if top.name in people:
+            continue
+        inv = ob.matrix_world.inverted()
+        o = inv @ Vector((x, y, 1.2))
+        d = (inv.to_3x3() @ Vector((0, 0, -1))).normalized()
+        hit, loc, _n, _i = ob.ray_cast(o, d)
+        if hit:
+            z = (ob.matrix_world @ loc).z
+            if 0.15 < z < 1.2 and (best is None or z > best):
+                best = z
+    return best
+
+
+def _seat(p, a: dict, fps: float) -> None:
+    """Someone who sits sits ON the thing behind them: the clip's hips are measured
+    (vk_seat_z / vk_seat_y), the seat under them is found, and the body is lifted onto it while
+    sitting down (a bed is higher than the chair the clip was made on)."""
+    rests = {**dict.fromkeys(("sit", "sit_talk", "sit_write"), "sitting-idle"),
+             "lie": "sleeping", "sleep": "sleeping"}  # fmt: skip
+    acts = [x for x in a.get("acts", []) if x["do"] in rests]
+    if not acts:
+        return
+    pre = "mp_" if p.root.get("vk_mpfb") else "m2m_"  # the clip this body plays
+    act = bpy.data.actions.get(pre + rests[acts[0]["do"]])
+    if act is None or "vk_seat_z" not in act:
+        return
+    seat_z, seat_y = float(act["vk_seat_z"]), float(act["vk_seat_y"])
+    root = p.root
+    h = root.rotation_euler.z
+    # the hips are behind the feet: +y in the person's own frame
+    hx = root.location.x - math.sin(h) * seat_y
+    hy = root.location.y + math.cos(h) * seat_y
+    people = {root.name}
+    top = _seat_top(hx, hy, people)
+    if top is None or not (0.0 < top - seat_z < 0.75):  # a bed under someone lying: ~0.6 m
+        return
+    # the knees go over the edge, the shins hang in front of it: find the edge ahead of the hips
+    # and slide the person so it is ~0.15 m in front of them (a bed sat on from inside put the
+    # legs through the bed's side)
+    fx, fy = math.sin(h), -math.cos(h)
+    edge = None
+    for k in range(1, 50):
+        d = k * 0.02
+        t2 = _seat_top(hx + fx * d, hy + fy * d, people)
+        if t2 is None or t2 < top - 0.08:
+            edge = d
+            break
+    if edge is not None and abs(edge - 0.15) > 0.03:
+        shift = edge - 0.15
+        ad = root.animation_data
+        moved = False
+        if ad and ad.action:
+            from bpy_kit.anim import _fcurves
+
+            for fc in _fcurves(ad.action):
+                if fc.data_path == "location" and fc.array_index in (0, 1):
+                    off = (fx if fc.array_index == 0 else fy) * shift
+                    for kp in fc.keyframe_points:
+                        kp.co.y += off
+                        kp.handle_left.y += off
+                        kp.handle_right.y += off
+                    moved = True
+        root.location.x += fx * shift
+        root.location.y += fy * shift
+        if not moved:
+            root.keyframe_insert("location", frame=1)
+    dz = top - seat_z + 0.01
+    z0 = root.location.z
+    f_sit = 1 + round(acts[0]["t0"] * fps)
+    enter = round(0.9 * fps) if acts[0]["do"] == "sit" else 0
+    if f_sit > 1:
+        root.location.z = z0
+        root.keyframe_insert("location", index=2, frame=f_sit)
+    root.location.z = z0 + dz
+    root.keyframe_insert("location", index=2, frame=max(1, f_sit + enter))
+
+
 def _rope(pr: dict, placed: props.Placed, i: int) -> None:
     """A rope from a fixed point (`rope`: [x, y, z]) to the top of the prop, following it as it
     moves (a bucket pulled up a well, a load on a crane)."""
@@ -337,6 +425,7 @@ def build_shot(plan: dict, shot: dict) -> int:
         p.root.keyframe_insert("location", frame=1)
         p.root.keyframe_insert("rotation_euler", frame=1)
         humanim.perform(p, a, fps, span)
+        _seat(p, a, fps)
     crowd_people = crowd.build(shot["crowd"], fps, span) if shot.get("crowd") else []
     del crowd_people
     frames = range(start, start + n_shot)
@@ -359,6 +448,10 @@ def build_shot(plan: dict, shot: dict) -> int:
     if "on" not in cspec and actors:
         cspec["on"] = next(iter(actors))
     targets = {**placed, **actors}
+    on = cspec.get("on")
+    # what the camera is meant to show: the frame check looks for anything standing in front of it
+    sc["vk_target"] = placed[on].root.name if isinstance(on, str) and on in placed else ""
+    sc["vk_target_id"] = on if isinstance(on, str) else ""
     camera.animate(cam, cspec, n_shot, fps, targets, scale_of, start)
     if shot.get("fx"):
         seed = sum(ord(ch) for ch in shot["id"])

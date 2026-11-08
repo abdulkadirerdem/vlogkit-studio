@@ -93,6 +93,7 @@ _BEAT = {
     "term",
     "count",
     "stamp",
+    "timer",
 }
 _SHOT = {
     "cue",
@@ -151,6 +152,8 @@ _CAST = {
     "bottom",
     "height",
     "build",
+    "person",
+    "classic",
 }
 _HEX = re.compile(r"^#(?:[0-9a-fA-F]{3}){1,2}$")
 
@@ -388,6 +391,8 @@ def validate(spec: dict) -> list[str]:
             out.append(f"cast.{name}.top: {', '.join(catalog.TOPS)}")
         if c.get("bottom", "jeans") not in catalog.BOTTOMS:
             out.append(f"cast.{name}.bottom: {', '.join(catalog.BOTTOMS)}")
+        if "person" in c and c["person"] not in catalog.PEOPLE:
+            out.append(f"cast.{name}.person: {_names(catalog.PEOPLE)}")
         if "skin" in c and c["skin"] not in ("light", "dark") and not _HEX.match(str(c["skin"])):
             out.append(f"cast.{name}.skin: light | dark | '#rrggbb'")
         for k in ("shirt", "pants", "shoes", "hair_color", "hood_color", "cap_color"):
@@ -425,6 +430,12 @@ def validate(spec: dict) -> list[str]:
                 out.append(f"{w}: count {{from, to, at, dur, unit, label}} olmalı (from/to sayı)")
             else:
                 _cue_ok(f"{w} count", say, cn.get("at"), out)
+        tmr = b.get("timer")
+        if tmr is not None:
+            if not isinstance(tmr, dict) or not isinstance(tmr.get("dur", 3), (int, float)):
+                out.append(f"{w}: timer {{at, dur}} olmalı")
+            else:
+                _cue_ok(f"{w} timer", say, tmr.get("at"), out)
         stp = b.get("stamp")
         if stp is not None:
             if not isinstance(stp, dict) or not str(stp.get("text", "")).strip():

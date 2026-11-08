@@ -79,9 +79,46 @@ def _mat(
     return m
 
 
+def _soft(m, wisp: float = 0.6):
+    """Make a sphere read as a puff of smoke or fire: its alpha fades towards the silhouette
+    (facing ratio) and is broken up by noise, so no hard ball edge shows. The keyed alpha goes
+    through a Value node ("vk_alpha"), which _key_input finds."""
+    nt = m.node_tree
+    p = nt.nodes["Principled BSDF"]
+    a = nt.nodes.new("ShaderNodeValue")
+    a.name = "vk_alpha"
+    a.outputs[0].default_value = p.inputs["Alpha"].default_value
+    lw = nt.nodes.new("ShaderNodeLayerWeight")
+    lw.inputs["Blend"].default_value = 0.5
+    edge = nt.nodes.new("ShaderNodeMapRange")
+    edge.inputs["From Min"].default_value, edge.inputs["From Max"].default_value = 0.15, 0.9
+    edge.inputs["To Min"].default_value, edge.inputs["To Max"].default_value = 1.0, 0.0
+    nt.links.new(lw.outputs["Facing"], edge.inputs["Value"])
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    noise = nt.nodes.new("ShaderNodeTexNoise")
+    noise.inputs["Scale"].default_value = 2.5
+    noise.inputs["Detail"].default_value = 4.0
+    nt.links.new(coord.outputs["Object"], noise.inputs["Vector"])
+    wn = nt.nodes.new("ShaderNodeMapRange")
+    wn.inputs["From Min"].default_value, wn.inputs["From Max"].default_value = 0.35, 0.65
+    wn.inputs["To Min"].default_value, wn.inputs["To Max"].default_value = 1.0 - wisp, 1.0
+    nt.links.new(noise.outputs["Fac"], wn.inputs["Value"])
+    m1 = nt.nodes.new("ShaderNodeMath")
+    m1.operation = "MULTIPLY"
+    nt.links.new(edge.outputs["Result"], m1.inputs[0])
+    nt.links.new(wn.outputs["Result"], m1.inputs[1])
+    m2 = nt.nodes.new("ShaderNodeMath")
+    m2.operation = "MULTIPLY"
+    nt.links.new(m1.outputs[0], m2.inputs[0])
+    nt.links.new(a.outputs[0], m2.inputs[1])
+    nt.links.new(m2.outputs[0], p.inputs["Alpha"])
+    return m
+
+
 def _key_input(m, name: str, frames_values) -> None:
     p = m.node_tree.nodes.get("Principled BSDF")
-    sock = p.inputs[name]
+    alpha = m.node_tree.nodes.get("vk_alpha")
+    sock = alpha.outputs[0] if (name == "Alpha" and alpha is not None) else p.inputs[name]
     for f, v in frames_values:
         sock.default_value = v
         sock.keyframe_insert("default_value", frame=f)
@@ -294,11 +331,11 @@ def smoke(ctx: Ctx, e: dict, i: int) -> None:
     f0 = ctx.frame(e["t"])
     dur = float(e.get("dur", 2.5))
     color = e.get("color", "#6f6c69")
-    n = int(e.get("n", max(5, round(6 * size))))
+    n = int(e.get("n", max(12, round(14 * size))))
     for k in range(n):
-        m = _mat(color, alpha=0.0, rough=1.0, blended=True, name=f"smoke{i}.{k}")
+        m = _soft(_mat(color, alpha=0.0, rough=1.0, blended=True, name=f"smoke{i}.{k}"))
         p0 = c + Vector((ctx.rng.uniform(-0.3, 0.3) * size, ctx.rng.uniform(-0.3, 0.3) * size, 0.1))
-        ob = shapes.sphere(f"smoke{i}.{k}", 0.35 * size, m, p0, segments=16, rings=10)
+        ob = shapes.sphere(f"smoke{i}.{k}", 0.24 * size, m, p0, segments=20, rings=12)
         tex = bpy.data.textures.new(f"smoke{i}.{k}", "CLOUDS")
         tex.noise_scale = 0.35 * size
         dm = ob.modifiers.new("lumps", "DISPLACE")
@@ -317,7 +354,7 @@ def smoke(ctx: Ctx, e: dict, i: int) -> None:
             ob.keyframe_insert("scale", frame=f)
             ob.keyframe_insert("location", frame=f)
         _ease(ob, "out")
-        _key_input(m, "Alpha", ((start, 0.0), (start + max(2, life // 5), 0.8), (end, 0.0)))
+        _key_input(m, "Alpha", ((start, 0.0), (start + max(2, life // 5), 0.55), (end, 0.0)))
 
 
 def fire(ctx: Ctx, e: dict, i: int) -> None:
@@ -326,30 +363,38 @@ def fire(ctx: Ctx, e: dict, i: int) -> None:
     c = ctx.where(e)
     f0 = ctx.frame(e["t"])
     f1 = ctx.frame(e["t"] + float(e["dur"])) if e.get("dur") else None
-    # tongues of flame: tapered cones, red outside, orange, a yellow core; moderate glow so the
-    # view transform keeps them orange (a strong glow went pale pink)
-    for k, (col, h, r, glow) in enumerate(
-        (("#e8380c", 1.15, 0.3, 2.2), ("#ff7a12", 0.9, 0.22, 3.0), ("#ffc531", 0.6, 0.13, 4.0))
-    ):
-        for j in range(4 - k):
-            m = _mat(col, emit=glow, alpha=0.9, blended=True, name=f"fire{i}.{k}{j}")
-            off = Vector((ctx.rng.uniform(-0.22, 0.22), ctx.rng.uniform(-0.12, 0.12), 0)) * size
-            hh = h * size * ctx.rng.uniform(0.75, 1.15)
-            ob = shapes.cylinder(
-                f"fire{i}.{k}{j}", r * size, hh, m, c + off + Vector((0, 0, hh / 2)),
-                segments=14, radius2=0.0,
-            )  # fmt: skip
-            for poly in ob.data.polygons:
-                poly.use_smooth = True
+    # tongues of flame: tall soft-edged drops (no hard silhouette), red-orange outside, a
+    # yellow core, each flickering and licking upwards on its own; a moderate glow keeps the
+    # colour (a strong one went pale pink)
+    from .anim import _fcurves
+
+    layers = (
+        ("#ff5a12", 1.05, 0.13, 2.4, 6),
+        ("#ff9418", 0.85, 0.1, 3.4, 6),
+        ("#ffd448", 0.55, 0.065, 4.6, 6),
+    )
+    for k, (col, h, r, glow, n) in enumerate(layers):
+        for j in range(n):
+            m = _soft(_mat(col, emit=glow, alpha=0.85, blended=True, name=f"fire{i}.{k}{j}"), 0.55)
+            off = Vector((ctx.rng.uniform(-0.24, 0.24), ctx.rng.uniform(-0.14, 0.14), 0)) * size
+            hh = h * size * ctx.rng.uniform(0.7, 1.2)
+            rr = r * size * ctx.rng.uniform(0.8, 1.2)
+            ob = shapes.sphere(f"fire{i}.{k}{j}", rr, m, c + off + Vector((0, 0, hh * 0.5)),
+                               scale=(1.0, 1.0, hh / (2 * rr)), segments=16, rings=12)  # fmt: skip
             _show(ob, f0, f1)
             ob.keyframe_insert("scale", frame=f0)
-            from .anim import _fcurves
-
+            ob.keyframe_insert("location", frame=f0)
             for fc in _fcurves(ob.animation_data.action):
-                if fc.data_path == "scale":
-                    nm = fc.modifiers.new("NOISE")
-                    nm.scale, nm.strength = 3 + j, 0.35 + 0.2 * (fc.array_index == 2)
-                    nm.phase = 11 * k + 5 * j + fc.array_index
+                nm = fc.modifiers.new("NOISE")
+                if fc.data_path == "scale":  # breathing tongues, taller jumps than widths
+                    nm.scale = 2.5 + j * 0.7
+                    nm.strength = (0.45 if fc.array_index == 2 else 0.18) * (
+                        ob.scale[fc.array_index]
+                    )
+                else:  # licking sideways and up
+                    nm.scale = 3.0 + j
+                    nm.strength = (0.06 if fc.array_index < 2 else 0.1) * size
+                nm.phase = 13 * k + 7 * j + 3 * fc.array_index
     light = look.point(c + Vector((0, -0.2, 0.9 * size)), 0, "#ff8a3a", 0.3, f"firelight{i}")
     light.data.energy = 400 * size * size
     light.data.keyframe_insert("energy", frame=f0)
@@ -380,12 +425,12 @@ def explosion(ctx: Ctx, e: dict, i: int) -> None:
     size = float(e.get("size", 1.0))
     c = ctx.where(e, default_z=0.4 * size)
     f0 = ctx.frame(e["t"])
-    for k in range(5):
-        m = _mat("#ffb347", emit=40, alpha=1.0, blended=True, name=f"boom{i}.{k}")
+    for k in range(12):
+        m = _soft(_mat("#ffb347", emit=12, alpha=1.0, blended=True, name=f"boom{i}.{k}"), 0.45)
         off = Vector(
-            (ctx.rng.uniform(-0.5, 0.5), ctx.rng.uniform(-0.4, 0.4), ctx.rng.uniform(0, 0.7))
+            (ctx.rng.uniform(-0.55, 0.55), ctx.rng.uniform(-0.45, 0.45), ctx.rng.uniform(0, 0.8))
         )
-        ob = shapes.sphere(f"boom{i}.{k}", 0.5 * size, m, c + off * size, segments=24, rings=12)
+        ob = shapes.sphere(f"boom{i}.{k}", 0.32 * size, m, c + off * size, segments=24, rings=12)
         tex = bpy.data.textures.new(f"boom{i}.{k}", "CLOUDS")
         tex.noise_scale = 0.4 * size
         dm = ob.modifiers.new("lumps", "DISPLACE")
@@ -402,17 +447,18 @@ def explosion(ctx: Ctx, e: dict, i: int) -> None:
         _ease(ob, "out")
         p = m.node_tree.nodes.get("Principled BSDF")
         for f, col, em, a in (
-            (f0, "#fff3b0", 60, 1.0),
-            (f0 + round(0.25 * ctx.fps), "#ff8a1f", 30, 1.0),
-            (f0 + round(0.8 * ctx.fps), "#9a2a0a", 4, 0.8),
+            (f0, "#ffe58a", 14, 1.0),
+            (f0 + round(0.25 * ctx.fps), "#ff7a12", 8, 0.95),
+            (f0 + round(0.8 * ctx.fps), "#8a2a0a", 2, 0.6),
             (f0 + round(1.6 * ctx.fps), "#2a1a12", 0, 0.0),
         ):
             p.inputs["Emission Color"].default_value = look.hex_rgba(col)
             p.inputs["Emission Color"].keyframe_insert("default_value", frame=f)
             p.inputs["Emission Strength"].default_value = em
             p.inputs["Emission Strength"].keyframe_insert("default_value", frame=f)
-            p.inputs["Alpha"].default_value = a
-            p.inputs["Alpha"].keyframe_insert("default_value", frame=f)
+            va = m.node_tree.nodes["vk_alpha"].outputs[0]
+            va.default_value = a
+            va.keyframe_insert("default_value", frame=f)
     light = look.point(c, 0, "#ffa040", 0.5, f"boomlight{i}")
     for f, en in ((f0 - 1, 0), (f0 + 2, 9000 * size * size), (f0 + round(0.9 * ctx.fps), 0)):
         light.data.energy = en

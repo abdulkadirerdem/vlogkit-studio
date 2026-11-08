@@ -6,13 +6,8 @@
  "cast": {
   "ayla": {
    "sex": "female",
-   "body": "adult",
-   "top": "longsleeve",
-   "shirt": "#d8643f",
-   "bottom": "trousers",
-   "pants": "#3b3f48",
-   "hair": "long",
-   "hair_color": "#2a1d14"
+   "person": "f_young",
+   "shirt": "#d8643f"
   }
  },
  "hud": {
@@ -20,7 +15,7 @@
  },
  "hook": {
   "text": "SADECE [%1] DOĞRU YAPIYOR",
-  "seconds": 2.2
+  "seconds": 2.4
  },
  "end": {
   "tag": "SIRADAKİ",
@@ -29,16 +24,16 @@
  },
  "beats": [
   {
-   "say": "Sadece yüzde 1'i bunu doğru yapıyor.",
+   "say": "Bu mutfak 10 saniye içinde yanacak.",
    "set": "kitchen",
    "actors": [
     {
      "who": "ayla",
      "at": [
-      0.5,
-      1.1
+      -0.3,
+      0.6
      ],
-     "facing": 0,
+     "facing": 30,
      "face": "scared",
      "do": [
       {
@@ -56,28 +51,50 @@
       0.95
      ],
      "at": 0.0,
-     "size": 0.45
+     "size": 1.6
+    },
+    {
+     "kind": "smoke",
+     "pos": [
+      1.3,
+      2.15,
+      1.6
+     ],
+     "at": 0.0,
+     "size": 1.4,
+     "dur": 3.0
+    },
+    {
+     "kind": "explosion",
+     "pos": [
+      1.3,
+      2.15,
+      1.2
+     ],
+     "at": "yanacak",
+     "size": 0.9
     }
    ],
    "shots": [
     {
      "camera": {
-      "frame": "medium",
+      "frame": "wide",
       "on": [
        1.3,
        2.15,
-       1.0
+       1.2
       ],
-      "move": "push",
-      "zoom": 1.5
+      "angle": -15,
+      "zoom": 1.2,
+      "move": "push"
      }
     },
     {
-     "cue": "doğru",
+     "cue": "saniye",
      "camera": {
       "frame": "full",
       "on": "ayla",
-      "angle": 15,
+      "angle": 20,
       "move": "push"
      }
     }
@@ -87,9 +104,9 @@
    ]
   },
   {
-   "say": "Tavadaki yağ alev aldı. Hangisini kullanırsın?",
+   "say": "Tavadaki yağ alev aldı. 3 saniyen var: hangisini kullanırsın?",
    "set": "kitchen",
-   "hold": 1.2,
+   "hold": 1.4,
    "actors": [
     {
      "who": "ayla",
@@ -115,11 +132,10 @@
       0.95
      ],
      "at": 0.0,
-     "size": 0.45
+     "size": 0.6
     }
    ],
    "choices": {
-    "at": "Hangisini",
     "title": "HANGİSİNİ KULLANIRSIN?",
     "items": [
      "SU",
@@ -127,7 +143,12 @@
      "TAVA KAPAĞI"
     ],
     "ask": "SEÇ",
-    "dur": 2.6
+    "at": "hangisini",
+    "dur": 3.4
+   },
+   "timer": {
+    "at": "hangisini",
+    "dur": 3
    },
    "shots": [
     {
@@ -139,14 +160,23 @@
        1.0
       ],
       "angle": -15,
-      "move": "push",
-      "zoom": 1.5
+      "zoom": 1.4,
+      "move": "push"
+     }
+    },
+    {
+     "cue": "3",
+     "camera": {
+      "frame": "full",
+      "on": "ayla",
+      "angle": 10,
+      "move": "push"
      }
     }
    ]
   },
   {
-   "say": "Su mu? Yanlış!",
+   "say": "Su en büyük hata.",
    "set": "kitchen",
    "actors": [
     {
@@ -159,13 +189,12 @@
      "face": "shock",
      "do": [
       {
-       "do": "dodge"
+       "do": "shock"
       }
      ]
     }
    ],
    "choices": {
-    "at": "Su",
     "title": "HANGİSİNİ KULLANIRSIN?",
     "items": [
      "SU",
@@ -173,7 +202,8 @@
      "TAVA KAPAĞI"
     ],
     "ask": "SEÇ",
-    "dur": 0.9,
+    "at": "Su",
+    "dur": 1.2,
     "pick": {
      "n": 1,
      "at": "Su",
@@ -182,7 +212,7 @@
    },
    "stamp": {
     "text": "YANLIŞ",
-    "at": "Yanlış"
+    "at": "hata"
    },
    "fx": [
     {
@@ -192,14 +222,18 @@
       2.15,
       1.0
      ],
-     "at": "Yanlış",
-     "size": 0.8
+     "at": "hata",
+     "size": 1.0
     },
     {
-     "kind": "shake",
-     "at": "Yanlış",
-     "dur": 0.6,
-     "amount": 0.06
+     "kind": "fire",
+     "pos": [
+      1.3,
+      2.15,
+      0.95
+     ],
+     "at": "hata",
+     "size": 1.4
     }
    ],
    "shots": [
@@ -215,21 +249,21 @@
    "sfx": [
     {
      "id": "boom",
-     "at": "Yanlış"
+     "at": "hata"
     }
    ]
   },
   {
-   "say": "Su kızgın yağın altında buhara dönüşür ve yağı tavana fırlatır.",
+   "say": "Su, kızgın yağın altında buhara dönüşür ve alevi tavana fırlatır.",
    "set": "kitchen",
    "actors": [
     {
      "who": "ayla",
      "at": [
-      -0.4,
-      0.9
+      -0.6,
+      0.4
      ],
-     "facing": 20,
+     "facing": 30,
      "face": "scared",
      "do": [
       {
@@ -244,19 +278,20 @@
      "pos": [
       1.3,
       2.15,
-      1.2
+      1.1
      ],
      "at": 0.0,
-     "size": 0.8
+     "size": 1.5
     },
     {
      "kind": "smoke",
      "pos": [
       1.3,
       2.15,
-      1.6
+      1.8
      ],
-     "at": "tavana"
+     "at": "tavana",
+     "size": 1.3
     }
    ],
    "term": {
@@ -274,8 +309,8 @@
        1.2
       ],
       "angle": 20,
-      "move": "push",
-      "zoom": 1.5
+      "zoom": 1.3,
+      "move": "push"
      }
     },
     {
@@ -285,18 +320,17 @@
       "on": [
        1.3,
        2.15,
-       2.2
+       2.0
       ],
       "angle": -10,
-      "tilt": -0.4,
-      "move": "rise",
-      "zoom": 1.5
+      "zoom": 1.3,
+      "move": "rise"
      }
     }
    ]
   },
   {
-   "say": "Un mu? O da yanlış, toz halinde alevlenir.",
+   "say": "Un da işe yaramaz, toz halinde alevlenir.",
    "set": "kitchen",
    "actors": [
     {
@@ -306,16 +340,15 @@
       1.1
      ],
      "facing": 20,
-     "face": "shock",
+     "face": "angry",
      "do": [
       {
-       "do": "facepalm"
+       "do": "no"
       }
      ]
     }
    ],
    "choices": {
-    "at": "Un",
     "title": "HANGİSİNİ KULLANIRSIN?",
     "items": [
      "SU",
@@ -323,7 +356,8 @@
      "TAVA KAPAĞI"
     ],
     "ask": "SEÇ",
-    "dur": 0.9,
+    "at": "Un",
+    "dur": 1.2,
     "pick": {
      "n": 2,
      "at": "Un",
@@ -332,7 +366,7 @@
    },
    "stamp": {
     "text": "YANLIŞ",
-    "at": "yanlış"
+    "at": "yaramaz"
    },
    "fx": [
     {
@@ -343,7 +377,7 @@
       1.0
      ],
      "at": "alevlenir",
-     "size": 0.6
+     "size": 0.7
     },
     {
      "kind": "smoke",
@@ -352,7 +386,8 @@
       2.15,
       1.4
      ],
-     "at": "toz"
+     "at": "toz",
+     "size": 0.9
     }
    ],
    "shots": [
@@ -373,21 +408,27 @@
        2.15,
        1.0
       ],
-      "move": "shake",
-      "zoom": 1.5
+      "zoom": 1.4,
+      "move": "shake"
      }
+    }
+   ],
+   "sfx": [
+    {
+     "id": "impact",
+     "at": "yaramaz"
     }
    ]
   },
   {
-   "say": "Doğrusu: ocağı kapat, tavanın kapağını kapat.",
+   "say": "Doğru olan şu: ocağı kapat, tavanın kapağını kapat.",
    "set": "kitchen",
    "actors": [
     {
      "who": "ayla",
      "at": [
-      0.5,
-      1.1
+      0.7,
+      1.4
      ],
      "facing": 20,
      "face": "neutral",
@@ -399,7 +440,6 @@
     }
    ],
    "choices": {
-    "at": "Doğrusu",
     "title": "HANGİSİNİ KULLANIRSIN?",
     "items": [
      "SU",
@@ -407,10 +447,11 @@
      "TAVA KAPAĞI"
     ],
     "ask": "SEÇ",
-    "dur": 1.0,
+    "at": "Doğru",
+    "dur": 1.3,
     "pick": {
      "n": 3,
-     "at": "Doğrusu",
+     "at": "Doğru",
      "ok": true
     }
    },
@@ -428,8 +469,8 @@
       0.95
      ],
      "at": 0.0,
-     "size": 0.45,
-     "dur": 2.0
+     "size": 0.6,
+     "dur": 2.2
     },
     {
      "kind": "smoke",
@@ -438,7 +479,8 @@
       2.15,
       1.1
      ],
-     "at": "kapağını"
+     "at": "kapağını",
+     "size": 0.6
     }
    ],
    "shots": [
@@ -451,7 +493,7 @@
      }
     },
     {
-     "cue": "kapat",
+     "cue": "ocağı",
      "camera": {
       "frame": "medium",
       "on": [
@@ -459,9 +501,9 @@
        2.15,
        1.0
       ],
-      "move": "push",
       "zoom": 1.3,
-      "angle": -10
+      "angle": -10,
+      "move": "push"
      }
     }
    ],
@@ -499,7 +541,19 @@
       2.15,
       1.0
      ],
-     "at": 0.0
+     "at": 0.0,
+     "size": 0.5
+    },
+    {
+     "kind": "rain",
+     "item": "confetti",
+     "at": "söner",
+     "area": [
+      -1.5,
+      0,
+      2.5,
+      2.5
+     ]
     }
    ],
    "shots": [
@@ -511,8 +565,8 @@
        2.15,
        1.0
       ],
-      "move": "push",
-      "zoom": 1.5
+      "zoom": 1.3,
+      "move": "push"
      }
     },
     {
@@ -527,8 +581,9 @@
    ]
   },
   {
-   "say": "Seviye 8 daha zor. Hazır mısın?",
+   "say": "Sen hangisini seçmiştin? Yorumlara yaz.",
    "set": "kitchen",
+   "hold": 1.6,
    "actors": [
     {
      "who": "ayla",
@@ -537,7 +592,7 @@
       1.1
      ],
      "facing": 0,
-     "face": "grin",
+     "face": "smug",
      "do": [
       {
        "do": "point"
@@ -545,8 +600,18 @@
      ]
     }
    ],
+   "choices": {
+    "at": "hangisini",
+    "title": "SEN HANGİSİNİ SEÇMİŞTİN?",
+    "items": [
+     "SU",
+     "UN",
+     "TAVA KAPAĞI"
+    ],
+    "ask": "NUMARASINI YORUMA YAZ"
+   },
    "camera": {
-    "frame": "full",
+    "frame": "medium",
     "on": "ayla",
     "move": "push"
    }

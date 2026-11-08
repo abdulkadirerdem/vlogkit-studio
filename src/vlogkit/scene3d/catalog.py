@@ -57,6 +57,17 @@ PROPS = {
     "planter_box": "ahşap saksı kasası",
 }  # fmt: skip
 
+# the people of the library (MakeHuman bodies): a cast entry may name one ("person"); otherwise
+# the kit picks by sex, age (body: kid / old), build (big), skin (dark) and outfit (suit)
+PEOPLE = {
+    "m_young": "genç erkek, kot gömlek", "m_young_slim": "genç zayıf erkek, çizgili gömlek",
+    "m_young_dark": "genç siyahi erkek, tişört", "m_mid": "orta yaşlı erkek, tişört",
+    "m_mid_heavy": "orta yaşlı kilolu erkek, iş tulumu", "m_old": "yaşlı erkek, ceket",
+    "m_suit": "takım elbiseli erkek", "m_kid": "erkek çocuk, beyaz tişört",
+    "f_young": "genç kadın, tişört ve şort", "f_young_long": "genç kadın, uzun saç, tişört ve şort",
+    "f_young_asian": "genç Asyalı kadın, spor kıyafet", "f_mid": "orta yaşlı kadın, gömlek ve etek",
+    "f_old": "yaşlı kadın, tişört", "f_kid": "kız çocuk, tişört ve şort",
+}  # fmt: skip
 ACTIONS = {
     "idle": "durur, nefes alır", "walk": "yürür (path)", "run": "koşar (path)", "sneak": "sinsice yürür (path)",
     "jump": "zıplar", "wave": "el sallar", "fall": "sırtüstü düşer", "shake": "titrer (korku, soğuk)",
@@ -73,6 +84,14 @@ ACTIONS = {
     "present": "eliyle bir şeyi sunar", "sit_talk": "otururken konuşur", "stand_up": "oturduğu yerden kalkar",
     "fly": "uçar / havalanır (path: [[x, y, z], ...])", "give": "elindekini öne uzatır (verir)",
     "dodge": "geri çekilir, kaçınır",
+    # Mesh2Motion (CC0) hareket kayıtları
+    "yes": "evet der (başıyla onaylar)", "no": "hayır der (başını iki yana sallar)", "clap": "alkışlar",
+    "confused": "şaşırır, kafası karışır", "angry": "sinirlenir", "fold_arms": "kollarını kavuşturur",
+    "listen": "dinler", "greet": "selam verir", "victory": "yumruk havada sevinir", "texting": "yürürken mesaj yazar (path)",
+    "sleep": "uyur (yatarak)", "sit_ground": "yere oturur", "cry": "yerde oturup ağlar", "sit_write": "otururken yazar",
+    "pray": "dua eder", "tired": "yorgun, kambur durur", "shiver": "titrer (üşür)", "knock": "kapıyı çalar",
+    "open_door": "kapıyı açar", "dizzy": "başı döner", "kneel": "diz çöker", "meditate": "bağdaş kurup meditasyon yapar",
+    "sing": "şarkı söyler", "walk_happy": "neşeyle yürür (path)", "walk_tired": "yorgun, aksayarak yürür (path)",
 }  # fmt: skip
 
 FACES = (

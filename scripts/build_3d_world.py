@@ -77,7 +77,13 @@ def collect(name: str, objs: list[bpy.types.Object], lengthwise_y: bool = False)
 def main() -> None:
     a = sys.argv[sys.argv.index("--") + 1 :]
     src, out = Path(a[0]), Path(a[1])
-    for coll in (bpy.data.objects, bpy.data.meshes, bpy.data.materials, bpy.data.collections, bpy.data.images):
+    for coll in (
+        bpy.data.objects,
+        bpy.data.meshes,
+        bpy.data.materials,
+        bpy.data.collections,
+        bpy.data.images,
+    ):
         for x in list(coll):
             coll.remove(x)
     info: dict[str, dict] = {}
@@ -85,12 +91,16 @@ def main() -> None:
     for n in CITY:
         f = next(city.glob(f"{n}.gl*"), None)
         if f:
-            info[n] = collect(n, new_objects(lambda f=f: bpy.ops.import_scene.gltf(filepath=str(f))))
+            info[n] = collect(
+                n, new_objects(lambda f=f: bpy.ops.import_scene.gltf(filepath=str(f)))
+            )
     nature = src / "nature" / "x" / "glTF"
     for n in NATURE:
         f = next(nature.glob(f"{n}.gl*"), None)
         if f:
-            info[n] = collect(n, new_objects(lambda f=f: bpy.ops.import_scene.gltf(filepath=str(f))))
+            info[n] = collect(
+                n, new_objects(lambda f=f: bpy.ops.import_scene.gltf(filepath=str(f)))
+            )
     blends = next((src / "cars" / "x").glob("*/Blends"))
     for n in CARS:
         f = blends / f"{n}.blend"
@@ -105,7 +115,9 @@ def main() -> None:
     for n in PH:
         f = src / "ph" / n / f"{n}.gltf"
         if f.exists():
-            info[n] = collect(n, new_objects(lambda f=f: bpy.ops.import_scene.gltf(filepath=str(f))))
+            info[n] = collect(
+                n, new_objects(lambda f=f: bpy.ops.import_scene.gltf(filepath=str(f)))
+            )
     earth = src / "earth" / "bluemarble_5400.jpg"
     if earth.exists():
         img = bpy.data.images.load(str(earth))

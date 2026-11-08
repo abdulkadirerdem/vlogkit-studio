@@ -15,7 +15,9 @@ import time
 import urllib.request
 from pathlib import Path
 
-UA = {"User-Agent": "vlogkit-library-builder/1.0 (+https://github.com/abdulkadirerdem/vlogkit-studio)"}
+UA = {
+    "User-Agent": "vlogkit-library-builder/1.0 (+https://github.com/abdulkadirerdem/vlogkit-studio)"
+}
 API = "https://api.polyhaven.com"
 
 # the cutaway's soil strata and the surfaces seen up close: 2K; the rest 1K

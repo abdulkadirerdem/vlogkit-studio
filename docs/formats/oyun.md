@@ -19,18 +19,24 @@ anlatım biçimi (seviye rozeti, seçenek, YANLIŞ/DOĞRU damgası).
 
 ## Anlatım kalıbı
 
-1. **Meydan okuma (ilk cümle):** "Sadece yüzde 1'i bunu doğru yapıyor." İlk karede tehlike
-   başlamış olsun (tavada alev).
-2. **Soru:** durum tek cümle + "Hangisini kullanırsın?" Soru kelimesinde `choices` (2-3
-   seçenek, `"dur": 2.4`); o beat'e `"hold": 1.2` (izleyici seçsin).
-3. **Yanlış seçim (1-2 kez):** "Su mu? Yanlış!" `choices` yeniden, `"pick": {"n": 1, "at": "Su",
-   "ok": false}` (satır kırmızı yanar) + `"stamp": {"text": "YANLIŞ", "at": "Yanlış"}` + olayın
-   kendisi (`explosion`, `fire`, `flood`). Ardından nedeni tek cümle, gerçek ve kaynaklı.
-4. **Doğrusu:** "Doğrusu: ocağı kapat, üstünü ıslak havluyla ört." `pick` ile `"ok": true` +
+1. **Felaketle açılış (ilk cümle):** sonucu önce göster: "Bu mutfak 10 saniye içinde yanacak."
+   İlk karede büyük alev, duman, patlama, korkan karakter; başlık (`hook`) "SADECE %1 DOĞRU
+   YAPIYOR". Kaydırmayı durduran şey ilk saniyedeki tehlikedir.
+2. **Soru ve süre:** durum + "3 saniyen var: hangisini kullanırsın?" Soru kelimesinde `choices`
+   (2-3 seçenek, `"dur": 3.4`) ve geri sayım `"timer": {"at": "hangisini", "dur": 3}`; o beat'e
+   `"hold": 1.4` (izleyici seçsin).
+3. **Yanlış seçim (1-2 kez):** düz bir hüküm cümlesi: "Su en büyük hata." ("Su mu? Yanlış!"
+   gibi soru ve ünlemi bir arada kurma: ses garip vurgular). `choices` yeniden, `"pick": {"n": 1,
+   "at": "Su", "ok": false}` (satır kırmızı yanar) + `"stamp": {"text": "YANLIŞ", "at": "hata"}`
+   (ekran kenarları kırmızı parlar) + olayın kendisi büyük (`explosion`, `fire` büyür, karakter
+   korkar). Ardından nedeni tek cümle, gerçek ve kaynaklı.
+4. **Doğrusu:** "Doğru olan şu: ocağı kapat, tavanın kapağını kapat." ("Doğrusu:" diye başlatma: ses
+   modeli ünlüler arasındaki "ğ"yi yutup "dorusu" okuyor.) `pick` ile `"ok": true` +
    `"stamp": {"text": "DOĞRU", "at": "...", "ok": true}` + sonuç (`smoke`, alev söner).
-5. **Neden (tek cümle):** "Alev havasız kalır ve söner."
-6. **Sonraki seviye:** "Seviye 8 daha zor. Hazır mısın?" Bitiş kartı: `"end": {"tag":
-   "SIRADAKİ", "title": "SEVİYE 8"}`.
+5. **Neden (tek cümle):** "Alev havasız kalır ve söner." Doğruda konfeti (`rain`, `item:
+   confetti`) ve sevinç; ekran kenarları yeşil parlar.
+6. **İzleyiciye dön:** "Sen hangisini seçmiştin? Yorumlara yaz." + `choices`; bitiş kartı
+   sonraki seviye: `"end": {"tag": "SIRADAKİ", "title": "SEVİYE 8"}`.
 
 Kurallar: soru gerçek ve doğrulanmış (NOTES.md'ye kaynak); yanlış seçenekler insanların gerçekten
 yaptığı hatalar. Kısa cümle (3-9 kelime), ikinci tekil şahıs. Tehlikeli bir şeyi özendirme:

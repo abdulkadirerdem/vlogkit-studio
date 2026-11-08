@@ -96,7 +96,9 @@ class Hud:
         u = clamp((t - cur[0]) / self.roll)
         if prev is not None and u < 1 and cur[2] is None and prev[2] is None:
             v = prev[1] + (cur[1] - prev[1]) * ease_out_cubic(u)
-            s = tr_number(round(v) if abs(cur[1]) >= 10 else v)
+            # whole numbers run through whole numbers (a day counter never shows "7,5")
+            whole = float(cur[1]).is_integer() and float(prev[1]).is_integer()
+            s = tr_number(round(v) if whole or abs(cur[1]) >= 10 else round(v, 1))
         else:
             s = cur[2] or tr_number(cur[1])
         size = round(118 * self.k)

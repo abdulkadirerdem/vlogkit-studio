@@ -342,8 +342,16 @@
      ],
      "tilt": 90,
      "rot": 90,
-     "scale": 0.6,
-     "color": "#ffffff"
+     "scale": 0.01,
+     "color": "#ffffff",
+     "anim": [
+      {
+       "at": "taşların",
+       "scale": 0.6,
+       "dur": 0.3,
+       "ease": "back"
+      }
+     ]
     },
     {
      "kind": "arrow",
@@ -355,23 +363,31 @@
      ],
      "tilt": 90,
      "rot": -90,
-     "scale": 0.6,
-     "color": "#ffffff"
+     "scale": 0.01,
+     "color": "#ffffff",
+     "anim": [
+      {
+       "at": "taşların",
+       "scale": 0.6,
+       "dur": 0.3,
+       "ease": "back"
+      }
+     ]
     }
    ],
    "shots": [
     {
      "camera": {
-      "frame": "wide",
+      "frame": "medium",
       "on": [
        0,
        0,
-       -4.8
+       -4.4
       ],
-      "angle": 34,
-      "tilt": 0.3,
-      "zoom": 0.6,
-      "move": "orbit"
+      "angle": 18,
+      "zoom": 1.8,
+      "move": "pull",
+      "amount": 0.544
      }
     },
     {

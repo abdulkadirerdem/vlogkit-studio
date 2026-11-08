@@ -18,10 +18,10 @@ from pathlib import Path
 
 from vlogkit.config import LIBRARY_DIR
 
-VERSION = "3"
+VERSION = "4"
 URL = f"https://github.com/abdulkadirerdem/vlogkit-studio/releases/download/3d-library-{VERSION}/vk3d-library-{VERSION}.zip"
-SHA256 = "ee1e23a1d12124704960d18df7c5e2f408f20fb3b05ea3e2c5e1b3c9558f34b7"
-SIZE = 478_771_977
+SHA256 = "037b5d5e94d9af269c35ed6f94d8f449b16a3d0e5c4e0cbce35f7b836aaf4989"
+SIZE = 606_260_791
 ROOT = LIBRARY_DIR / "3d"
 CREDITS = (
     [
@@ -36,6 +36,24 @@ CREDITS = (
             "Quaternius",
             "CC0-1.0",
             "https://quaternius.itch.io/universal-animation-library",
+        ),
+        (
+            "MakeHuman system assets (bodies, skins, eyes, eyebrows, eyelashes, teeth, hair, clothes, shoes)",
+            "MakeHuman Community",
+            "CC0-1.0",
+            "https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html",
+        ),
+        (
+            "MakeHuman faceunits01 (ARKit face units)",
+            "MakeHuman Community",
+            "CC0-1.0",
+            "https://static.makehumancommunity.org/assets/assetpacks.html",
+        ),
+        (
+            "Mesh2Motion human animations (221 clips, commit fd9fdeb)",
+            "Mesh2Motion",
+            "CC0-1.0",
+            "https://github.com/Mesh2Motion/mesh2motion-app",
         ),
         (
             "HDRI: Kloofendal 48d Partly Cloudy (Pure Sky)",
@@ -164,6 +182,11 @@ CREDITS = (
 
 def blend_path() -> Path:
     return ROOT / "vk3d_humans.blend"
+
+
+def people_path() -> Path:
+    """MakeHuman people (library 4): optional, the Quaternius bodies stand in without it."""
+    return ROOT / "vk3d_people.blend"
 
 
 def world_path() -> Path:

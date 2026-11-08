@@ -93,6 +93,97 @@ def check(scene, shot_id: str, frame: int, min_visible: float = MIN_VISIBLE) -> 
                 "side": side(*b),
             }
         )
+    hidden = blocked(scene, cam)
+    if hidden:
+        found.append({"shot": shot_id, "frame": frame, "kind": "blocked",
+                      "text": scene.get("vk_target_id", ""), "by": hidden, "visible": 0.5})  # fmt: skip
     for f in found:
         print("VKEDGE " + json.dumps(f, ensure_ascii=False), flush=True)
     return found
+
+
+def _instance_hit(scene, origin, d, mine: set):
+    """The first collection instance (a library model) the ray from origin along d meets before
+    reaching its end, or None."""
+    dn = d.normalized()
+    best, best_t = None, d.length - 0.03
+    for inst in scene.objects:
+        if inst.instance_type != "COLLECTION" or not inst.instance_collection or inst.name in mine:
+            continue
+        for src in inst.instance_collection.all_objects:
+            if src.type != "MESH":
+                continue
+            mw = inst.matrix_world @ src.matrix_world
+            inv = mw.inverted()
+            o = inv @ origin
+            e = inv @ (origin + dn * best_t)
+            if (e - o).length < 1e-6:
+                continue
+            ok, loc, _n, _i = src.ray_cast(o, (e - o).normalized(), distance=(e - o).length)
+            if ok:
+                t = ((mw @ loc) - origin).length
+                if t < best_t:
+                    best, best_t = inst, t
+    return best
+
+
+def blocked(scene, cam) -> str:
+    """When the shot frames a prop: the name of something standing between the camera and it
+    (a calendar hung behind a bookshelf), else ""."""
+    import bpy
+
+    name = scene.get("vk_target", "")
+    root = bpy.data.objects.get(name) if name else None
+    if root is None:
+        return ""
+    mine = {root.name, *(o.name for o in root.children_recursive)}
+    from mathutils import Vector
+
+    corners = [o.matrix_world @ Vector(c) for o in [root, *root.children_recursive]
+               if o.type in ("MESH", "FONT") for c in o.bound_box]  # fmt: skip
+    if not corners:
+        return ""
+    lo = Vector([min(p[k] for p in corners) for k in range(3)])
+    hi = Vector([max(p[k] for p in corners) for k in range(3)])
+    centre = (lo + hi) / 2
+    # placed inside a library model (a calendar hung inside a bookshelf): say so
+    for inst in scene.objects:
+        if inst.instance_type != "COLLECTION" or not inst.instance_collection or inst.name in mine:
+            continue
+        pts = [inst.matrix_world @ src.matrix_world @ Vector(c)
+               for src in inst.instance_collection.all_objects if src.type == "MESH"
+               for c in src.bound_box]  # fmt: skip
+        if pts and all(
+            min(p[k] for p in pts) < centre[k] < max(p[k] for p in pts) for k in range(3)
+        ):
+            return inst.name.split(".")[0]
+    origin = cam.matrix_world.translation
+    dg = bpy.context.evaluated_depsgraph_get()
+    hits: dict[str, int] = {}
+    # thirty rays over the thing (a few can slip between two shelves)
+    for fx in (0.15, 0.35, 0.5, 0.65, 0.85):
+        for fz in (0.15, 0.3, 0.45, 0.6, 0.75, 0.9):
+            p = Vector((lo.x + (hi.x - lo.x) * fx, (lo.y + hi.y) / 2, lo.z + (hi.z - lo.z) * fz))
+            d = p - origin
+            hit, loc, _n, _i, ob, _m = scene.ray_cast(
+                dg, origin, d.normalized(), distance=d.length - 0.03
+            )
+            # library models are collection instances, which scene.ray_cast misses: one nearer
+            # than what it hit (or than the target) stands in front
+            reach = (loc - origin).length if hit else d.length
+            inst = _instance_hit(scene, origin, d.normalized() * reach, mine)
+            if inst is not None:
+                hit, ob = True, inst
+            if not hit or ob is None or ob.name in mine:
+                continue
+            top = ob
+            while top.parent is not None and top.name not in mine:
+                top = top.parent
+            if top.name in mine:
+                continue
+            key = ob.name.split(".")[0]
+            hits[key] = hits.get(key, 0) + 1
+    if not hits:
+        return ""
+    name, n = max(hits.items(), key=lambda kv: kv[1])
+    return name if n >= 4 else ""

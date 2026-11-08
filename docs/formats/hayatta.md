@@ -18,8 +18,10 @@ kuralları ve kit: `docs/3d.md`.
 1. **Kural ve ödül (ilk cümle):** "Bu odadan 30 gün çıkmazsan 1 milyon lira senin." İlk karede
    ödül görünür (para yağmuru, kahraman şaşkın).
 2. **Gün 1 (kolay):** her şey yolunda görünür; sahne kurulur (yatak, buzdolabı, telefon).
-3. **Günler (4-6 kez):** "Gün 5: İnternet kesiliyor." Sorun tek cümle, somut; ardından kahramanın
-   çözümü ya da tepkisi tek cümle. Sorunlar giderek büyür: konfor → yemek → uyku → akıl sağlığı.
+3. **Günler (4-6 kez):** cümle günle açılır: "5. gün: internet kesiliyor.", "12. günde buzdolabı
+   bomboş." Sorun tek cümle, somut; ardından kahramanın çözümü ya da tepkisi tek cümle. Sorunlar
+   giderek büyür: konfor → yemek → uyku → akıl sağlığı. Her cümleyi "Ama" ile başlatma: tekrar
+   eden bağlaç anlatımı düzleştirir. "Ama" yalnızca ters köşede (en çok 1-2 kez).
 4. **Dönüş (son günler):** kuralı sınayan bir olay ("Gün 29: Kapı çalıyor.") ve bir ters köşe
    ("Ama takvime bakıyorsun: daha bir gün var.").
 5. **Kapanış:** "Sen olsan kapıyı açar mıydın?" + `choices` (2-3 seçenek) + `hold`.

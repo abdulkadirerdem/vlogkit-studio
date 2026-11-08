@@ -1,6 +1,6 @@
 # vlogkit Prompt Rehberi
 
-<!-- meta: vlogkit=0.22.0; updated=2026-11-08; artifact=https://claude.ai/artifact/WQakjmnPnJ95AJ1kyQPdPW -->
+<!-- meta: vlogkit=0.23.0; updated=2026-11-08; artifact=https://claude.ai/artifact/WQakjmnPnJ95AJ1kyQPdPW -->
 
 Yeni bir vlog'u Claude'a vlogkit ile kurgulatırken kullanacağın hazır prompt'lar. Hepsi vlogkit'in bugünkü yeteneklerine göre yazıldı. vlogkit geliştikçe bu dosya da güncellenir: kaynak `docs/prompts.md`, sayfa `scripts/build_prompts_page.py` ile üretilip artifact olarak yayınlanır. Aynı dosya `vlogkit ui` arayüzündeki görev listesini de besler: arayüzde bir görevi seçince prompt buradan gelir ve seçtiğin video ile formdaki bağlam bilgileri doldurulur.
 
@@ -440,6 +440,7 @@ docs/formats/<format>.md'deki anlatım kalıbını ve kontrol listesini izle. Ö
 Claude ne yapar:
 - Formatın çalışılmış örneğiyle yeni proje açar (`vlogkit 3d new <proje> --format <format>`) ve kalıba göre yazar: kesitte "Ama… O yüzden… Buna ___ denir", hayatta kalmada gün sayacı ve büyüyen sorunlar, oyun sorusunda seçenekler ve YANLIŞ/DOĞRU damgası, ölçekte sayaçla gelen gerçek sayılar.
 - Ekran araçlarını kullanır: açılış dalışı, önce/sonra perdesi, terim kartı, sayaç, numaralı kapanış sorusu.
+- Karakterler gerçekçi insanlar (14 kişi: çocuk, genç, yaşlı; kadın ve erkek; farklı yapı ve ten), yüz ifadeleri, göz kırpma ve konuşurken ağız hareketiyle; 260'tan fazla doğal hareket. Belirli bir kişi istersen adıyla söyle ("uzun saçlı genç kadın").
 - Sayıları kaynaklarıyla `NOTES.md`'ye yazar; kanal sesiyle (her cümle kendi tonuyla) seslendirir.
 - Render'dan önce `3d kontak`, sonra `3d kontrol` (ses, tempo, ölü an) ve `3d puanla` (kör puan) çalıştırır.
 

@@ -108,6 +108,218 @@ def load_library() -> None:
 KEEP: set[int] = set()
 KEEP_NAMES: set[tuple[str, str]] = set()  # library datablocks the per-shot cleanup must not delete
 
+# --------------------------------------------------------------------------- MakeHuman people
+# vk3d_people.blend (scripts/build_3d_people.py): MakeHuman bodies (CC0) with real proportions,
+# skins, hair and clothes, ARKit face units and visemes as shape keys, and every clip retargeted
+# onto them ("mp_<clip>"). Used when the library has it; the Quaternius bodies stay the fallback.
+PEOPLE = ""
+_people_loaded = False
+
+
+def people_path() -> str:
+    if PEOPLE:
+        return PEOPLE if os.path.exists(PEOPLE) else ""
+    if LIB:
+        p = os.path.join(os.path.dirname(LIB), "vk3d_people.blend")
+        return p if os.path.exists(p) else ""
+    return ""
+
+
+def load_people() -> bool:
+    global _people_loaded
+    if _people_loaded:
+        return True
+    path = people_path()
+    if not path:
+        return False
+    colls = (bpy.data.objects, bpy.data.meshes, bpy.data.materials, bpy.data.actions,
+             bpy.data.armatures, bpy.data.images)  # fmt: skip
+    before = {(type(x).__name__, x.name) for c in colls for x in c}
+    with bpy.data.libraries.load(path, link=False) as (src, dst):
+        dst.collections = [c for c in src.collections if c.startswith("person_")]
+        dst.actions = [a for a in src.actions if a.startswith("mp_")]
+    for a in bpy.data.actions:
+        if a.name.startswith("mp_"):
+            a.use_fake_user = True
+    KEEP_NAMES.update({(type(x).__name__, x.name) for c in colls for x in c} - before)
+    _people_loaded = True
+    return True
+
+
+def presets() -> dict[str, bpy.types.Object]:
+    out = {}
+    for c in bpy.data.collections:
+        if c.name.startswith("person_"):
+            rig = next((o for o in c.objects if o.type == "ARMATURE"), None)
+            if rig is not None:
+                out[c.name[len("person_") :]] = rig
+    return out
+
+
+def pick_preset(name: str, s: dict, raw: dict) -> str | None:
+    """The body that fits the cast entry: an explicit `person`, else sex, age (kid / old from
+    the toon keys), build (big -> heavy), skin (dark), outfit (suit)."""
+    have = presets()
+    if not have:
+        return None
+    if raw.get("person") in have:
+        return raw["person"]
+    sex = "f" if s.get("sex") == "female" else "m"
+    want = []
+    if float(s.get("height", 1.0)) < 0.85:
+        want.append("kid")
+    if (
+        s.get("hair_color", "").lower() in ("#b9b6b0", "#c8c8c8", "#d9d9d9", "#9e9e9e")
+        or raw.get("body") == "old"
+    ):
+        want.append("old")
+    if float(s.get("build", 1.0)) > 1.1:
+        want.append("heavy")
+    if s.get("skin") == "dark":
+        want.append("dark")
+    if s.get("top") == "suit":
+        want.append("suit")
+    mine = sorted(k for k in have if k.startswith(sex + "_"))
+    for w in want:
+        hit = [k for k in mine if w in k]
+        if hit:
+            return hit[sum(map(ord, name)) % len(hit)]
+    plain = [k for k in mine if not any(t in k for t in ("kid", "old", "heavy", "suit"))] or mine
+    return plain[sum(map(ord, name)) % len(plain)] if plain else None
+
+
+# t-shirt outfits whose top is the upper part of the texture (the tee above, jeans/shorts below):
+# the cast's shirt colour is put on the tee only. value: the tee's own colour (None = white)
+TEES = {  # outfit -> (the tee's own colour or None for white, extra tee areas (u0, u1, v0, v1))
+    "male_casualsuit02": ("#3b6db3", [(0.765, 1.0, 0.0, 0.42)]),
+    "male_casualsuit04": ("#3b6db3", [(0.765, 1.0, 0.0, 0.42)]),
+    "female_casualsuit01": ("#3b6db3", [(0.74, 1.0, 0.0, 0.47)]),
+    "female_casualsuit02": ("#3b6db3", [(0.74, 1.0, 0.0, 0.47)]),
+    "male_casualsuit06": (None, []),
+}  # fmt: skip
+
+
+def _recolor_tee(ob, color: str) -> None:
+    import colorsys
+
+    for slot in ob.material_slots:
+        m = slot.material
+        if m is None or not m.use_nodes:
+            continue
+        nt = m.node_tree
+        tex = next((n for n in nt.nodes if n.type == "TEX_IMAGE" and n.image
+                    and "diffuse" in n.image.name.lower()
+                    and any(n.image.name.lower().startswith(k) for k in TEES)), None)  # fmt: skip
+        if tex is None:
+            continue
+        key = next(k for k in TEES if tex.image.name.lower().startswith(k))
+        if ob.users > 1 or m.users > 1:
+            slot.material = m = m.copy()
+            nt = m.node_tree
+            tex = next(
+                n
+                for n in nt.nodes
+                if n.type == "TEX_IMAGE" and n.image and n.image.name == tex.image.name
+            )
+        links = [lk for lk in nt.links if lk.from_node == tex and lk.from_socket.name == "Color"]
+        want = look.hex_rgba(color)[:3]
+        base, rects = TEES[key]
+        if base:  # a coloured tee: turn its hue, keep the fabric's light and shade
+            hb, sb, vb = colorsys.rgb_to_hsv(*look.hex_rgba(base)[:3])
+            hw, sw, vw = colorsys.rgb_to_hsv(*want)
+            hsv = nt.nodes.new("ShaderNodeHueSaturation")
+            hsv.inputs["Hue"].default_value = (0.5 + hw - hb) % 1.0
+            hsv.inputs["Saturation"].default_value = min(2.0, sw / max(0.05, sb))
+            hsv.inputs["Value"].default_value = min(2.5, vw / max(0.05, vb))
+            nt.links.new(tex.outputs["Color"], hsv.inputs["Color"])
+            new = hsv.outputs["Color"]
+        else:  # a white tee: dye it
+            mul = nt.nodes.new("ShaderNodeMix")
+            mul.data_type, mul.blend_type = "RGBA", "MULTIPLY"
+            mul.inputs["Factor"].default_value = 1.0
+            nt.links.new(tex.outputs["Color"], mul.inputs[6])
+            mul.inputs[7].default_value = (*want, 1.0)
+            new = mul.outputs[2]
+        # only on the tee: the upper part of the texture (V above ~0.6)
+        uv = nt.nodes.new("ShaderNodeTexCoord")
+        sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+        nt.links.new(uv.outputs["UV"], sep.inputs[0])
+        mr = nt.nodes.new("ShaderNodeMapRange")
+        mr.inputs["From Min"].default_value, mr.inputs["From Max"].default_value = 0.56, 0.6
+        nt.links.new(sep.outputs["Y"], mr.inputs["Value"])
+        mask = mr.outputs["Result"]
+        for u0, u1, v0, v1 in rects:  # the sleeves, laid out elsewhere in the texture
+            cells = []
+            for axis, lo, hi in (("X", u0, u1), ("Y", v0, v1)):
+                a_ = nt.nodes.new("ShaderNodeMath")
+                a_.operation = "GREATER_THAN"
+                nt.links.new(sep.outputs[axis], a_.inputs[0])
+                a_.inputs[1].default_value = lo
+                b_ = nt.nodes.new("ShaderNodeMath")
+                b_.operation = "LESS_THAN"
+                nt.links.new(sep.outputs[axis], b_.inputs[0])
+                b_.inputs[1].default_value = hi
+                c_ = nt.nodes.new("ShaderNodeMath")
+                c_.operation = "MULTIPLY"
+                nt.links.new(a_.outputs[0], c_.inputs[0])
+                nt.links.new(b_.outputs[0], c_.inputs[1])
+                cells.append(c_.outputs[0])
+            box = nt.nodes.new("ShaderNodeMath")
+            box.operation = "MULTIPLY"
+            nt.links.new(cells[0], box.inputs[0])
+            nt.links.new(cells[1], box.inputs[1])
+            mx = nt.nodes.new("ShaderNodeMath")
+            mx.operation = "MAXIMUM"
+            nt.links.new(mask, mx.inputs[0])
+            nt.links.new(box.outputs[0], mx.inputs[1])
+            mask = mx.outputs[0]
+        mix = nt.nodes.new("ShaderNodeMix")
+        mix.data_type = "RGBA"
+        nt.links.new(mask, mix.inputs["Factor"])
+        nt.links.new(tex.outputs["Color"], mix.inputs[6])
+        nt.links.new(new, mix.inputs[7])
+        for lk in links:
+            nt.links.new(mix.outputs[2], lk.to_socket)
+
+
+def build_person(name: str, preset: str, s: dict) -> Human:
+    src = bpy.data.collections[f"person_{preset}"]
+    coll = bpy.context.collection
+    mapping = {}
+    for o in src.objects:
+        c = o.copy()
+        if o.data is not None:
+            c.data = o.data.copy()
+        c.name = f"{name}.{o.name.split('.', 1)[-1]}"
+        coll.objects.link(c)
+        mapping[o] = c
+    for o, c in mapping.items():
+        if o.parent in mapping:
+            c.parent = mapping[o.parent]
+        for m in c.modifiers:
+            if m.type == "ARMATURE" and m.object in mapping:
+                m.object = mapping[m.object]
+    arm = next(c for c in mapping.values() if c.type == "ARMATURE")
+    arm.name = f"{name}.rig"
+    if arm.animation_data:
+        arm.animation_data.action = None
+    for pb in arm.pose.bones:
+        pb.rotation_mode = "QUATERNION"
+        pb.location, pb.scale, pb.rotation_quaternion = (0, 0, 0), (1, 1, 1), (1, 0, 0, 0)
+    parts = [c for c in mapping.values() if c is not arm]
+    body = next((c for c in parts if c.name.endswith(".body")), parts[0])
+    head = arm.data.bones.get("head") or arm.data.bones.get("Head")
+    height = (head.tail_local.z if head else 1.75) * arm.scale.z
+    k = float(s.get("height", 1.0)) if preset.split("_")[1] != "kid" else 1.0
+    arm.scale = (k, k, k)
+    arm.rotation_mode = "XYZ"
+    arm["vk_mpfb"] = True
+    if s.get("_shirt_given"):
+        for o in parts:
+            if o.type == "MESH":
+                _recolor_tee(o, s["shirt"])
+    return Human(name, arm, body, parts, s, height * k)
+
 
 def _copy_hierarchy(sex: str, name: str) -> tuple[bpy.types.Object, list[bpy.types.Object]]:
     src = bpy.data.collections[f"human_{sex}"]
@@ -399,9 +611,22 @@ def _fabric(color: str, rough: float, denim: bool = False) -> bpy.types.Material
 def build(name: str, spec: dict | None = None) -> Human:
     load_library()
     s = {**DEFAULT, **_from_toon(spec or {})}
+    raw = dict(spec or {})
+    if not raw.get("classic") and load_people():
+        preset = pick_preset(name, s, raw)
+        if preset:
+            return build_person(name, preset, {**s, "_shirt_given": "shirt" in raw})
     sex = "female" if s.get("sex") == "female" else "male"
     arm, parts = _copy_hierarchy(sex, name)
     arm.name = f"{name}.rig"
+    # build on the rest pose whatever the library file was saved in (shoes and garments are
+    # placed from the posed bones)
+    if arm.animation_data:
+        arm.animation_data.action = None
+    for pb in arm.pose.bones:
+        pb.location, pb.scale = (0, 0, 0), (1, 1, 1)
+        pb.rotation_quaternion, pb.rotation_euler = (1, 0, 0, 0), (0, 0, 0)
+    bpy.context.view_layer.update()
     body = next(o for o in parts if o.type == "MESH" and "Super" in o.name)
     eyebrows = next((o for o in parts if "Eyebrows" in o.name), None)
     # skin: the light or dark texture, tinted
@@ -424,6 +649,16 @@ def build(name: str, spec: dict | None = None) -> Human:
                         n.image = img
     else:
         _tint(body, skin, 1.0)
+    # the base bodies are "superheroes": the normal map carries six-pack and bulging muscles;
+    # a quarter of it keeps the skin's detail and loses the bodybuilder
+    for slot in body.material_slots:
+        if slot.material is None or not slot.material.use_nodes:
+            continue
+        if slot.material.users > 1:
+            slot.material = slot.material.copy()
+        for n in slot.material.node_tree.nodes:
+            if n.type == "NORMAL_MAP":
+                n.inputs["Strength"].default_value = float(s.get("muscle", 0.3))
     if eyebrows:
         _tint(eyebrows, s["hair_color"])
     # hair
@@ -479,6 +714,12 @@ def build(name: str, spec: dict | None = None) -> Human:
     # size: height and build (bone scale keeps the proportions of the animations)
     k = float(s.get("height", 1.0))
     arm.scale = (k, k, k)
+    # ordinary arms, not a superhero's: thinner across, the same length (animations unchanged)
+    arm_k = float(s.get("arms", 0.86))
+    for bn in ("upperarm_l", "upperarm_r", "lowerarm_l", "lowerarm_r"):
+        pb = arm.pose.bones.get(bn)
+        if pb:
+            pb.scale = (arm_k, 1.0, arm_k)
     build_k = float(s.get("build", 1.0))
     if abs(build_k - 1.0) > 1e-3:
         for bn in ("spine_01", "spine_02", "spine_03", "pelvis"):

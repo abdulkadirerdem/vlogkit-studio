@@ -195,7 +195,7 @@ class Scene3DEdit(Edit):
                 els.append(
                     cards.Counter(
                         float(cn["from"]), float(cn["to"]), t0, dur,
-                        max(t0 + dur + 0.8, b.t1), self.layout,
+                        b.t1, self.layout,  # gone before the cut: it must not ghost over the next shot
                         cn.get("unit", ""), cn.get("label", ""),
                     )
                 )  # fmt: skip
@@ -206,7 +206,7 @@ class Scene3DEdit(Edit):
                     cards.Term(
                         tm["text"],
                         t0,
-                        max(t0 + 1.6, b.t1),
+                        b.t1,  # until its line ends, never over the next shot
                         self.layout,
                         tm.get("tag", "BUNA DENİR"),
                     )
@@ -236,6 +236,10 @@ class Scene3DEdit(Edit):
                         pick,
                     )
                 )
+            tm_ = b.raw.get("timer")
+            if tm_:  # a countdown while the question waits
+                t0 = self.when(b, tm_.get("at"), b.speech_at)
+                els.append(cards.Timer(t0, float(tm_.get("dur", 3)), self.layout))
             st = b.raw.get("stamp")
             if st:  # the verdict: YANLIŞ / DOĞRU slammed on the frame
                 t0 = self.when(b, st.get("at"), b.speech_at)

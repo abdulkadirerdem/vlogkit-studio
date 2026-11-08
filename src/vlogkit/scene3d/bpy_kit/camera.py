@@ -151,8 +151,8 @@ def animate(
     elif move == "push":
         at(f0, dist, hz, angle, target)
         at(f1, dist * (1 - amt), hz * (1 - amt * 0.5), angle, target)
-    elif move == "pull":
-        at(f0, dist * (1 - amt), hz, angle, target)
+    elif move == "pull":  # back along the line of view: closer and lower at the start
+        at(f0, dist * (1 - amt), hz * (1 - amt), angle, target)
         at(f1, dist, hz, angle, target)
     elif move == "orbit":
         at(f0, dist, hz, angle - amt / 2, target)

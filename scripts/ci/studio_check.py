@@ -21,7 +21,11 @@ print("vlogkit", status["vlogkit"], "claude:", status["claude"])
 for r in setup["steps"]:
     print(f"  {r['id']:<10} done={r['done']} optional={bool(r.get('optional'))}")
 ids = [r["id"] for r in setup["steps"]]
-want = ["ffmpeg", "git", "library"] if sys.platform == "win32" else ["homebrew", "tools", "speech", "library"]
+want = (
+    ["ffmpeg", "git", "library"]
+    if sys.platform == "win32"
+    else ["homebrew", "tools", "speech", "library"]
+)
 assert ids[: len(want)] == want, ids
 assert [r["id"] for r in setup["steps"] if r.get("optional")] == ["blender", "lib3d", "voice"], ids
 print("studio ok")

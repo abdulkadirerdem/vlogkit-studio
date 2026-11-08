@@ -140,7 +140,10 @@ def word_groups(
             j < len(words)
             and j - i < max_words
             and words[j][1] - words[i][1] < min_on
-            and not re.search(r"[.!?;:]$", words[j - 1][0])
+            and not (
+                re.search(r"[.!?;:]$", words[j - 1][0])
+                and not re.fullmatch(r"\d+\.", words[j - 1][0])  # "5." goes with "gün"
+            )
         ):
             j += 1
         grp = words[i:j]
@@ -161,7 +164,9 @@ def chunks(
             out.append((" ".join(x for x, _, _ in cur), cur[0][1], cur[-1][2]))
             cur = []
         cur.append(w)
-        if re.search(r"[.!?;:]$", w[0]):
+        # a sentence ends on its punctuation, but "5." is an ordinal ("5. gün"): it stays with
+        # the word after it
+        if re.search(r"[.!?;:]$", w[0]) and not re.fullmatch(r"\d+\.", w[0]):
             out.append((" ".join(x for x, _, _ in cur), cur[0][1], cur[-1][2]))
             cur = []
     if cur:

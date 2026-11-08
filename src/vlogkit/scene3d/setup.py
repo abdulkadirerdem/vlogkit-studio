@@ -51,9 +51,18 @@ def rows() -> list[dict]:
         {
             "id": "lib3d",
             "label": "3B karakter ve mekân kütüphanesi",
-            "detail": "Gerçekçi iskeletli karakterler, 43 animasyon, gerçek gökyüzü ve dokular (hepsi CC0)",
-            "size": "~480 MB",
-            "done": library.ready(),
+            "detail": (
+                "Gerçekçi insanlar (14 kişi, yüz ifadeleri), 260'tan fazla hareket kaydı, gerçek "
+                "gökyüzü ve dokular (hepsi CC0)"
+                + (
+                    ""
+                    if library.people_path().exists() or not library.ready()
+                    else ". Yeni sürüm var: gerçekçi insanlar için tekrar indir"
+                )
+            ),
+            "size": "~610 MB",
+            # an older library still renders (the Quaternius bodies); the row offers the update
+            "done": library.ready() and library.people_path().exists(),
             "optional": True,
         },
         {

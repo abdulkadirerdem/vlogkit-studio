@@ -313,7 +313,13 @@ def wav_duration(path: Path) -> float:
 
 
 def _key(line: Line, engine: str, voice: str | None) -> str:
-    raw = json.dumps([line.text, voice, line.emotion, line.speed, engine], ensure_ascii=False)
+    from vlogkit.speech.sayilar import spell
+
+    # what is actually spoken is in the key: a better reading of the same line ("5. gün" ->
+    # "beşinci gün") must not be served the old recording
+    raw = json.dumps(
+        [line.text, spell(line.text), voice, line.emotion, line.speed, engine], ensure_ascii=False
+    )
     return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
 
 
@@ -400,8 +406,7 @@ def _pocket_many(jobs: list[tuple[Line, str | None, Path]], voice_file: Path | N
     )
     job.unlink(missing_ok=True)
     if r.returncode != 0:
-        tail = (r.stderr or r.stdout).strip().splitlines()[-6:]
-        raise RuntimeError("Pocket TTS çalışmadı: " + " | ".join(tail))
+        raise _worker_failed("Pocket TTS", r.stderr or r.stdout)
 
 
 def _qwen_many(jobs: list[tuple[Line, str | None, Path]]) -> None:
@@ -436,10 +441,22 @@ def _qwen_many(jobs: list[tuple[Line, str | None, Path]]) -> None:
     )
     job.unlink(missing_ok=True)
     if r.returncode != 0:
-        tail = (r.stderr or r.stdout).strip().splitlines()[-6:]
-        raise RuntimeError("Türkçe ses modeli çalışmadı: " + " | ".join(tail))
+        raise _worker_failed("Türkçe ses modeli", r.stderr or r.stdout)
     for ln, _, p in jobs:  # the model has no speed of its own: retime after it, pitch untouched
         retime(p, ln.speed)
+
+
+def _worker_failed(name: str, out: str) -> RuntimeError:
+    """The voice worker's error in words a user can act on (a machine short of memory gets a
+    traceback ending in "not enough memory" otherwise)."""
+    out = (out or "").strip()
+    low = out.lower()
+    if "not enough memory" in low or "out of memory" in low or "memoryerror" in low:
+        return RuntimeError(
+            f"{name} için bellek yetmedi (kanal sesi yaklaşık 5 GB boş bellek ister). Açık "
+            "programları (tarayıcı, Blender) kapatıp yeniden dene."
+        )
+    return RuntimeError(f"{name} çalışmadı: " + " | ".join(out.splitlines()[-6:]))
 
 
 def _vox_many(jobs: list[tuple[Line, str | None, Path]]) -> None:
@@ -477,8 +494,7 @@ def _vox_many(jobs: list[tuple[Line, str | None, Path]]) -> None:
     )  # fmt: skip
     job.unlink(missing_ok=True)
     if r.returncode != 0:
-        tail = (r.stderr or r.stdout).strip().splitlines()[-6:]
-        raise RuntimeError("Türkçe ses modeli çalışmadı: " + " | ".join(tail))
+        raise _worker_failed("Türkçe ses modeli", r.stderr or r.stdout)
     for ln, _, p in jobs:
         retime(p, ln.speed)
 

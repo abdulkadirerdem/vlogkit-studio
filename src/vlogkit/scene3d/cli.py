@@ -134,6 +134,12 @@ def progress(project: str) -> None:
     left = f", kalan ~{p['left_s'] // 60} dk" if p.get("left_s") else ""
     speed = f", {p['per_frame']} sn/kare" if p.get("per_frame") else ""
     typer.echo(f"{p['status']}: {p['frames']}/{p['total']} kare{speed}{left}")
+    if p.get("stalled"):
+        typer.echo(
+            f"takıldı: {detach.STALL_S // 60} dakikadır ilerleme yok. İşlemi durdurup "
+            f"(pid {p.get('pid')}) `vlogkit 3d render {project}` ile yeniden başlat: "
+            "biten kareler korunur"
+        )
     if p.get("output"):
         typer.echo(f"çıktı: {p['output']}")
     if p.get("error"):
@@ -214,6 +220,7 @@ def kit(
         "faces": list(catalog.FACES),
         "frames": catalog.FRAMES,
         "moves": catalog.MOVES,
+        "people": catalog.PEOPLE,
         "bodies": list(catalog.BODIES),
         "hair": list(catalog.HAIR),
         "outfits": list(catalog.OUTFITS),

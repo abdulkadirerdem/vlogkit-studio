@@ -61,8 +61,8 @@
      "kind": "calendar",
      "id": "takvim",
      "at": [
-      -0.6,
-      2.35
+      -1.6,
+      2.38
      ],
      "text": "1"
     }
@@ -157,8 +157,8 @@
      "kind": "calendar",
      "id": "takvim",
      "at": [
-      -0.6,
-      2.35
+      -1.6,
+      2.38
      ],
      "text": "1"
     }
@@ -200,7 +200,7 @@
    ]
   },
   {
-   "say": "Ama 5. gün internet kesiliyor.",
+   "say": "5. gün: internet kesiliyor.",
    "set": "room",
    "props": [
     {
@@ -231,8 +231,8 @@
      "kind": "calendar",
      "id": "takvim",
      "at": [
-      -0.6,
-      2.35
+      -1.6,
+      2.38
      ],
      "text": "5"
     }
@@ -314,8 +314,8 @@
      "kind": "calendar",
      "id": "takvim",
      "at": [
-      -0.6,
-      2.35
+      -1.6,
+      2.38
      ],
      "text": "8"
     }
@@ -345,7 +345,7 @@
      "camera": {
       "frame": "wide",
       "on": "deniz",
-      "angle": -25,
+      "angle": 25,
       "move": "push"
      }
     },
@@ -360,7 +360,7 @@
    ]
   },
   {
-   "say": "Ama 12. gün buzdolabı boşalıyor.",
+   "say": "12. günde buzdolabı bomboş.",
    "set": "room",
    "props": [
     {
@@ -391,8 +391,8 @@
      "kind": "calendar",
      "id": "takvim",
      "at": [
-      -0.6,
-      2.35
+      -1.6,
+      2.38
      ],
      "text": "12"
     }
@@ -427,7 +427,7 @@
      }
     },
     {
-     "cue": "boşalıyor",
+     "cue": "bomboş",
      "camera": {
       "frame": "close",
       "on": "deniz",
@@ -469,8 +469,8 @@
      "kind": "calendar",
      "id": "takvim",
      "at": [
-      -0.6,
-      2.35
+      -1.6,
+      2.38
      ],
      "text": "13"
     },
@@ -523,7 +523,7 @@
    ]
   },
   {
-   "say": "Ama 20. gün uykun tamamen kaçıyor.",
+   "say": "20. gün artık uyuyamıyorsun.",
    "set": "bedroom_night",
    "actors": [
     {
@@ -554,7 +554,7 @@
      }
     },
     {
-     "cue": "uykun",
+     "cue": "uyuyamıyorsun",
      "camera": {
       "frame": "face",
       "on": "deniz",
@@ -565,7 +565,7 @@
    "look": "nightvision"
   },
   {
-   "say": "Ama 29. gün kapı çalıyor.",
+   "say": "29. gün, gece yarısı kapı çalıyor.",
    "set": "room",
    "props": [
     {
@@ -600,8 +600,8 @@
      "kind": "calendar",
      "id": "takvim",
      "at": [
-      -0.6,
-      2.35
+      -1.6,
+      2.38
      ],
      "text": "29"
     }
@@ -678,8 +678,8 @@
      "kind": "calendar",
      "id": "takvim",
      "at": [
-      -0.6,
-      2.35
+      -1.6,
+      2.38
      ],
      "text": "29"
     }
@@ -754,8 +754,8 @@
      "kind": "calendar",
      "id": "takvim",
      "at": [
-      -0.6,
-      2.35
+      -1.6,
+      2.38
      ],
      "text": "29"
     }
@@ -768,7 +768,7 @@
       0.1,
       1.4
      ],
-     "facing": 200,
+     "facing": 0,
      "face": "shock",
      "do": [
       {
@@ -791,7 +791,6 @@
      "camera": {
       "frame": "face",
       "on": "deniz",
-      "angle": -10,
       "move": "push"
      }
     }
@@ -835,8 +834,8 @@
      "kind": "calendar",
      "id": "takvim",
      "at": [
-      -0.6,
-      2.35
+      -1.6,
+      2.38
      ],
      "text": "29"
     }

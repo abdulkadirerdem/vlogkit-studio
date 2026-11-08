@@ -97,6 +97,9 @@ def read(project: str, variant: str = "v1") -> dict:
         return {}
 
 
+STALL_S = 15 * 60  # no log line for this long: the render is stuck
+
+
 def progress(project: str, variant: str = "v1") -> dict:
     """{status, frames, total, per_frame, left_s, alive, output, error, log_tail}."""
     st = read(project, variant)
@@ -124,6 +127,11 @@ def progress(project: str, variant: str = "v1") -> dict:
         st["status"] = "killed"  # gone without writing its outcome
     elapsed = time.time() - float(st.get("started", time.time()))
     per = elapsed / done if done and st.get("status") == "running" else None
+    # alive but its log has not moved for a long while: stuck (a worker it waits on was killed)
+    stalled = False
+    with contextlib.suppress(OSError):
+        quiet = time.time() - log_path(project, variant).stat().st_mtime
+        stalled = st.get("status") == "running" and alive and quiet > STALL_S
     tail: list[str] = []
     with contextlib.suppress(OSError):
         tail = (
@@ -134,6 +142,7 @@ def progress(project: str, variant: str = "v1") -> dict:
     return {
         **st,
         "alive": alive,
+        "stalled": stalled,
         "frames": done,
         "total": total,
         "per_frame": round(per, 2) if per else None,

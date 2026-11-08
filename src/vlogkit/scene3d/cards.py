@@ -291,13 +291,84 @@ class Stamp:
                             outline=(255, 255, 255, 255), width=max(2, round(7 * k)))  # fmt: skip
         d.text((pad - x0, pad - y0), tr_upper(text), font=f, fill="white")
         self.img = im.rotate(-8, resample=Image.BICUBIC, expand=True)
+        self.col = col
+        self._edge = None
+
+    def _vignette(self, size) -> Image.Image:
+        """The frame's edges glowing in the verdict's colour (red: wrong, green: right)."""
+        if self._edge is None or self._edge.size != size:
+            from PIL import ImageFilter
+
+            w, h = size
+            m = Image.new("L", (w, h), 255)
+            ImageDraw.Draw(m).rounded_rectangle(
+                (w * 0.12, h * 0.1, w * 0.88, h * 0.9), radius=round(w * 0.2), fill=0
+            )
+            m = m.filter(ImageFilter.GaussianBlur(w * 0.08))
+            edge = Image.new("RGBA", (w, h), (*self.col, 0))
+            edge.putalpha(m)
+            self._edge = edge
+        return self._edge
 
     def draw(self, canvas: Image.Image, t: float) -> None:
         if not (self.t0 <= t < self.t1):
             return
+        glow = clamp(1 - (t - self.t0) / 0.6) * 0.75  # the edges flash, then let go
+        if glow > 0.01:
+            edge = self._vignette(canvas.size)
+            a = edge.getchannel("A").point(lambda v: round(v * glow))
+            layer = edge.copy()
+            layer.putalpha(a)
+            canvas.alpha_composite(layer)
         p = clamp((t - self.t0) / 0.16)
         s = 1.7 - 0.7 * ease_out_cubic(p)  # slammed down from above the frame
         img = self.img.resize(
             (max(1, round(self.img.width * s)), max(1, round(self.img.height * s)))
         )
         put(canvas, img, self.cx, self.cy, alpha=min(1.0, p * 1.5) * clamp((self.t1 - t) / 0.2))
+
+
+class Timer:
+    """A countdown ring (3, 2, 1) at the top right while a question waits: the ring empties, the
+    number pops each second, the last second turns red."""
+
+    def __init__(self, t0: float, dur: float, layout: Layout = VERTICAL):
+        k = layout.scale
+        self.t0, self.dur, self.t1 = t0, max(1.0, dur), t0 + max(1.0, dur)
+        self.k = k
+        self.text = ""
+        self.r = round(78 * k)
+        self.cx, self.cy = layout.w - layout.margin - self.r - 10 * k, 300 * k
+
+    def draw(self, canvas: Image.Image, t: float) -> None:
+        if not (self.t0 <= t < self.t1 + 0.25):
+            return
+        left = max(0.0, self.t1 - t)
+        n = max(1, int(left) + (1 if left % 1 > 1e-6 else 0)) if left > 0 else 0
+        r, k = self.r, self.k
+        size = 2 * r + round(20 * k)
+        im = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        d = ImageDraw.Draw(im)
+        c = size / 2
+        d.ellipse((c - r, c - r, c + r, c + r), fill=(17, 17, 17, 215))
+        last = left <= 1.0
+        col = (255, 59, 48, 255) if last else (*YELLOW, 255)
+        w = max(3, round(12 * k))
+        frac = left / self.dur
+        if frac > 0:
+            d.arc((c - r + w / 2, c - r + w / 2, c + r - w / 2, c + r - w / 2),
+                  -90, -90 + 360 * frac, fill=col, width=w)  # fmt: skip
+        if n:
+            f = font("Black", round(86 * k))
+            x0, y0, x1, y1 = f.getbbox(str(n))
+            d.text((c - (x0 + x1) / 2, c - (y0 + y1) / 2), str(n), font=f, fill="white")
+        pop = 1.0 + 0.18 * clamp(1 - ((self.dur - left) % 1.0) / 0.2)  # each new second pops
+        if pop > 1.001:
+            im = im.resize((round(size * pop), round(size * pop)))
+        put(
+            canvas,
+            im,
+            self.cx,
+            self.cy,
+            alpha=clamp((t - self.t0) / 0.15) * clamp((self.t1 + 0.25 - t) / 0.25),
+        )

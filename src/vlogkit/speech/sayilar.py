@@ -63,14 +63,36 @@ def _number(text: str) -> str:
     return words
 
 
+_VOWELS = "aıeioöuü"
+
+
+def ordinal(n: int) -> str:
+    """5 -> 'beşinci', 4 -> 'dördüncü', 29 -> 'yirmi dokuzuncu' (the suffix follows the last
+    word's last vowel; a word ending in a vowel drops the suffix's own)."""
+    words = integer(n).split()
+    last = words[-1]
+    if last == "dört":
+        last = "dörd"  # the t softens before a vowel
+    v = next(c for c in reversed(last) if c in _VOWELS)
+    harmony = {"a": "ı", "ı": "ı", "e": "i", "i": "i", "o": "u", "u": "u", "ö": "ü", "ü": "ü"}[v]
+    suffix = f"{harmony}nc{harmony}"
+    words[-1] = last + (suffix[1:] if last[-1] in _VOWELS else suffix)
+    return " ".join(words)
+
+
+# "5. gün", "29. gün": a number with a dot followed by a lower-case word is an ordinal; at the end
+# of a sentence ("Seviye 8. Hazır mısın?") it is not
+_ORD = re.compile(r"(?<![\w.,])(\d+)\.(?=\s+[a-zçğıöşü])")
 _NUM = re.compile(r"(?<![\w])(%\s?)?(\d{1,3}(?:\.\d{3})+|\d+)(,\d+)?(?![\d])")
 
 
 def spell(text: str) -> str:
-    """Every number in `text` written out; percent signs read as 'yüzde'."""
+    """Every number in `text` written out; percent signs read as 'yüzde'; "5. gün" as an
+    ordinal ("beşinci gün")."""
 
     def sub(m: re.Match) -> str:
         pct = "yüzde " if m.group(1) else ""
         return pct + _number(m.group(2) + (m.group(3) or ""))
 
+    text = _ORD.sub(lambda m: ordinal(int(m.group(1))), text)
     return re.sub(r"\s+", " ", _NUM.sub(sub, text)).strip()

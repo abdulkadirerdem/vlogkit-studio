@@ -23,8 +23,12 @@ video gerçek sayıları sayaçla verir ve kanıtı ekranda dizer (30 Dünya yan
    (`globe` prop'ları, `scale` 0.01 → 1 ile tek tek belirir) ve sayaç 0 → 30.
 5. **İkinci şok:** daha büyük ve doğru bir gerçek ("Güneş sistemindeki bütün gezegenler de bu
    boşluğa sığar.") ve bir terim ya da sayı.
-6. **Kapanış:** bir sonraki ölçek sorusu `choices` ile ("Sence Güneş'in içine kaç Dünya
-   sığar?"), bitiş kartı cevabı bir sonraki videoya bırakır.
+6. **Bonus gerçek:** konuya bağlı ikinci, cevaplanan bir soru ("Peki Dünya'nın içine kaç Ay
+   sığar? Yaklaşık 50.") ve kanıtı ekranda (50 Ay yan yana belirir, sayaç 0 → 50).
+7. **Kapanış:** soruyu açık bırakma: izleyici videodan cevapları öğrenmiş olarak çıksın. Yorum
+   sorusu izleyicinin kendisine dönsün ("Sen ilk başta kaç demiştin?" + baştaki tahmin
+   seçenekleri `choices`). Bir sonraki konu yalnızca bitiş kartında ("SIRADAKİ: GÜNEŞ'E KAÇ DÜNYA
+   SIĞAR?").
 
 Kurallar: her sayı hesaplanmış ve kaynaklı (NASA, ESA; NOTES.md'ye yaz). Yuvarlamayı söyle
 ("yaklaşık"). Kısa cümle (3-10 kelime). Sayıları rakamla yaz, seslendirme okur.
@@ -43,6 +47,7 @@ Kurallar: her sayı hesaplanmış ve kaynaklı (NASA, ESA; NOTES.md'ye yaz). Yuv
 - [ ] İlk cümle soru, ilk karede iki şey birden görünüyor; tahmin seçenekleri ekranda.
 - [ ] Her sayı `count` ile ekranda ve NOTES.md'de kaynaklı.
 - [ ] Sonuç ekranda kanıtla (dizilen küreler) gösteriliyor.
-- [ ] İkinci şok var; kapanış bir sonraki soruyu soruyor.
+- [ ] İkinci şok ve cevaplanan bir bonus gerçek var; kapanışta cevapsız soru yok, yorum sorusu
+      izleyicinin tahmini.
 
 Başlangıç: `uv run vlogkit 3d new <proje> --format olcek` çalışılmış örnekle (Dünya-Ay) açar.
