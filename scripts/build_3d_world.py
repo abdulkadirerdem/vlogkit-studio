@@ -31,7 +31,11 @@ CARS = ["NormalCar1", "NormalCar2", "SUV", "SportsCar", "SportsCar2", "Taxi", "C
 PH = ["SchoolDesk_01", "SchoolChair_01", "Sofa_01", "ArmChair_01", "CoffeeTable_01", "metal_office_desk", "WoodenChair_01",
       "potted_plant_01", "potted_plant_02", "street_lamp_01", "fire_hydrant", "metal_trash_can", "painted_wooden_bench",
       "wall_clock", "cardboard_box_01", "wooden_bookshelf_worn", "television_02", "classic_laptop", "dining_table",
-      "desk_lamp_arm_01", "security_camera_01", "shrub_02"]  # fmt: skip
+      "desk_lamp_arm_01", "security_camera_01", "shrub_02",
+      # library 3: the yard and the cutaway (scripts/fetch_polyhaven.py)
+      "wooden_bucket_01", "Barrel_01", "rusted_spade_01", "picke_dirty_01", "watering_can_metal_01", "compost_bags",
+      "root_cluster_01", "root_cluster_02", "grass_medium_01", "rock_moss_set_01", "boulder_01", "wooden_crate_01",
+      "tree_stump_01", "utility_box_01", "water_manhole_cover", "wooden_ladder", "planter_box_01"]  # fmt: skip
 
 
 def new_objects(fn) -> list[bpy.types.Object]:

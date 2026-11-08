@@ -1,0 +1,1580 @@
+{
+ "title": "Dünya ile Ay arasına kaç Dünya sığar?",
+ "format": "olcek",
+ "output": "3d/olcek-ornek",
+ "quality": "normal",
+ "hud": {
+  "label": "DÜNYA"
+ },
+ "hook": {
+  "text": "ARAYA KAÇ [DÜNYA] SIĞAR?",
+  "seconds": 2.2
+ },
+ "end": {
+  "tag": "SIRADAKİ",
+  "title": "GÜNEŞ'E KAÇ DÜNYA SIĞAR?",
+  "seconds": 1.6
+ },
+ "beats": [
+  {
+   "say": "Dünya ile Ay arasına kaç Dünya sığar?",
+   "set": "studio",
+   "props": [
+    {
+     "kind": "globe",
+     "id": "d1",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      0.2
+     ]
+    },
+    {
+     "kind": "moon",
+     "id": "ay",
+     "r": 0.041,
+     "at": [
+      0,
+      0,
+      9.25
+     ]
+    }
+   ],
+   "choices": {
+    "at": "kaç",
+    "title": "TAHMİNİN?",
+    "items": [
+     "5",
+     "10",
+     "30"
+    ],
+    "ask": "YORUMA YAZ",
+    "dur": 2.0
+   },
+   "shots": [
+    {
+     "camera": {
+      "frame": "medium",
+      "on": "d1",
+      "angle": -15,
+      "move": "push"
+     }
+    },
+    {
+     "cue": "Ay",
+     "camera": {
+      "frame": "medium",
+      "on": "ay",
+      "angle": 15,
+      "move": "push"
+     }
+    },
+    {
+     "cue": "kaç",
+     "camera": {
+      "frame": "wide",
+      "on": [
+       0,
+       0,
+       4.7
+      ],
+      "zoom": 1.9,
+      "move": "push"
+     }
+    }
+   ],
+   "sfx": [
+    "whoosh"
+   ],
+   "set_opts": {
+    "color": "#0b1020"
+   }
+  },
+  {
+   "say": "Çoğu insan 5 ya da 10 der.",
+   "set": "studio",
+   "props": [
+    {
+     "kind": "globe",
+     "id": "d1",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      0.2
+     ]
+    },
+    {
+     "kind": "moon",
+     "id": "ay",
+     "r": 0.041,
+     "at": [
+      0,
+      0,
+      9.25
+     ]
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "medium",
+      "on": "d1",
+      "angle": -20,
+      "move": "push"
+     }
+    },
+    {
+     "cue": "10",
+     "camera": {
+      "frame": "close",
+      "on": "ay",
+      "angle": 20,
+      "move": "push"
+     }
+    }
+   ],
+   "set_opts": {
+    "color": "#0b1020"
+   }
+  },
+  {
+   "say": "Ay, bizden ortalama 384 bin kilometre uzakta.",
+   "set": "studio",
+   "props": [
+    {
+     "kind": "globe",
+     "id": "d1",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      0.2
+     ]
+    },
+    {
+     "kind": "moon",
+     "id": "ay",
+     "r": 0.041,
+     "at": [
+      0,
+      0,
+      9.25
+     ]
+    }
+   ],
+   "count": {
+    "from": 0,
+    "to": 384400,
+    "unit": "KM",
+    "label": "UZAKLIK",
+    "at": "384",
+    "dur": 1.6
+   },
+   "shots": [
+    {
+     "camera": {
+      "frame": "wide",
+      "on": [
+       0,
+       0,
+       4.7
+      ],
+      "zoom": 1.9,
+      "angle": 10,
+      "move": "rise",
+      "amount": 1.0
+     }
+    }
+   ],
+   "set_opts": {
+    "color": "#0b1020"
+   }
+  },
+  {
+   "say": "Dünya'nın çapı ise 12 bin 742 kilometre.",
+   "set": "studio",
+   "props": [
+    {
+     "kind": "globe",
+     "id": "d1",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      0.2
+     ]
+    },
+    {
+     "kind": "moon",
+     "id": "ay",
+     "r": 0.041,
+     "at": [
+      0,
+      0,
+      9.25
+     ]
+    }
+   ],
+   "count": {
+    "from": 0,
+    "to": 12742,
+    "unit": "KM",
+    "label": "ÇAP",
+    "at": "12",
+    "dur": 1.2
+   },
+   "shots": [
+    {
+     "camera": {
+      "frame": "medium",
+      "on": "d1",
+      "angle": -15,
+      "move": "push"
+     }
+    }
+   ],
+   "set_opts": {
+    "color": "#0b1020"
+   }
+  },
+  {
+   "say": "Yani araya yaklaşık 30 Dünya dizilir.",
+   "set": "studio",
+   "props": [
+    {
+     "kind": "globe",
+     "id": "d1",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      0.2
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.12,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d2",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      0.5
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.155,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d3",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      0.8
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.19,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d4",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      1.0999999999999999
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.225,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d5",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      1.4
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.26,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d6",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      1.7
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.29500000000000004,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d7",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      1.9999999999999998
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.33,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d8",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      2.3000000000000003
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.365,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d9",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      2.6
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.4,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d10",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      2.9
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.43500000000000005,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d11",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      3.2
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.47000000000000003,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d12",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      3.5
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.505,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d13",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      3.8
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.54,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d14",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      4.1
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.5750000000000001,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d15",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      4.4
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.6100000000000001,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d16",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      4.7
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.645,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d17",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      5.0
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.68,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d18",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      5.3
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.7150000000000001,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d19",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      5.6
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.7500000000000001,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d20",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      5.9
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.785,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d21",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      6.2
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.8200000000000001,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d22",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      6.5
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.8550000000000001,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d23",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      6.8
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.89,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d24",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      7.1
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.925,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d25",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      7.3999999999999995
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.9600000000000001,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d26",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      7.7
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 0.9950000000000001,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d27",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      8.0
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 1.0300000000000002,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d28",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      8.299999999999999
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 1.065,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d29",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      8.6
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 1.1,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d30",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      8.899999999999999
+     ],
+     "scale": 0.01,
+     "anim": [
+      {
+       "at": "30",
+       "scale": 1.0,
+       "dur": 1.1350000000000002,
+       "ease": "back"
+      }
+     ]
+    },
+    {
+     "kind": "moon",
+     "id": "ay",
+     "r": 0.041,
+     "at": [
+      0,
+      0,
+      9.25
+     ]
+    }
+   ],
+   "count": {
+    "from": 1,
+    "to": 30,
+    "unit": "DÜNYA",
+    "label": "",
+    "at": "30",
+    "dur": 1.4
+   },
+   "hud": {
+    "value": 30,
+    "at": "30"
+   },
+   "shots": [
+    {
+     "camera": {
+      "frame": "wide",
+      "on": [
+       0,
+       0,
+       2.0
+      ],
+      "angle": -10,
+      "move": "rise",
+      "amount": 3.0
+     }
+    },
+    {
+     "cue": "dizilir",
+     "camera": {
+      "frame": "wide",
+      "on": [
+       0,
+       0,
+       4.7
+      ],
+      "zoom": 1.9,
+      "angle": 15,
+      "move": "pull"
+     }
+    }
+   ],
+   "sfx": [
+    {
+     "id": "pop",
+     "at": "30"
+    }
+   ],
+   "set_opts": {
+    "color": "#0b1020"
+   }
+  },
+  {
+   "say": "Ama asıl şok şu: bütün gezegenler de bu boşluğa sığar.",
+   "set": "studio",
+   "props": [
+    {
+     "kind": "globe",
+     "id": "d1",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      0.2
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d2",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      0.5
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d3",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      0.8
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d4",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      1.0999999999999999
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d5",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      1.4
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d6",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      1.7
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d7",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      1.9999999999999998
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d8",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      2.3000000000000003
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d9",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      2.6
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d10",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      2.9
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d11",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      3.2
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d12",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      3.5
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d13",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      3.8
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d14",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      4.1
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d15",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      4.4
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d16",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      4.7
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d17",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      5.0
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d18",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      5.3
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d19",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      5.6
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d20",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      5.9
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d21",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      6.2
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d22",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      6.5
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d23",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      6.8
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d24",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      7.1
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d25",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      7.3999999999999995
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d26",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      7.7
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d27",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      8.0
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d28",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      8.299999999999999
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d29",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      8.6
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d30",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      8.899999999999999
+     ]
+    },
+    {
+     "kind": "moon",
+     "id": "ay",
+     "r": 0.041,
+     "at": [
+      0,
+      0,
+      9.25
+     ]
+    }
+   ],
+   "term": {
+    "text": "8 GEZEGEN",
+    "at": "bütün",
+    "tag": "HEPSİ ARAYA SIĞAR"
+   },
+   "shots": [
+    {
+     "camera": {
+      "frame": "wide",
+      "on": [
+       0,
+       0,
+       4.7
+      ],
+      "zoom": 1.7,
+      "angle": 20,
+      "move": "orbit"
+     }
+    }
+   ],
+   "sfx": [
+    {
+     "id": "boom",
+     "at": "bütün"
+    }
+   ],
+   "set_opts": {
+    "color": "#0b1020"
+   }
+  },
+  {
+   "say": "Arada yine de 4 bin kilometre boşluk kalır.",
+   "set": "studio",
+   "props": [
+    {
+     "kind": "globe",
+     "id": "d1",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      0.2
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d2",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      0.5
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d3",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      0.8
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d4",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      1.0999999999999999
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d5",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      1.4
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d6",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      1.7
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d7",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      1.9999999999999998
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d8",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      2.3000000000000003
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d9",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      2.6
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d10",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      2.9
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d11",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      3.2
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d12",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      3.5
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d13",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      3.8
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d14",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      4.1
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d15",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      4.4
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d16",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      4.7
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d17",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      5.0
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d18",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      5.3
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d19",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      5.6
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d20",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      5.9
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d21",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      6.2
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d22",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      6.5
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d23",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      6.8
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d24",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      7.1
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d25",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      7.3999999999999995
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d26",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      7.7
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d27",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      8.0
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d28",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      8.299999999999999
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d29",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      8.6
+     ]
+    },
+    {
+     "kind": "globe",
+     "id": "d30",
+     "r": 0.15,
+     "at": [
+      0,
+      0,
+      8.899999999999999
+     ]
+    },
+    {
+     "kind": "moon",
+     "id": "ay",
+     "r": 0.041,
+     "at": [
+      0,
+      0,
+      9.25
+     ]
+    }
+   ],
+   "count": {
+    "from": 0,
+    "to": 4000,
+    "unit": "KM",
+    "label": "BOŞLUK",
+    "at": "4",
+    "dur": 1.0
+   },
+   "shots": [
+    {
+     "camera": {
+      "frame": "medium",
+      "on": "ay",
+      "angle": -15,
+      "move": "pull"
+     }
+    }
+   ],
+   "set_opts": {
+    "color": "#0b1020"
+   }
+  },
+  {
+   "say": "Peki sence Güneş'in içine kaç Dünya sığar?",
+   "set": "world",
+   "hold": 2.2,
+   "choices": {
+    "at": "Güneş'in",
+    "title": "GÜNEŞ'E KAÇ DÜNYA SIĞAR?",
+    "items": [
+     "1.300",
+     "130 BİN",
+     "1,3 MİLYON"
+    ],
+    "ask": "NUMARASINI YORUMA YAZ"
+   },
+   "camera": {
+    "frame": "wide",
+    "move": "zoom_out"
+   }
+  }
+ ]
+}

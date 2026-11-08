@@ -1,6 +1,8 @@
 """Camera: framings (how much of the subject is in frame) and moves (how the camera travels).
 
 A shot's camera is {"frame": ..., "on": actor | [x, y, z], "move": ..., "angle": deg, "amount": n}.
+Moves: static, push, pull, orbit, pan, rise, fall, zoom_out, dolly, follow, shake, dive (from
+above the ground down into the cutaway, landing on `on`: the opening move of a build-up video).
 Framings are tuned for a vertical 9:16 frame with a 35 mm lens. `angle` is the azimuth around the
 target (0 = in front of a character facing -Y, 90 = from its left side), `tilt` raises (+) or
 lowers (-) the camera.
@@ -116,8 +118,11 @@ def animate(
     target = base + Vector((0, 0, tz)) + Vector(spec.get("offset", (0, 0, 0)))
     angle = float(spec.get("angle", 0))
     tilt = float(spec.get("tilt", 0))
+    level = bool(spec.get("level"))  # eye level with the target: straight at a buried pipe
     dist *= float(spec.get("zoom", 1.0))
     hz += dist * float(spec.get("_lift", 0.0))  # a set may ask to be seen from a little above
+    if level:  # looking up from below the lawn bent the house over the frame
+        hz, tilt = 0.0, 0.0
     if spec.get("lens"):
         cam.data.lens = float(spec["lens"])
     move = spec.get("move", "push")
@@ -132,6 +137,8 @@ def animate(
         "shake": 0.03,
         "dolly": 1.2,
     }.get(move, 0)
+    if move == "dive" and not spec.get("amount"):  # high enough to start over the ground
+        amt = max(3.0, 2.5 - target.z)
     f0, f1 = start, start + max(1, n - 1)
 
     def at(f, d, h, ang, tgt):
@@ -164,6 +171,16 @@ def animate(
     elif move == "zoom_out":  # the scale reveal: from close to very far and high
         at(f0, dist, hz, angle, target)
         at(f1, dist * amt, hz + dist * amt * 0.55, angle, target)
+    elif move == "dive":  # the hook move: from above the ground down through the cut, to land
+        # on the target below (the water a well reaches); it starts looking at the surface
+        # `from`: where it looks first (the working pump), else straight above the target
+        first = Vector(spec["from"]) if spec.get("from") else target + Vector((0, 0, amt * 0.85))
+        if spec.get("from_zoom"):  # start close on `from` (the pump at work), then dive
+            d0 = dist * float(spec["from_zoom"])
+            at(f0, d0, d0 * 0.45, angle, first)
+        else:
+            at(f0, dist * 1.15, hz + amt * 0.8, angle, first)
+        at(f1, dist, hz, angle, target)
     elif move == "dolly":  # move forward along the view (walk-in)
         at(f0, dist + amt, hz, angle, target)
         at(f1, dist, hz, angle, target)
@@ -184,10 +201,15 @@ def animate(
     if move == "shake" or spec.get("shake"):
         _shake(cam, float(spec.get("shake", amt or 0.03)), f0)
     _ease(cam, spec.get("ease", "ease"))
-    if spec.get("dof", frame in ("face", "close", "hands")):
+    # a set may ask for a shallow focus everywhere (`_dof`: the diorama look of the cutaway: the
+    # subject sharp, the house behind soft); a shot can still turn it off with "dof": false
+    set_dof = spec.get("_dof")
+    if spec.get("dof", bool(set_dof) or frame in ("face", "close", "hands")):
         cam.data.dof.use_dof = True
-        cam.data.dof.focus_distance = max(0.3, (cam.location - target).length)
-        cam.data.dof.aperture_fstop = float(spec.get("fstop", 2.8))
+        # focus on the target itself, so it stays sharp while the camera pushes or dives
+        focus = shapes.empty("cam.focus", target)
+        cam.data.dof.focus_object = focus
+        cam.data.dof.aperture_fstop = float(spec.get("fstop", set_dof or 2.8))
 
 
 def _shake(cam, strength: float, f0: int = 1, f1: int | None = None, blend: int = 0) -> None:

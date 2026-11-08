@@ -174,7 +174,13 @@ def narrate(spec: dict, work: Path, engine: str | None = None) -> list[Beat]:
     v = spec.get("voice") or {}
     lines = [
         tts.Line(
-            specmod.spoken(b["say"]), v.get("voice"), v.get("emotion"), float(v.get("speed", 1.0))
+            specmod.spoken(b["say"]),
+            v.get("voice"),
+            # the channel voice takes a delivery per line (`ton`); Pocket an emotion name
+            b.get("ton")
+            if (engine or v.get("engine", "auto")) in ("auto", "voxcpm") and b.get("ton")
+            else v.get("emotion"),
+            float(v.get("speed", 1.0)),
         )
         for b in spec["beats"]
     ]
@@ -339,6 +345,8 @@ def _props(props: list[dict], b: Beat, scope: tuple[float, float]) -> list[dict]
             p["anim"] = _timed(p["anim"], b, scope)
         if p.get("open"):
             p["open"] = _timed([p["open"]], b, scope)[0]
+        if p.get("pump"):
+            p["pump"] = _timed([p["pump"]], b, scope)[0]
         hand = p.get("hand")
         if hand:
             steps = [{"who": hand}] if isinstance(hand, str) else hand
@@ -383,6 +391,7 @@ def beat_shots(b: Beat, fps: float) -> list[dict]:
                 "crowd": ({**crowd, "t": cue_time(b, crowd.get("at"), c_scope)} if crowd else None),
                 "camera": s.get("camera", raw.get("camera")) or {},
                 "look": look,
+                "wipe": s.get("wipe"),
             }
         )
     return out
@@ -484,7 +493,7 @@ def render_plan(
         for shot in beat_shots(b, fps):
             shot["cast"] = {a["who"]: spec["cast"][a["who"]] for a in shot["actors"]}
             # the look is drawn over the frames afterwards: it does not change the render
-            keyed = {k: v for k, v in shot.items() if k not in ("look", "at")}
+            keyed = {k: v for k, v in shot.items() if k not in ("look", "at", "wipe")}
             shot["key"] = hashlib.sha1(
                 json.dumps(
                     [keyed, kit, engine, q, size, fps], sort_keys=True, ensure_ascii=False

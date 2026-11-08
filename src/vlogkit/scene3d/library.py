@@ -18,10 +18,10 @@ from pathlib import Path
 
 from vlogkit.config import LIBRARY_DIR
 
-VERSION = "2"
+VERSION = "3"
 URL = f"https://github.com/abdulkadirerdem/vlogkit-studio/releases/download/3d-library-{VERSION}/vk3d-library-{VERSION}.zip"
-SHA256 = "5671a2d312600f445dc7b256e35adf66a2934c61dc25b87c4c5d5d1658d81c04"
-SIZE = 314_395_270
+SHA256 = "ee1e23a1d12124704960d18df7c5e2f408f20fb3b05ea3e2c5e1b3c9558f34b7"
+SIZE = 478_771_977
 ROOT = LIBRARY_DIR / "3d"
 CREDITS = (
     [
@@ -109,6 +109,24 @@ CREDITS = (
             "desk_lamp_arm_01",
             "security_camera_01",
             "shrub_02",
+            # library 3: the yard and the cutaway
+            "wooden_bucket_01",
+            "Barrel_01",
+            "rusted_spade_01",
+            "picke_dirty_01",
+            "watering_can_metal_01",
+            "compost_bags",
+            "root_cluster_01",
+            "root_cluster_02",
+            "grass_medium_01",
+            "rock_moss_set_01",
+            "boulder_01",
+            "wooden_crate_01",
+            "tree_stump_01",
+            "utility_box_01",
+            "water_manhole_cover",
+            "wooden_ladder",
+            "planter_box_01",
         )
     ]
     + [
@@ -121,6 +139,24 @@ CREDITS = (
             "concrete_floor_02",
             "floor_tiles_06",
             "large_square_pattern_01",
+            # library 3: real soil strata, the well, the house
+            "sparse_grass",
+            "brown_mud_02",
+            "cracked_red_ground",
+            "gravelly_sand",
+            "rocks_ground_05",
+            "cliff_side",
+            "stacked_stone_wall",
+            "gravel_stones",
+            "white_stucco",
+            "red_brick_03",
+            "clay_roof_tiles_02",
+            "wood_planks",
+            "concrete_wall_003",
+            "snow_02",
+            "green_metal_rust",
+            "rusty_metal_02",
+            "brown_mud_dry",
         )
     ]
 )

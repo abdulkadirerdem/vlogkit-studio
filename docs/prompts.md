@@ -1,6 +1,6 @@
 # vlogkit Prompt Rehberi
 
-<!-- meta: vlogkit=0.21.0; updated=2026-11-07; artifact=https://claude.ai/artifact/WQakjmnPnJ95AJ1kyQPdPW -->
+<!-- meta: vlogkit=0.22.0; updated=2026-11-08; artifact=https://claude.ai/artifact/WQakjmnPnJ95AJ1kyQPdPW -->
 
 Yeni bir vlog'u Claude'a vlogkit ile kurgulatırken kullanacağın hazır prompt'lar. Hepsi vlogkit'in bugünkü yeteneklerine göre yazıldı. vlogkit geliştikçe bu dosya da güncellenir: kaynak `docs/prompts.md`, sayfa `scripts/build_prompts_page.py` ile üretilip artifact olarak yayınlanır. Aynı dosya `vlogkit ui` arayüzündeki görev listesini de besler: arayüzde bir görevi seçince prompt buradan gelir ve seçtiğin video ile formdaki bağlam bilgileri doldurulur.
 
@@ -427,6 +427,23 @@ Claude ne yapar:
 - Mekânı kitten seçer (oda, sınıf, ofis, spor salonu, asansör kabini, sokak, şehir, park, uzay, Dünya, stüdyo fonu); hangi mekânlar ve eşyalar var: `uv run vlogkit 3d kit`.
 - Önizleme karelerine bakıp kadrajı düzeltir; onaydan sonra Blender render'ını oturumdan bağımsız başlatır (`vlogkit 3d render`).
 - Bitince `review` ve `check` ile teslim kontrolü yapar.
+
+#### Formattan 3B video (kesit, hayatta kalma, oyun sorusu, ölçek)
+
+Ne zaman: Videonun tarzı belli: Stüdyo'da "3B animasyon" seçince altında çıkan format kartlarından birini seçtin ya da formatı yazıyorsun.
+
+```text
+<konu> için <kesit | hayatta | oyun | olcek> formatında dikey 3B video yap.
+docs/formats/<format>.md'deki anlatım kalıbını ve kontrol listesini izle. Önce kontak sayfasını göster, onaydan sonra render.
+```
+
+Claude ne yapar:
+- Formatın çalışılmış örneğiyle yeni proje açar (`vlogkit 3d new <proje> --format <format>`) ve kalıba göre yazar: kesitte "Ama… O yüzden… Buna ___ denir", hayatta kalmada gün sayacı ve büyüyen sorunlar, oyun sorusunda seçenekler ve YANLIŞ/DOĞRU damgası, ölçekte sayaçla gelen gerçek sayılar.
+- Ekran araçlarını kullanır: açılış dalışı, önce/sonra perdesi, terim kartı, sayaç, numaralı kapanış sorusu.
+- Sayıları kaynaklarıyla `NOTES.md`'ye yazar; kanal sesiyle (her cümle kendi tonuyla) seslendirir.
+- Render'dan önce `3d kontak`, sonra `3d kontrol` (ses, tempo, ölü an) ve `3d puanla` (kör puan) çalıştırır.
+
+Not: 60 saniyelik bir kesit videosu M4 Mac'te yarım çözünürlükte ~22 dakikada, tam çözünürlükte ~40 dakikada render olur.
 
 ### Yayın {#yayin}
 

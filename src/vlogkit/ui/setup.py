@@ -162,7 +162,9 @@ def steps() -> list[dict]:
         from vlogkit import winsupport
         from vlogkit.scene3d import setup as scene3d_setup
 
-        rows = winsupport.setup_rows(winsupport.tool_status(), _library_done()) + scene3d_setup.rows()
+        rows = (
+            winsupport.setup_rows(winsupport.tool_status(), _library_done()) + scene3d_setup.rows()
+        )
         done = {r["id"]: r["done"] for r in rows}
         for r in rows:
             r["ready"] = not r.get("needs") or done[r["needs"]]
@@ -301,7 +303,10 @@ def run_step(step: str) -> None:
         from vlogkit import winsupport
 
         for sid in ("ffmpeg", "git"):
-            if not rows[sid]["done"] and (tasks.get(f"step:{sid}") or {}).get("status") != "running":
+            if (
+                not rows[sid]["done"]
+                and (tasks.get(f"step:{sid}") or {}).get("status") != "running"
+            ):
                 winsupport.run_step(sid, _run_task)
         return
     if step == "all":
@@ -400,8 +405,16 @@ def _run_task(
             for cmd in steps:
                 win = sys.platform == "win32"  # no console windows; UTF-8 output
                 proc = subprocess.Popen(
-                    cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=cwd,
-                    **({"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000} if win else {}),
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    cwd=cwd,
+                    **(
+                        {"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000}
+                        if win
+                        else {}
+                    ),
                 )
                 assert proc.stdout
                 for line in proc.stdout:

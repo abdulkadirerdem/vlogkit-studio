@@ -60,7 +60,7 @@ Videoların bilgisayarından çıkmaz: aboneliğindeki yapay zekâya yalnız yaz
 
 Mac'inde zaten olan parçalar (Homebrew, ffmpeg-full, whisper, aubio, Hugging Face'ten indirilmiş konuşma modeli) kurulum ekranında "Kurulu" görünür ve yeniden indirilmez.
 
-İsteğe bağlı **3B animasyon** parçaları (Ayarlar > Kurulum): Blender ~1 GB, 3B karakter ve mekân kütüphanesi ~0,32 GB (CC0: Quaternius, Poly Haven, NASA), Türkçe ses modeli ~5 GB (Qwen3-TTS Türkçe, Apache-2.0; yerel ve ücretsiz).
+İsteğe bağlı **3B animasyon** parçaları (Ayarlar > Kurulum): Blender ~1 GB, 3B karakter ve mekân kütüphanesi ~0,48 GB (CC0: Quaternius, Poly Haven, NASA), Türkçe ses modeli ~5 GB (VoxCPM2, Apache-2.0; yerel ve ücretsiz).
 
 İsteğe bağlı **yerel video modeli** (ham çekimi parça parça izler; Ayarlar > Yerel model): Qwen3.5 2B ~2,4 GB, 4B ~3,7 GB, 9B ~6,6 GB. Mac'inin belleğine uymayan kurulamaz; uygun olanın yanında "önerilen" yazar.
 

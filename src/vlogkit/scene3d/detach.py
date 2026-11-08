@@ -104,10 +104,19 @@ def progress(project: str, variant: str = "v1") -> dict:
     total = done = 0
     try:
         plan = json.loads((work / "render_plan.json").read_text(encoding="utf-8"))
+        since = float(st.get("started", 0))
         for s in plan["shots"]:
             total += s["frames"]
             out = Path(s["out"])
-            done += s["frames"] if (out / "done.json").exists() else len(list(out.glob("*.png")))
+            try:  # finished, for this plan (an older render's frames do not count)
+                fin = json.loads((out / "done.json").read_text())["key"] == s.get("key")
+            except (OSError, ValueError, KeyError):
+                fin = False
+            if fin or s.get("reuse"):
+                done += s["frames"]
+            else:  # in progress: this run's frames, also the ones still in the side folder
+                pngs = [*out.glob("*.png"), *out.glob("_anim/*.png")]
+                done += sum(1 for f in pngs if f.stat().st_mtime >= since)
     except (OSError, ValueError, KeyError):
         pass
     alive = bool(st.get("pid")) and _alive(int(st["pid"]))

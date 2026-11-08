@@ -60,8 +60,9 @@ doğrulanamayanlar.
 
 ## 4. Dosya
 
-Format: `"format": "pekiya"` (varsayılan) ya da `"kesit"`; formatın belgesindeki kalıba göre yaz
-(`docs/formats/<format>.md`; cümle sayısı formata göre: pekiya 6-16, kesit 14-28). Kimlik (`id`) dosya adıyla aynı: küçük harf, rakam, tire. `status` `"yeni"`, `created` bugünün
+Format: `"format": "pekiya"` (varsayılan), `"kesit"`, `"hayatta"`, `"oyun"` ya da `"olcek"`;
+formatın belgesindeki kalıba göre yaz (`docs/formats/<format>.md`; cümle sayısı formata göre:
+pekiya 6-16, kesit 12-22, hayatta 8-16, oyun 6-12, olcek 7-14). Kimlik (`id`) dosya adıyla aynı: küçük harf, rakam, tire. `status` `"yeni"`, `created` bugünün
 tarihi, `project` `null`.
 
 ```json

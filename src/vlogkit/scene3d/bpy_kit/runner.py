@@ -131,6 +131,52 @@ def _prop_moves(pr: dict, placed: props.Placed, fps: float, span: int) -> None:
         fx._ease(hinge, "out")
 
 
+def _rope(pr: dict, placed: props.Placed, i: int) -> None:
+    """A rope from a fixed point (`rope`: [x, y, z]) to the top of the prop, following it as it
+    moves (a bucket pulled up a well, a load on a crane)."""
+    from mathutils import Vector
+
+    root = placed.root
+    bpy.context.view_layer.update()
+    lo, hi = placed._box()
+    end = Vector(((lo.x + hi.x) / 2, (lo.y + hi.y) / 2, hi.z))
+    cu = bpy.data.curves.new(f"rope{i}", "CURVE")
+    cu.dimensions = "3D"
+    cu.bevel_depth = float(pr.get("rope_r", 0.012))
+    cu.bevel_resolution = 4
+    sp = cu.splines.new("POLY")
+    sp.points.add(1)
+    sp.points[0].co = (*pr["rope"][:3], 1.0)
+    sp.points[1].co = (*end, 1.0)
+    ob = bpy.data.objects.new(f"rope{i}", cu)
+    ob.data.materials.append(look.mat(pr.get("rope_color", "#b9935a"), rough=0.8))
+    bpy.context.collection.objects.link(ob)
+    hook = ob.modifiers.new("follow", "HOOK")
+    hook.object = root
+    hook.vertex_indices_set([1])
+    hook.matrix_inverse = root.matrix_world.inverted()
+
+
+def _pump(pr: dict, placed: props.Placed, fps: float, span: int) -> None:
+    """A hand pump being worked: the lever goes up and down (`pump`: at, dur, rate per second)."""
+    p = pr["pump"]
+    lever = next((o for o in placed.root.children_recursive if o.name.endswith(".lever")), None)
+    if lever is None:
+        return
+    f0 = max(1, 1 + round(float(p.get("t", 0)) * fps))
+    f1 = min(span, f0 + round(float(p.get("dur", 2.0)) * fps))
+    half = max(2, round(fps / float(p.get("rate", 1.6)) / 2))
+    f, up = f0, True
+    while f <= f1:
+        lever.rotation_euler.y = R(-14 if up else 16)
+        lever.keyframe_insert("rotation_euler", index=1, frame=f)
+        f += half
+        up = not up
+    from bpy_kit import fx
+
+    fx._ease(lever, "inout")
+
+
 def _hands(pr: dict, placed: props.Placed, actors: dict, fps: float, frames) -> None:
     """A held prop follows the hand of whoever holds it; `hand` steps pass it on."""
     from mathutils import Matrix, Vector
@@ -212,6 +258,13 @@ def build_shot(plan: dict, shot: dict) -> int:
     props.PITS.clear()
     # pits first: they dig the ground the layers then fill
     order = sorted(enumerate(shot.get("props", [])), key=lambda ip: ip[1].get("kind") != "pit")
+    # layers in front-to-back order at the section: shells (masonry, liners) before fills
+    layers = sorted(
+        (pr for _, pr in order if pr.get("kind") == "layer"),
+        key=lambda pr: not (pr.get("shell") or pr.get("material") == "liner"),
+    )
+    for k, pr in enumerate(layers):
+        pr["_order"] = k
     for i, pr in order:
         ob = props.place(pr["kind"], f"prop{i}", pr)
         placed[pr.get("id") or f"prop{i}"] = props.Placed(ob)
@@ -290,6 +343,10 @@ def build_shot(plan: dict, shot: dict) -> int:
     for i, pr in enumerate(shot.get("props", [])):
         pl = placed[pr.get("id") or f"prop{i}"]
         _prop_moves(pr, pl, fps, span)
+        if pr.get("rope"):
+            _rope(pr, pl, i)
+        if pr.get("pump"):
+            _pump(pr, pl, fps, span)
         if pr.get("hand"):
             _hands(pr, pl, actors, fps, frames)
     cam = camera.make(shot.get("camera", {}).get("lens", 35))
@@ -297,6 +354,8 @@ def build_shot(plan: dict, shot: dict) -> int:
     cspec.setdefault("_default_target", info.get("target", (0, 0, 1)))
     cspec.setdefault("_scale", info.get("camera_scale", 1.0))
     cspec.setdefault("_lift", info.get("camera_lift", 0.0))
+    if info.get("dof_fstop"):
+        cspec.setdefault("_dof", info["dof_fstop"])
     if "on" not in cspec and actors:
         cspec["on"] = next(iter(actors))
     targets = {**placed, **actors}
@@ -308,6 +367,35 @@ def build_shot(plan: dict, shot: dict) -> int:
         fx.apply(ctx, shot["fx"])
     sc.frame_set(start)
     return span
+
+
+def _render_range(sc, shot_id: str, start: int, n: int, out: Path, checked: set) -> None:
+    """The whole shot as one animation render: Blender keeps the scene loaded between frames
+    instead of setting it up again for each still (20% faster). Frames land under their scene
+    number in a side folder and are renamed to the shot's own 00001.png..."""
+    for f in checked:
+        sc.frame_set(start + f - 1)
+        framecheck.check(sc, shot_id, f)
+    tmp = out / "_anim"
+    tmp.mkdir(exist_ok=True)
+
+    def wrote(scene, *_a) -> None:
+        print(f"VKFRAME {shot_id} {scene.frame_current - start + 1} {n}", flush=True)
+
+    bpy.app.handlers.render_write.append(wrote)
+    try:
+        sc.frame_start, sc.frame_end, sc.frame_step = start, start + n - 1, 1
+        sc.render.filepath = str(tmp / "#####")
+        sc.render.use_overwrite = True
+        bpy.ops.render.render(animation=True)
+    finally:
+        bpy.app.handlers.render_write.remove(wrote)
+    for f in range(1, n + 1):
+        src = tmp / f"{start + f - 1:05d}.png"
+        if not src.exists():
+            raise RuntimeError(f"{shot_id}: kare {f} yazılmadı")
+        src.replace(out / f"{f:05d}.png")
+    tmp.rmdir()
 
 
 def render_shot(plan: dict, shot: dict, only: list[int] | None = None) -> None:
@@ -323,13 +411,16 @@ def render_shot(plan: dict, shot: dict, only: list[int] | None = None) -> None:
     # full shot (one check is enough: a sign does not move).
     checked = set(local) if only else {local[len(local) // 2]} if local else set()
     t = time.time()
-    for f in local:
-        sc.frame_set(start + f - 1)
-        if f in checked:
-            framecheck.check(sc, shot["id"], f)
-        sc.render.filepath = str(out / f"{f:05d}.png")
-        bpy.ops.render.render(write_still=True)
-        print(f"VKFRAME {shot['id']} {f} {n}", flush=True)
+    if only:  # a preview: a few separate frames
+        for f in local:
+            sc.frame_set(start + f - 1)
+            if f in checked:
+                framecheck.check(sc, shot["id"], f)
+            sc.render.filepath = str(out / f"{f:05d}.png")
+            bpy.ops.render.render(write_still=True)
+            print(f"VKFRAME {shot['id']} {f} {n}", flush=True)
+    elif local:
+        _render_range(sc, shot["id"], start, n, out, checked)
     if not only:
         (out / "done.json").write_text(
             json.dumps(

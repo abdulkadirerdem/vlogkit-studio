@@ -58,19 +58,20 @@ def fetch() -> None:
 
 @app.command("install-voice")
 def install_voice() -> None:
-    """Kanal sesini (Qwen3 Türkçe, kendi ortamında) kur ve modeli indir (~5 GB, bir kez)."""
+    """Kanal sesini (VoxCPM2, kendi ortamında; Apple Silicon'da MLX) kur ve modeli indir (~5 GB, bir kez)."""
     import subprocess
 
     from vlogkit.config import BUILD_DIR
     from vlogkit.speech import tts
 
-    if not tts.qwen_installed():
+    if not tts.vox_python():
         subprocess.run(
-            tts.install_qwen_cmd(), check=True, env={**os.environ, "UV_HTTP_TIMEOUT": "900"}
+            tts.install_vox_cmd(), check=True, env={**os.environ, "UV_HTTP_TIMEOUT": "900"}
         )
         tts._tool_dir.cache_clear()
     typer.echo("model indiriliyor ve deneniyor (ilk sefer birkaç dakika)...")
-    s = tts.speak([tts.Line("Kanal sesi hazır.")], BUILD_DIR / "voices", engine="qwen")[0]
+    s = tts.speak([tts.Line("Kanal sesi hazır.")], BUILD_DIR / "voices", engine="voxcpm")[0]
+    (BUILD_DIR / "voices" / ".vox_ready").write_text("ok")
     typer.echo(f"✅ hazır: {s.path} ({s.duration:.1f} sn)")
 
 

@@ -569,12 +569,108 @@ CUT_W, CUT_D, CUT_H = 14.0, 15.0, 16.0  # the diorama block: width (x), depth (y
 STRATA_DEPTH = 5.0  # the layers are drawn over the top 5 m; below that it is all bedrock
 
 
+# the soil profile, top down: (Poly Haven texture, band bottom m, tint) – real soil photographs
+STRATA = [("brown_mud_02", -0.75, None), ("cracked_red_ground", -1.7, "#d9b9a0"),
+          ("gravelly_sand", -2.6, None), ("rocks_ground_05", -3.7, None), ("cliff_side", -99.0, None)]  # fmt: skip
+
+
+def _tex_ok(names) -> bool:
+    import os
+
+    return bool(look.TEX_DIR) and all(
+        os.path.exists(os.path.join(look.TEX_DIR, f"{n}_diff.jpg")) for n in names
+    )
+
+
+def _strata_textured(name: str):
+    """The cut as real soil: each band its own photographed texture (colour, normal, roughness),
+    projected from world position so the block and every pit wall dug into it line up, the
+    borders wavy."""
+    import os
+
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    p = nt.nodes.get("Principled BSDF")
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(geo.outputs["Position"], sep.inputs[0])
+    wob = nt.nodes.new("ShaderNodeTexNoise")
+    wob.inputs["Scale"].default_value = 0.8
+    nt.links.new(geo.outputs["Position"], wob.inputs["Vector"])
+    zw = nt.nodes.new("ShaderNodeMath")  # z, made wavy
+    zw.operation = "MULTIPLY_ADD"
+    zw.inputs[1].default_value = 0.5
+    nt.links.new(wob.outputs["Fac"], zw.inputs[0])
+    nt.links.new(sep.outputs["Z"], zw.inputs[2])
+    mp = nt.nodes.new("ShaderNodeMapping")
+    mp.inputs["Scale"].default_value = (0.5, 0.5, 0.5)  # 2 m per repeat
+    nt.links.new(geo.outputs["Position"], mp.inputs["Vector"])
+
+    def img(tex: str, suffix: str, color: bool):
+        n = nt.nodes.new("ShaderNodeTexImage")
+        n.image = bpy.data.images.load(
+            os.path.join(look.TEX_DIR, f"{tex}_{suffix}.jpg"), check_existing=True
+        )
+        if not color:
+            n.image.colorspace_settings.name = "Non-Color"
+        n.projection = "BOX"
+        n.projection_blend = 0.3
+        nt.links.new(mp.outputs["Vector"], n.inputs["Vector"])
+        return n.outputs["Color"]
+
+    col = nor = rough = None
+    for tex, _bottom, tint in reversed(STRATA):  # deepest first, each band painted over it
+        c, nn, r = img(tex, "diff", True), img(tex, "nor", False), img(tex, "rough", False)
+        if tint:
+            t = nt.nodes.new("ShaderNodeMix")
+            t.data_type = "RGBA"
+            t.blend_type = "MULTIPLY"
+            t.inputs["Factor"].default_value = 1.0
+            nt.links.new(c, t.inputs["A"])
+            t.inputs["B"].default_value = look.hex_rgba(tint)
+            c = t.outputs["Result"]
+        if col is None:
+            col, nor, rough = c, nn, r
+            continue
+        # this band covers what lies below its bottom edge (plus a soft 12 cm border)
+        edge = nt.nodes.new("ShaderNodeMapRange")
+        edge.inputs["From Min"].default_value = _bottom - 0.06
+        edge.inputs["From Max"].default_value = _bottom + 0.06
+        nt.links.new(zw.outputs["Value"], edge.inputs["Value"])
+        for slot in ("col", "nor", "rough"):
+            mix = nt.nodes.new("ShaderNodeMix")
+            mix.data_type = "RGBA"
+            nt.links.new(edge.outputs["Result"], mix.inputs["Factor"])
+            a = {"col": col, "nor": nor, "rough": rough}[slot]
+            b = {"col": c, "nor": nn, "rough": r}[slot]
+            nt.links.new(a, mix.inputs["A"])
+            nt.links.new(b, mix.inputs["B"])
+            if slot == "col":
+                col = mix.outputs["Result"]
+            elif slot == "nor":
+                nor = mix.outputs["Result"]
+            else:
+                rough = mix.outputs["Result"]
+    nt.links.new(col, p.inputs["Base Color"])
+    nt.links.new(rough, p.inputs["Roughness"])
+    nm = nt.nodes.new("ShaderNodeNormalMap")
+    nm.inputs["Strength"].default_value = 1.4
+    nt.links.new(nor, nm.inputs["Color"])
+    nt.links.new(nm.outputs["Normal"], p.inputs["Normal"])
+    m.diffuse_color = look.hex_rgba("#5a3b24")
+    return m
+
+
 def _strata_material(name: str = "set.strata"):
     """Soil cut open: dark topsoil, brown earth, an orange clay band, grey bedrock; noisy borders,
-    pebbles and cracks in the bump (the side of a cake, read in a second)."""
+    pebbles and cracks in the bump (the side of a cake, read in a second). Real soil textures
+    when the library has them."""
     have = bpy.data.materials.get(name)
     if have is not None:
         return have
+    if _tex_ok([t for t, _, _ in STRATA]):
+        return _strata_textured(name)
     m = bpy.data.materials.new(name)
     m.use_nodes = True
     nt = m.node_tree
@@ -661,7 +757,11 @@ def _strata_material(name: str = "set.strata"):
 
 def _lawn_material(winter: bool):
     if winter:
+        if _tex_ok(["snow_02"]):
+            return look.pbr("snow_02", None, 3.0, fallback="#dfe7ee")
         return look.mat("#dfe7ee", rough=0.9)
+    if _tex_ok(["sparse_grass"]):
+        return _lawn_textured()
     m = bpy.data.materials.get("set.lawn")
     if m is not None:
         return m
@@ -695,15 +795,61 @@ def _lawn_material(winter: bool):
     return m
 
 
+def _lawn_textured():
+    """Real grass, mown in stripes (alternate bands a little lighter)."""
+    m = look.pbr("sparse_grass", None, 2.0, fallback="#5f9e35").copy()
+    m.name = "set.lawn_tex"
+    nt = m.node_tree
+    p = nt.nodes["Principled BSDF"]
+    src = p.inputs["Base Color"].links[0].from_socket if p.inputs["Base Color"].links else None
+    if src is None:
+        return m
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    wave = nt.nodes.new("ShaderNodeTexWave")
+    wave.inputs["Scale"].default_value = 0.09
+    nt.links.new(geo.outputs["Position"], wave.inputs["Vector"])
+    band = nt.nodes.new("ShaderNodeMapRange")
+    band.inputs["To Min"].default_value = 1.05
+    band.inputs["To Max"].default_value = 1.6
+    nt.links.new(wave.outputs["Fac"], band.inputs["Value"])
+    mul = nt.nodes.new("ShaderNodeVectorMath")
+    mul.operation = "SCALE"
+    nt.links.new(src, mul.inputs[0])
+    nt.links.new(band.outputs["Result"], mul.inputs["Scale"])
+    tint = nt.nodes.new("ShaderNodeMix")
+    tint.data_type = "RGBA"
+    tint.blend_type = "MULTIPLY"
+    tint.inputs["Factor"].default_value = 0.85  # a watered, mown lawn, not a dry field
+    nt.links.new(mul.outputs["Vector"], tint.inputs["A"])
+    tint.inputs["B"].default_value = look.hex_rgba("#9be35f")
+    nt.links.new(tint.outputs["Result"], p.inputs["Base Color"])
+    return m
+
+
 def _villa(at, winter: bool, color: str = "#e9e4da") -> None:
     """A two-storey family house: plaster walls, white-framed windows with shutters, a tiled
     gable roof, a chimney, a front door and a porch light."""
     x0, y0 = at
     w, d, h = 10.0, 5.0, 6.0
-    wall = look.pbr("painted_plaster_wall", color, 2.0, fallback=color)
+    stucco = "white_stucco" if _tex_ok(["white_stucco"]) else "painted_plaster_wall"
+    wall = look.pbr(stucco, color, 2.0, fallback=color)
     shapes.rbox("set.house", (w, d, h), wall, (x0, y0, h / 2), 0.02)
-    shapes.rbox("set.plinth", (w + 0.1, d + 0.1, 0.45), look.mat("#8d8a84", rough=0.9), (x0, y0, 0.22), 0.01)  # fmt: skip
-    roof_m = look.mat("#f2f4f6" if winter else "#a94a32", rough=0.75)
+    plinth = (
+        look.pbr("red_brick_03", None, 1.0, fallback="#8d8a84")
+        if _tex_ok(["red_brick_03"])
+        else look.mat("#8d8a84", rough=0.9)
+    )
+    shapes.rbox("set.plinth", (w + 0.1, d + 0.1, 0.45), plinth, (x0, y0, 0.22), 0.01)
+    if winter:
+        roof_m = (
+            look.pbr("snow_02", None, 2.0, fallback="#f2f4f6")
+            if _tex_ok(["snow_02"])
+            else look.mat("#f2f4f6", rough=0.75)
+        )
+    elif _tex_ok(["clay_roof_tiles_02"]):
+        roof_m = look.pbr("clay_roof_tiles_02", None, 1.6, fallback="#a94a32")
+    else:
+        roof_m = look.mat("#a94a32", rough=0.75)
     for side in (-1, 1):  # two roof planes meeting at the ridge
         pl = shapes.rbox(f"set.roof{side}", (w + 0.6, d * 0.62, 0.16), roof_m,
                          (x0, y0 + side * d * 0.25, h + 1.05), 0.02)  # fmt: skip
@@ -732,9 +878,65 @@ def _villa(at, winter: bool, color: str = "#e9e4da") -> None:
             for sx in (-1, 1):
                 shapes.rbox(f"set.sh{row}{col}{sx}", (0.36, 0.06, 1.4), shutter,
                             (x + sx * 0.72, y0 - d / 2 - 0.04, z), 0.01)  # fmt: skip
-    shapes.rbox("set.door", (1.3, 0.1, 2.4), look.mat("#f7f7f5", rough=0.4), (x0, y0 - d / 2 - 0.03, 1.2), 0.02)  # fmt: skip
+    door_m = (
+        look.pbr("wood_planks", "#d9b48a", 1.0, fallback="#f7f7f5")
+        if _tex_ok(["wood_planks"])
+        else look.mat("#f7f7f5", rough=0.4)
+    )
+    shapes.rbox("set.door", (1.3, 0.1, 2.4), door_m, (x0, y0 - d / 2 - 0.03, 1.2), 0.02)
     shapes.rbox("set.doorglass", (1.0, 0.08, 1.9), glass, (x0, y0 - d / 2 - 0.07, 1.25), 0.0)
     shapes.rbox("set.step", (2.0, 0.8, 0.22), look.mat("#a8a49c", rough=0.9), (x0, y0 - d / 2 - 0.4, 0.11), 0.02)  # fmt: skip
+
+
+def _dress_cutaway(w: float, d: float, winter: bool, rng) -> None:
+    """Life in the cut and on the lawn (library models, CC0): roots hanging out of the section,
+    grass tufts over its edge, rocks in the soil, garden things on the grass. Kept clear of the
+    middle of the cut, where the pits go."""
+
+    def put(kind, name, at, rot=(0, 0, 0), scale=1.0):
+        ob = props.kit_asset(kind, name, {})
+        if ob is None:
+            return None
+        ob.location = at
+        ob.rotation_euler = tuple(R(a) for a in rot)
+        ob.scale = (scale, scale, scale)
+        return ob
+
+    # roots poke out of the cut just under the lawn, where the trees stand
+    for k, (x, rz) in enumerate(((-w / 2 + 1.6, 20), (w / 2 - 1.9, -30), (-w / 2 + 3.4, 160))):
+        put("roots", f"set.roots{k}", (x, 0.25, -0.15), (90, 0, rz), rng.uniform(0.55, 0.8))
+    # tufts of grass hanging over the edge of the section
+    if not winter:
+        x = -w / 2 + 0.3
+        k = 0
+        while x < w / 2 - 0.2:
+            if abs(x) > 2.6:  # not over the pits in the middle
+                put(
+                    "grass_tuft",
+                    f"set.tuft{k}",
+                    (x, 0.04, 0.0),
+                    (0, 0, rng.uniform(0, 360)),
+                    rng.uniform(0.6, 1.0),
+                )
+                k += 1
+            x += rng.uniform(0.45, 0.8)
+    # stones half buried in the section
+    for k, (x, z, sc) in enumerate(
+        ((-5.2, -1.4, 0.35), (4.6, -2.3, 0.45), (-3.2, -3.4, 0.5), (5.6, -4.4, 0.4))
+    ):
+        put(
+            "boulder",
+            f"set.stone{k}",
+            (x, 0.18, z),
+            (rng.uniform(0, 40), 0, rng.uniform(0, 360)),
+            sc,
+        )
+    # the garden: a few lived-in things on the lawn, away from the cut's middle
+    garden = [("barrel", (-5.6, 5.5, 0), 25, 1.0), ("watering_can", (5.2, 3.4, 0), -40, 1.0),
+              ("planter_box", (4.6, 7.6, 0), 0, 1.0), ("compost_bags", (-4.6, 8.4, 0), 70, 1.0),
+              ("crate", (-6.0, 7.2, 0), 10, 1.0)]  # fmt: skip
+    for k, (kind, at, rz, sc) in enumerate(garden):
+        put(kind, f"set.garden{k}", at, (0, 0, rz), sc)
 
 
 def cutaway(o):
@@ -750,9 +952,11 @@ def cutaway(o):
     else:
         if not look.env("outdoor", 1.0, 150):
             look.world("#a6d8f7", "#fbf5e9", 1.0)
-        look.sun(3.6, 6, (48, 6, 35))
-    # a soft fill from the camera side: the cut face looks at the camera, away from the sun
-    look.area((0, -16, 1.0), (0, 0, -2.5), 2600 if not winter else 2000, 24, "#fff3e6")
+        look.sun(4.0, 6, (48, 6, 35), "#ffe2ba")  # a warm key...
+    # ...and a cool soft fill from the camera side (the cut face looks away from the sun): warm
+    # light against cool shade separates the layers the way a lit set does
+    look.area((0, -16, 1.0), (0, 0, -2.5), 2400 if not winter else 2000, 24,
+              "#e9f1ff" if not winter else "#fff3e6", "fill")  # fmt: skip
     strata = _strata_material()
     lawn = _lawn_material(winter)
     # the block: one mesh, lawn on top, the strata everywhere else (pits dug later inherit strata)
@@ -780,9 +984,12 @@ def cutaway(o):
         props.place(rng.choice(("bush", "flowers", "shrub")), f"set.bush{i}",
                     {"at": (rng.uniform(-w / 2 + 0.6, w / 2 - 0.6), d - 0.9 - rng.uniform(0, 0.5)),
                      "scale": rng.uniform(0.6, 0.9), "rot": rng.uniform(0, 360)})  # fmt: skip
+    if o.get("dress", True):
+        _dress_cutaway(w, d, winter, rng)
     # diorama scale: "medium" on a point is three times as far as on a person; seen from above
+    # a shallow focus: the subject sharp, the house and the far yard soft (a miniature)
     return {"spots": {"center": (0, 1.5), "cut": (0, 0)}, "target": (0, 0.0, -1.2),
-            "camera_scale": 3.0, "camera_lift": 0.22}  # fmt: skip
+            "camera_scale": 3.0, "camera_lift": 0.22, "dof_fstop": 0.4}  # fmt: skip
 
 
 SETS = {

@@ -73,7 +73,13 @@ def caption(
     size = size or round(CAPTION_SIZE * layout.scale)
     kw.setdefault("cx", layout.cap_x)
     kw.setdefault("cy", layout.cap_y)
-    img = fit(stack([render_line(line, size) for line in text.split("\n")]), layout.max_w)
+    stroke = kw.pop("stroke", None)  # a heavier outline reads on any background (snow, sky)
+    rl = (
+        (lambda line: render_line(line, size, stroke=stroke))
+        if stroke
+        else (lambda line: render_line(line, size))
+    )
+    img = fit(stack([rl(line) for line in text.split("\n")]), layout.max_w)
     cap = Caption(img, t0, t1, **kw)
     cap.text = text
     return cap

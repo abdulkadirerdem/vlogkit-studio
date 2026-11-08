@@ -26,7 +26,7 @@ from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
 
-ENGINES = ("auto", "qwen", "pocket", "system")
+ENGINES = ("auto", "voxcpm", "qwen", "pocket", "system")
 # The channel voice: Qwen3-TTS fine-tuned on Turkish (Apache-2.0), always speaking as the one
 # reference recording below (made with Chatterbox's own voice, MIT), so every video has the same
 # narrator. Digits are spelled out first: the model reads them badly.
@@ -42,6 +42,20 @@ QWEN_LICENSE = {
     "author": "Qwen (Alibaba), erkamk; Resemble AI",
     "license": "Apache-2.0 (model), MIT (Chatterbox)",
     "page": "https://huggingface.co/erkamk/qwen3-0.6b-tr",
+}
+# The channel voice since 0.22: VoxCPM2 (OpenBMB, Apache-2.0), cloning one fixed reference (the
+# chosen narrator) with a delivery instruction per line, so the voice never changes while the
+# emphasis does. Apple Silicon runs the MLX port (about twice as fast), other machines PyTorch
+# (fast on an NVIDIA card). Qwen stays as the fallback where VoxCPM2 is not installed.
+VOX_MLX_PACKAGE, VOX_MLX_MODEL = "mlx-audio", "mlx-community/VoxCPM2-bf16"
+VOX_TORCH_PACKAGE, VOX_TORCH_MODEL = "voxcpm", "openbmb/VoxCPM2"
+CHANNEL_VOX = CHANNEL_VOICE.with_name("kanal-vox.wav")
+VOX_WORKER = Path(__file__).with_name("voxcpm_worker.py")
+VOX_LICENSE = {
+    "title": "VoxCPM2 (OpenBMB); kanal sesi VoxCPM2'nin ses tasarımıyla üretildi",
+    "author": "OpenBMB",
+    "license": "Apache-2.0",
+    "page": "https://huggingface.co/openbmb/VoxCPM2",
 }
 POCKET_PACKAGE = "pocket-tts-turkish"
 POCKET_REPO = "wite-tech/pocket-tts-turkish"
@@ -136,6 +150,54 @@ def _tool_python(package: str, env_var: str) -> Path | None:
     return None
 
 
+def _apple_silicon() -> bool:
+    return sys.platform == "darwin" and platform.machine() == "arm64"
+
+
+def vox_backend() -> str:
+    return "mlx" if _apple_silicon() else "torch"
+
+
+def vox_python() -> Path | None:
+    """The Python of the VoxCPM2 tool environment (MLX on Apple Silicon), when installed."""
+    if vox_backend() == "mlx":
+        return _tool_python(VOX_MLX_PACKAGE, "VLOGKIT_VOX_PYTHON")
+    return _tool_python(VOX_TORCH_PACKAGE, "VLOGKIT_VOX_PYTHON")
+
+
+def vox_installed() -> bool:
+    return vox_python() is not None and CHANNEL_VOX.exists()
+
+
+def install_vox_cmd() -> list[str]:
+    """Its own environment; the weights (~5 GB) come with the first line spoken."""
+    uv = _uv()
+    if not uv:
+        raise RuntimeError("uv bulunamadı: vlogkit kurulumunu yeniden çalıştır")
+    pkg = VOX_MLX_PACKAGE if vox_backend() == "mlx" else VOX_TORCH_PACKAGE
+    return [uv, "tool", "install", pkg, "--python", "3.12", "--with", "soundfile"]
+
+
+def line_style(text: str) -> str:
+    """How a line is delivered when the scene does not say (`ton`): read from its punctuation and
+    its first word, the way a narrator would."""
+    t = text.strip()
+    first = t.split()[0].lower().strip(",.!?") if t else ""
+    if "..." in t or "…" in t:
+        return "yavaş, gizemli, gerilim kuran, dramatik bir duraksamayla"
+    if first in ("ama", "fakat", "ancak"):
+        return "gerilimli, vurgulu, bir sorunu haber verir gibi"
+    if first in ("buna", "bunun"):
+        return "net, bir sırrı açıklar gibi, terimi vurgulayarak"
+    if first in ("tebrikler", "işte"):
+        return "sıcak, gururlu, kapanış tonunda"
+    if t.endswith("?"):
+        return "heyecanlı, merak uyandıran, soruyu vurgulayarak"
+    if t.endswith("!"):
+        return "vurgulu, enerjik, şaşırtıcı"
+    return "canlı ve net bir belgesel anlatımı, önemli kelimeyi vurgulayarak"
+
+
 def qwen_python() -> Path | None:
     """The Python of the qwen-tts tool environment (the channel voice), when installed."""
     return _tool_python(QWEN_PACKAGE, "VLOGKIT_QWEN_PYTHON")
@@ -208,8 +270,10 @@ def pick_engine(engine: str = "auto") -> str:
         return engine
     # The system voices (macOS Yelda, Windows Tolga) sound robotic: never chosen on their own; a
     # project can still ask for "system" explicitly (a quick draft without the model).
+    if vox_installed():
+        return "voxcpm"  # the channel voice
     if qwen_installed():
-        return "qwen"  # the channel voice; Pocket and the system voices only when asked for
+        return "qwen"  # the older channel voice; Pocket and the system voices only when asked for
     raise RuntimeError(
         "Türkçe ses modeli kurulu değil: Ayarlar > Kurulum > Türkçe ses modeli (ya da `vlogkit 3d install-voice`)"
     )
@@ -378,6 +442,47 @@ def _qwen_many(jobs: list[tuple[Line, str | None, Path]]) -> None:
         retime(p, ln.speed)
 
 
+def _vox_many(jobs: list[tuple[Line, str | None, Path]]) -> None:
+    from vlogkit.speech.sayilar import spell
+
+    py = vox_python()
+    if not py:
+        raise RuntimeError("Türkçe ses modeli kurulu değil: Ayarlar > Kurulum > Türkçe ses modeli")
+    mlx = vox_backend() == "mlx"
+    spec = {
+        "backend": "mlx" if mlx else "torch",
+        "model": VOX_MLX_MODEL if mlx else VOX_TORCH_MODEL,
+        "ref": str(CHANNEL_VOX),
+        "items": [
+            {
+                "text": spell(ln.text),
+                "style": ln.emotion or line_style(ln.text),
+                "seed": int(hashlib.sha1(ln.text.encode()).hexdigest()[:6], 16) % 10_000,
+                "out": str(p),
+            }
+            for ln, _, p in jobs
+        ],
+    }
+    job = jobs[0][2].parent / "_vox_job.json"
+    job.write_text(json.dumps(spec, ensure_ascii=False), encoding="utf-8")
+    env = {
+        **os.environ,
+        "PYTHONUTF8": "1",
+        "PYTHONIOENCODING": "utf-8",
+        "PYTORCH_ENABLE_MPS_FALLBACK": "1",
+    }
+    r = subprocess.run(
+        [str(py), str(VOX_WORKER), str(job)],
+        capture_output=True, text=True, encoding="utf-8", errors="replace", env=env,
+    )  # fmt: skip
+    job.unlink(missing_ok=True)
+    if r.returncode != 0:
+        tail = (r.stderr or r.stdout).strip().splitlines()[-6:]
+        raise RuntimeError("Türkçe ses modeli çalışmadı: " + " | ".join(tail))
+    for ln, _, p in jobs:
+        retime(p, ln.speed)
+
+
 def retime(path: Path, speed: float) -> None:
     """Slow down (< 1) or speed up (> 1) a spoken line in place, keeping its pitch.
 
@@ -413,6 +518,9 @@ def speak(
                 voice = None
         if eng == "pocket" and (not voice or voice not in POCKET_VOICES):
             voice = "male_1"
+        if eng == "voxcpm":  # one narrator; the line's delivery (ton) is part of the take
+            ref = CHANNEL_VOX.read_bytes() + (ln.emotion or line_style(ln.text)).encode()
+            voice = "vox-" + hashlib.sha1(ref).hexdigest()[:8]
         if eng == "qwen":  # one narrator for every video: the line's voice/emotion do not apply
             ref = CHANNEL_VOICE.read_bytes() + (
                 CHANNEL_TEXT.read_bytes() if CHANNEL_TEXT.exists() else b""
@@ -426,7 +534,9 @@ def speak(
         plan.append((ln, voice, out_dir / f"{tag}.wav"))
     todo = [(ln, v, p) for ln, v, p in plan if not p.exists() or p.stat().st_size < 1000]
     if todo:
-        if eng == "qwen":
+        if eng == "voxcpm":
+            _vox_many(todo)
+        elif eng == "qwen":
             _qwen_many(todo)
         elif eng == "pocket":
             _pocket_many(todo, voice_file)

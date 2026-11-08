@@ -39,7 +39,7 @@ PROPS = {
     "wanted": "ARANIYOR afişi (text: isim, reward: ödül)", "map": "duvar haritası (text: yer, pins: [[x, y], ...] -1..1)",
     "phone_big": "büyük telefon ekranı: sosyal medya gönderisi (text: #etiket, likes, user)",
     "pit": "kesitte çukur (shape: bowl | box | shelf | trench | tunnel, size [en, derinlik, derinlik m], id)",
-    "layer": "çukuru dolduran katman (pit: id, material: water | green_water | sand | gravel | concrete | asphalt | liner | ice..., from/to: m)",
+    "layer": "çukuru dolduran katman (pit: id, material: water | green_water | murky | aquifer (yeraltı suyu: taşların arasında su) | sand | gravel | concrete | asphalt | liner | ice..., from/to: m; suda kabarcık, bulanıkta kum zerresi kendiliğinden)",
     "pipe": "boru / kablo (path [[x, y, z], ...], r, color)", "fish": "balık (size, color)",
     "lily_pad": "nilüfer yaprağı (flower: true)", "tank": "kutu / tank / filtre (size, shape: box | drum, text)",
     "hand_pump": "el pompası (color)",
@@ -50,6 +50,11 @@ PROPS = {
     "fire_hydrant": "yangın musluğu", "trash_can": "çöp konteyneri", "bookshelf": "kitaplık", "desk_lamp": "masa lambası",
     "cctv_camera": "güvenlik kamerası (z: yükseklik)", "bollard": "bariyer direği", "ac_unit": "klima dış ünitesi",
     "planter": "büyük saksı", "manhole": "rögar kapağı",
+    "bucket": "ahşap kova", "barrel": "varil", "spade": "kürek", "pickaxe": "kazma", "watering_can": "sulama kabı",
+    "compost_bags": "toprak / gübre çuvalları", "roots": "ağaç kökleri (kesitten sarkar)", "grass_tuft": "çim tutamı",
+    "rocks": "yosunlu kaya grubu", "boulder": "büyük kaya", "crate": "ahşap sandık", "stump": "ağaç kütüğü",
+    "utility_box": "elektrik / sayaç kutusu", "manhole_cover": "su rögarı kapağı", "ladder": "ahşap merdiven",
+    "planter_box": "ahşap saksı kasası",
 }  # fmt: skip
 
 ACTIONS = {
@@ -99,6 +104,7 @@ MOVES = {
     "static": "sabit", "push": "yavaşça yaklaşır (varsayılan)", "pull": "uzaklaşır", "orbit": "etrafında döner",
     "pan": "yana kayar", "rise": "yükselir (vinç)", "fall": "alçalır", "zoom_out": "ölçek açılışı: yakından çok uzağa",
     "dolly": "ileri yürür", "follow": "hareket eden kişiyi izler", "shake": "sarsıntı",
+    "dive": "açılış dalışı: yerin üstünden kesitin içine, `on` noktasına iner (kanca planı)",
 }  # fmt: skip
 BODIES = ("adult", "kid", "big", "old", "tall")
 HAIR = ("short", "parted", "long", "bun", "buns", "buzzed", "curly", "bald", "hood", "cap")
@@ -126,6 +132,10 @@ FX = {
     "split": "bir eşyayı ikiye böler, parçalar ayrılır (target: eşya id'si)",
     "pop": "bir eşya 'pat' diye belirir (target)",
     "vanish": "bir eşya küçülüp kaybolur (target)",
+    "collapse": "çukurun duvarları çöker: topraklar kopup düşer, dip dolar, toz kalkar (target: pit id, to: dolgu üstü m)",
+    "burst": "boru / tank patlar: çatlak açılır, su fışkırır, sızıntı sürer (pos, color)",
+    "dig": "çukur kazılır: içindeki toprak yukarıdan boşalır, toprak parçaları kenardan dışarı uçar (target)",
+    "drop": "çukura yukarıdan dökülür: çakıl, kum, taş parçaları yağar ve yığılır (target, material, to)",
 }
 # Looks: how a shot is shown (drawn over its frames, after the render).
 LOOKS = {

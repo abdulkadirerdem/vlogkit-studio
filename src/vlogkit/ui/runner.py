@@ -940,7 +940,11 @@ class JobStore:
                 stderr=subprocess.PIPE,
                 text=True,
                 bufsize=1,
-                **({"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000} if sys.platform == "win32" else {}),
+                **(
+                    {"encoding": "utf-8", "errors": "replace", "creationflags": 0x08000000}
+                    if sys.platform == "win32"
+                    else {}
+                ),
             )
             if not is_codex:  # Claude reads messages from stdin (never parsed as an option)
                 assert proc.stdin

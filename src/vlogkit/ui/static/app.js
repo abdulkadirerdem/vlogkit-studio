@@ -70,6 +70,14 @@ const TYPES = [
   { id: "ask", label: "Soru", hint: "Kısa yanıt", effort: "medium", plan: false, cut: false,
     line: "Soru; kısa yanıt ver, dosya üretme, derleme yapma" },
 ];
+// 3B formatları (scene3d/formats.py ile aynı): araştırma formu ve kartlar
+const FORMATS = {
+  pekiya: { title: "Peki ya?", line: "Bir 'peki ya' sorusu, sonuçlar tırmanarak ekranda olur" },
+  kesit: { title: "Kesitten inşa", line: "Pasta gibi kesilmiş bir bahçede bir şey adım adım inşa edilir: Eğer… Ama… O yüzden…" },
+  hayatta: { title: "Hayatta kalma günlüğü", line: "Bir kural, bir ödül, günler: her gün yeni bir sorun ve bir çözüm, sonda 'sen ne yapardın?'" },
+  oyun: { title: "Oyun reklamı tarzı soru", line: "'Sadece %1'i doğru yapar': seçenekler, yanlış seçimin sonucu, doğrusu ve neden" },
+  olcek: { title: "Uzay ve ölçek", line: "Akıl almaz bir ölçek sorusu: tahmin, gerçek sayılar sayaçla, ekranda dizilen kanıt" },
+};
 const typeOf = (id) => TYPES.find((x) => x.id === id) || TYPES[0];
 // a task from the guide says its type: Short and long-video stages, the publishing pack
 const TASK_TYPE = { short: "short", uzun: "vlog", Y1: "pack", B1: "senaryo", ucb: "3d" };
@@ -329,6 +337,18 @@ function setType(id) {
   renderAddons(); syncEffort();
   for (const b of $("#types").children) b.setAttribute("aria-checked", String(b.dataset.id === t.id));
   $("#cutBtn").hidden = !t.cut || !!S.job;
+  renderFormats();
+}
+// 3B: which format (docs/formats/): shown under the type row while "3B animasyon" is picked
+function renderFormats() {
+  const box = $("#formats");
+  if (!box) return;
+  box.hidden = S.type !== "3d";
+  if (box.hidden) return;
+  const cur = saved.get("fmt.3d", "pekiya");
+  box.replaceChildren(...Object.entries(FORMATS).map(([id, f]) => el("button", {
+    class: "fmt", type: "button", role: "radio", "aria-checked": String(id === cur), title: f.line,
+    onclick: () => { saved.set("fmt.3d", id); renderFormats(); } }, el("b", { text: f.title }), el("span", { text: f.line }))));
 }
 
 /* ------------------------------------------------------------------ video */
@@ -504,7 +524,10 @@ function buildPrompt() {
   const v = S.video;
   if (v && !text.includes(v.display) && !text.includes(v.path)) text += `\n\nKaynak: ${v.display}`;
   const t = typeOf(S.type);
-  const extra = [t.line ? `İş türü: ${t.line}.` : null, S.plan ? PLAN_ADDON : null, t.cut ? cutLine() : null,
+  const fmtId = saved.get("fmt.3d", "pekiya");
+  const fmtLine = t.id === "3d" && FORMATS[fmtId]
+    ? `Format: ${FORMATS[fmtId].title} ("format": "${fmtId}"; önce docs/formats/${fmtId}.md, yeni proje: 3d new <proje> --format ${fmtId}).` : null;
+  const extra = [t.line ? `İş türü: ${t.line}.` : null, fmtLine, S.plan ? PLAN_ADDON : null, t.cut ? cutLine() : null,
     // only the guide's current add-ons (an update can rename one), 4K only with a 4K source
     ...[...S.addons].filter((a) => S.guide && S.guide.addons.includes(a) && (!FOURK.test(a) || fourK()))].filter(Boolean);
   if (extra.length) text += "\n\nEk talimatlar:\n" + extra.map((x) => `- ${x}`).join("\n");
@@ -715,11 +738,6 @@ async function openJob(id) {
 /* ------------------------------------------------------------- scenarios (3B) */
 // Researched, scored, fully written "Peki ya?" ideas waiting in projects/_senaryolar/. Claude
 // writes them (a "senaryo" job, docs/senaryo.md); one click hands the chosen one to a 3B job.
-// 3B formatları (scene3d/formats.py ile aynı): araştırma formu ve kartlar
-const FORMATS = {
-  pekiya: { title: "Peki ya?", line: "Bir 'peki ya' sorusu, sonuçlar tırmanarak ekranda olur" },
-  kesit: { title: "Kesitten inşa", line: "Pasta gibi kesilmiş bir bahçede bir şey adım adım inşa edilir: Eğer… Ama… O yüzden…" },
-};
 const SCORE_LABEL = { merak: "Merak", tirmanis: "Tırmanış", gorsel: "Görsellik", hesap: "Sayılar", yorum: "Yorum" };
 const STATUS_LABEL = { yeni: "Yeni", secildi: "Seçildi", uretiliyor: "Üretiliyor", uretildi: "Üretildi", arsiv: "Arşiv" };
 const scenBox = () => $("#scenarios");

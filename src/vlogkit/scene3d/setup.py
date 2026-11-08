@@ -3,7 +3,7 @@
 Both rows are optional ("optional": True): the studio counts as ready without them, "Hepsini kur"
 leaves them out, and a job of the 3D type asks for them. Installing runs in the background like
 the other steps (ui.setup tasks): Blender with Homebrew's cask on macOS or winget on Windows, the
-voice model as its own `uv tool` and then one short line, so the model weights (~440 MB) are
+voice model as its own `uv tool` and then one short line, so the model weights (~5 GB) are
 downloaded before the first video.
 """
 
@@ -33,8 +33,11 @@ def rows() -> list[dict]:
         bdetail = (
             "3B sahneleri render eder. blender.org/download adresinden kur, sonra bu ekranı yenile."
         )
-    have_voice = tts.qwen_installed() and (BUILD_DIR / "voices" / ".qwen_ready").exists()
-    vdetail = "Kanal sesi: Türkçe anlatım, internetsiz ve ücretsiz (Qwen3 Türkçe). 3B animasyon için gerekli."
+    have_voice = tts.vox_installed() and (BUILD_DIR / "voices" / ".vox_ready").exists()
+    vdetail = (
+        "Kanal sesi: vurgulu Türkçe anlatım, internetsiz ve ücretsiz (VoxCPM2, Apache-2.0). "
+        "3B animasyon için gerekli."
+    )
     return [
         {
             "id": "blender",
@@ -49,7 +52,7 @@ def rows() -> list[dict]:
             "id": "lib3d",
             "label": "3B karakter ve mekân kütüphanesi",
             "detail": "Gerçekçi iskeletli karakterler, 43 animasyon, gerçek gökyüzü ve dokular (hepsi CC0)",
-            "size": "~320 MB",
+            "size": "~480 MB",
             "done": library.ready(),
             "optional": True,
         },
@@ -81,14 +84,14 @@ def run(step: str, run_task) -> None:
 
         run_task("step:blender", [cmd], after=after)
     elif step == "voice":
-        steps = [] if tts.qwen_installed() else [tts.install_qwen_cmd()]
+        steps = [] if tts.vox_python() else [tts.install_vox_cmd()]
 
         def warm() -> (
             None
-        ):  # downloads the model weights once (~4 GB, the first line takes a while)
+        ):  # downloads the model weights once (~5 GB, the first line takes a while)
             tts._tool_dir.cache_clear()
-            tts.speak([tts.Line("Kanal sesi hazır.")], BUILD_DIR / "voices", engine="qwen")
-            (BUILD_DIR / "voices" / ".qwen_ready").write_text("ok")
+            tts.speak([tts.Line("Kanal sesi hazır.")], BUILD_DIR / "voices", engine="voxcpm")
+            (BUILD_DIR / "voices" / ".vox_ready").write_text("ok")
 
         env_cmd = steps
 

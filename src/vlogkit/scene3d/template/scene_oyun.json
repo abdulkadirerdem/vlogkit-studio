@@ -1,0 +1,555 @@
+{
+ "title": "Tavadaki yağ alev aldı: hangisi?",
+ "format": "oyun",
+ "output": "3d/oyun-ornek",
+ "quality": "normal",
+ "cast": {
+  "ayla": {
+   "sex": "female",
+   "body": "adult",
+   "top": "longsleeve",
+   "shirt": "#d8643f",
+   "bottom": "trousers",
+   "pants": "#3b3f48",
+   "hair": "long",
+   "hair_color": "#2a1d14"
+  }
+ },
+ "hud": {
+  "label": "SEVİYE 7"
+ },
+ "hook": {
+  "text": "SADECE [%1] DOĞRU YAPIYOR",
+  "seconds": 2.2
+ },
+ "end": {
+  "tag": "SIRADAKİ",
+  "title": "SEVİYE 8",
+  "seconds": 1.4
+ },
+ "beats": [
+  {
+   "say": "Sadece yüzde 1'i bunu doğru yapıyor.",
+   "set": "kitchen",
+   "actors": [
+    {
+     "who": "ayla",
+     "at": [
+      0.5,
+      1.1
+     ],
+     "facing": 0,
+     "face": "scared",
+     "do": [
+      {
+       "do": "scared"
+      }
+     ]
+    }
+   ],
+   "fx": [
+    {
+     "kind": "fire",
+     "pos": [
+      1.3,
+      2.15,
+      0.95
+     ],
+     "at": 0.0,
+     "size": 0.45
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "medium",
+      "on": [
+       1.3,
+       2.15,
+       1.0
+      ],
+      "move": "push",
+      "zoom": 1.5
+     }
+    },
+    {
+     "cue": "doğru",
+     "camera": {
+      "frame": "full",
+      "on": "ayla",
+      "angle": 15,
+      "move": "push"
+     }
+    }
+   ],
+   "sfx": [
+    "whoosh"
+   ]
+  },
+  {
+   "say": "Tavadaki yağ alev aldı. Hangisini kullanırsın?",
+   "set": "kitchen",
+   "hold": 1.2,
+   "actors": [
+    {
+     "who": "ayla",
+     "at": [
+      0.5,
+      1.1
+     ],
+     "facing": 20,
+     "face": "scared",
+     "do": [
+      {
+       "do": "think"
+      }
+     ]
+    }
+   ],
+   "fx": [
+    {
+     "kind": "fire",
+     "pos": [
+      1.3,
+      2.15,
+      0.95
+     ],
+     "at": 0.0,
+     "size": 0.45
+    }
+   ],
+   "choices": {
+    "at": "Hangisini",
+    "title": "HANGİSİNİ KULLANIRSIN?",
+    "items": [
+     "SU",
+     "UN",
+     "TAVA KAPAĞI"
+    ],
+    "ask": "SEÇ",
+    "dur": 2.6
+   },
+   "shots": [
+    {
+     "camera": {
+      "frame": "medium",
+      "on": [
+       1.3,
+       2.15,
+       1.0
+      ],
+      "angle": -15,
+      "move": "push",
+      "zoom": 1.5
+     }
+    }
+   ]
+  },
+  {
+   "say": "Su mu? Yanlış!",
+   "set": "kitchen",
+   "actors": [
+    {
+     "who": "ayla",
+     "at": [
+      0.5,
+      1.1
+     ],
+     "facing": 20,
+     "face": "shock",
+     "do": [
+      {
+       "do": "dodge"
+      }
+     ]
+    }
+   ],
+   "choices": {
+    "at": "Su",
+    "title": "HANGİSİNİ KULLANIRSIN?",
+    "items": [
+     "SU",
+     "UN",
+     "TAVA KAPAĞI"
+    ],
+    "ask": "SEÇ",
+    "dur": 0.9,
+    "pick": {
+     "n": 1,
+     "at": "Su",
+     "ok": false
+    }
+   },
+   "stamp": {
+    "text": "YANLIŞ",
+    "at": "Yanlış"
+   },
+   "fx": [
+    {
+     "kind": "explosion",
+     "pos": [
+      1.3,
+      2.15,
+      1.0
+     ],
+     "at": "Yanlış",
+     "size": 0.8
+    },
+    {
+     "kind": "shake",
+     "at": "Yanlış",
+     "dur": 0.6,
+     "amount": 0.06
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "full",
+      "on": "ayla",
+      "angle": -10,
+      "move": "push"
+     }
+    }
+   ],
+   "sfx": [
+    {
+     "id": "boom",
+     "at": "Yanlış"
+    }
+   ]
+  },
+  {
+   "say": "Su kızgın yağın altında buhara dönüşür ve yağı tavana fırlatır.",
+   "set": "kitchen",
+   "actors": [
+    {
+     "who": "ayla",
+     "at": [
+      -0.4,
+      0.9
+     ],
+     "facing": 20,
+     "face": "scared",
+     "do": [
+      {
+       "do": "scared"
+      }
+     ]
+    }
+   ],
+   "fx": [
+    {
+     "kind": "fire",
+     "pos": [
+      1.3,
+      2.15,
+      1.2
+     ],
+     "at": 0.0,
+     "size": 0.8
+    },
+    {
+     "kind": "smoke",
+     "pos": [
+      1.3,
+      2.15,
+      1.6
+     ],
+     "at": "tavana"
+    }
+   ],
+   "term": {
+    "text": "BUHAR PATLAMASI",
+    "at": "buhara",
+    "tag": "BUNA DENİR"
+   },
+   "shots": [
+    {
+     "camera": {
+      "frame": "wide",
+      "on": [
+       1.3,
+       2.15,
+       1.2
+      ],
+      "angle": 20,
+      "move": "push",
+      "zoom": 1.5
+     }
+    },
+    {
+     "cue": "tavana",
+     "camera": {
+      "frame": "medium",
+      "on": [
+       1.3,
+       2.15,
+       2.2
+      ],
+      "angle": -10,
+      "tilt": -0.4,
+      "move": "rise",
+      "zoom": 1.5
+     }
+    }
+   ]
+  },
+  {
+   "say": "Un mu? O da yanlış, toz halinde alevlenir.",
+   "set": "kitchen",
+   "actors": [
+    {
+     "who": "ayla",
+     "at": [
+      0.5,
+      1.1
+     ],
+     "facing": 20,
+     "face": "shock",
+     "do": [
+      {
+       "do": "facepalm"
+      }
+     ]
+    }
+   ],
+   "choices": {
+    "at": "Un",
+    "title": "HANGİSİNİ KULLANIRSIN?",
+    "items": [
+     "SU",
+     "UN",
+     "TAVA KAPAĞI"
+    ],
+    "ask": "SEÇ",
+    "dur": 0.9,
+    "pick": {
+     "n": 2,
+     "at": "Un",
+     "ok": false
+    }
+   },
+   "stamp": {
+    "text": "YANLIŞ",
+    "at": "yanlış"
+   },
+   "fx": [
+    {
+     "kind": "explosion",
+     "pos": [
+      1.3,
+      2.15,
+      1.0
+     ],
+     "at": "alevlenir",
+     "size": 0.6
+    },
+    {
+     "kind": "smoke",
+     "pos": [
+      1.3,
+      2.15,
+      1.4
+     ],
+     "at": "toz"
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "full",
+      "on": "ayla",
+      "angle": 15,
+      "move": "push"
+     }
+    },
+    {
+     "cue": "toz",
+     "camera": {
+      "frame": "medium",
+      "on": [
+       1.3,
+       2.15,
+       1.0
+      ],
+      "move": "shake",
+      "zoom": 1.5
+     }
+    }
+   ]
+  },
+  {
+   "say": "Doğrusu: ocağı kapat, tavanın kapağını kapat.",
+   "set": "kitchen",
+   "actors": [
+    {
+     "who": "ayla",
+     "at": [
+      0.5,
+      1.1
+     ],
+     "facing": 20,
+     "face": "neutral",
+     "do": [
+      {
+       "do": "interact"
+      }
+     ]
+    }
+   ],
+   "choices": {
+    "at": "Doğrusu",
+    "title": "HANGİSİNİ KULLANIRSIN?",
+    "items": [
+     "SU",
+     "UN",
+     "TAVA KAPAĞI"
+    ],
+    "ask": "SEÇ",
+    "dur": 1.0,
+    "pick": {
+     "n": 3,
+     "at": "Doğrusu",
+     "ok": true
+    }
+   },
+   "stamp": {
+    "text": "DOĞRU",
+    "at": "kapağını",
+    "ok": true
+   },
+   "fx": [
+    {
+     "kind": "fire",
+     "pos": [
+      1.3,
+      2.15,
+      0.95
+     ],
+     "at": 0.0,
+     "size": 0.45,
+     "dur": 2.0
+    },
+    {
+     "kind": "smoke",
+     "pos": [
+      1.3,
+      2.15,
+      1.1
+     ],
+     "at": "kapağını"
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "full",
+      "on": "ayla",
+      "angle": -15,
+      "move": "push"
+     }
+    },
+    {
+     "cue": "kapat",
+     "camera": {
+      "frame": "medium",
+      "on": [
+       1.3,
+       2.15,
+       1.0
+      ],
+      "move": "push",
+      "zoom": 1.3,
+      "angle": -10
+     }
+    }
+   ],
+   "sfx": [
+    {
+     "id": "ding",
+     "at": "kapağını"
+    }
+   ]
+  },
+  {
+   "say": "Alev havasız kalır ve birkaç saniyede söner.",
+   "set": "kitchen",
+   "actors": [
+    {
+     "who": "ayla",
+     "at": [
+      0.5,
+      1.1
+     ],
+     "facing": 0,
+     "face": "grin",
+     "do": [
+      {
+       "do": "cheer"
+      }
+     ]
+    }
+   ],
+   "fx": [
+    {
+     "kind": "smoke",
+     "pos": [
+      1.3,
+      2.15,
+      1.0
+     ],
+     "at": 0.0
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "medium",
+      "on": [
+       1.3,
+       2.15,
+       1.0
+      ],
+      "move": "push",
+      "zoom": 1.5
+     }
+    },
+    {
+     "cue": "söner",
+     "camera": {
+      "frame": "full",
+      "on": "ayla",
+      "angle": -20,
+      "move": "pull"
+     }
+    }
+   ]
+  },
+  {
+   "say": "Seviye 8 daha zor. Hazır mısın?",
+   "set": "kitchen",
+   "actors": [
+    {
+     "who": "ayla",
+     "at": [
+      0.5,
+      1.1
+     ],
+     "facing": 0,
+     "face": "grin",
+     "do": [
+      {
+       "do": "point"
+      }
+     ]
+    }
+   ],
+   "camera": {
+    "frame": "full",
+    "on": "ayla",
+    "move": "push"
+   }
+  }
+ ]
+}

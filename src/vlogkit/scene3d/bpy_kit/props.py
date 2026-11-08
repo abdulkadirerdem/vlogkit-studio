@@ -952,7 +952,9 @@ def _earth_material():
     tex = nt.nodes.new("ShaderNodeTexImage")
     tex.image = img
     tex.projection = "SPHERE"
-    nt.links.new(coord.outputs["Object"], tex.inputs["Vector"])
+    # Generated (0..1 around the sphere's own box): the sphere projection is centred at 0.5, so
+    # object coordinates only worked for a big Earth; a small one showed one dark pixel all over
+    nt.links.new(coord.outputs["Generated"], tex.inputs["Vector"])
     nt.links.new(tex.outputs["Color"], p.inputs["Base Color"])
     p.inputs["Roughness"].default_value = 0.55
     p.inputs["Specular IOR Level"].default_value = 0.3
@@ -1071,7 +1073,7 @@ def _moon_material():
         tex = nt.nodes.new("ShaderNodeTexImage")
         tex.image = bpy.data.images.load(color, check_existing=True)
         tex.projection = "SPHERE"
-        nt.links.new(coord.outputs["Object"], tex.inputs["Vector"])
+        nt.links.new(coord.outputs["Generated"], tex.inputs["Vector"])
         bright = nt.nodes.new("ShaderNodeBrightContrast")
         bright.inputs["Contrast"].default_value = 0.25
         nt.links.new(tex.outputs["Color"], bright.inputs["Color"])
@@ -1349,7 +1351,7 @@ def phone_big(name, o, p):
 PITS: dict[str, list] = {}  # pit id -> its cutter objects (reset per shot by the runner)
 LAYER_MATS = {  # material -> (colour, roughness, alpha, emit)
     "water": ("#4fb3d4", 0.05, 0.55, 0.0), "green_water": ("#6f9b3c", 0.1, 0.8, 0.0),
-    "murky": ("#5d5a3e", 0.2, 0.9, 0.0), "sand": ("#d9bf86", 0.95, 1.0, 0.0),
+    "murky": ("#8b7a57", 0.25, 0.62, 0.0), "sand": ("#d9bf86", 0.95, 1.0, 0.0),
     "gravel": ("#9b958b", 0.9, 1.0, 0.0), "concrete": ("#a6a39d", 0.85, 1.0, 0.0),
     "asphalt": ("#3a3b3d", 0.8, 1.0, 0.0), "soil": ("#5a3b24", 0.95, 1.0, 0.0),
     "clay": ("#b06a3c", 0.9, 1.0, 0.0), "liner": ("#1b1c1e", 0.45, 1.0, 0.0),
@@ -1357,10 +1359,233 @@ LAYER_MATS = {  # material -> (colour, roughness, alpha, emit)
     "sludge": ("#4a3d2a", 0.6, 1.0, 0.0), "oil": ("#121212", 0.05, 1.0, 0.0),
     "lava": ("#ff5a14", 0.6, 1.0, 6.0), "foam": ("#f2e9d8", 0.9, 1.0, 0.0),
     "stone": ("#8d857a", 0.85, 1.0, 0.0),
+    "wood": ("#8a6a48", 0.7, 1.0, 0.0), "rust": ("#7a4a2e", 0.6, 1.0, 0.0), "brick": ("#9a4a36", 0.85, 1.0, 0.0),
+    "aquifer": ("#4fc6ea", 0.3, 1.0, 0.0),
+}  # fmt: skip
+
+# Water as these videos show it: not a grey see-through slab but a lit, saturated body, light at
+# the surface and deep blue at the bottom, a bright surface line, moving caustic light, bubbles.
+WATERS = {  # material -> (surface colour, deep colour, alpha, caustics, glow)
+    "water": ("#22b8ec", "#06397f", 0.8, 0.6, 0.22),
+    "green_water": ("#9cc64a", "#2c5420", 0.84, 0.4, 0.18),
+    "murky": ("#a88d5c", "#4d3a22", 0.86, 0.12, 0.15),
+    "ice": ("#f2fcff", "#a6d8ee", 0.85, 0.0, 0.35),
+}  # fmt: skip
+
+
+def _shift(color: str, k: float) -> tuple:
+    """`color` lightened (k > 0, towards white) or darkened (k < 0, towards black)."""
+    r, g, b, a = look.hex_rgba(color)
+    if k >= 0:
+        return (r + (1 - r) * k, g + (1 - g) * k, b + (1 - b) * k, a)
+    return (r * (1 + k), g * (1 + k), b * (1 + k), a)
+
+
+def _over_time(nt, sock, per_second: float) -> None:
+    """Drive a node input with time (seconds x `per_second`): linear keys far apart."""
+    from .anim import _fcurves
+
+    fps = bpy.context.scene.render.fps or 30
+    sock.default_value = 0.0
+    sock.keyframe_insert("default_value", frame=0)
+    sock.default_value = per_second * 20000 / fps
+    sock.keyframe_insert("default_value", frame=20000)
+    for fc in _fcurves(nt.animation_data.action):
+        for kp in fc.keyframe_points:
+            kp.interpolation = "LINEAR"
+
+
+def _caustics(nt, coord, scale: float, speed: float = 0.35):
+    """Bright moving light lines, 0..1 (the pattern sunlight makes through rippling water)."""
+    vor = nt.nodes.new("ShaderNodeTexVoronoi")
+    vor.voronoi_dimensions = "4D"
+    vor.feature = "DISTANCE_TO_EDGE"
+    vor.inputs["Scale"].default_value = scale
+    nt.links.new(coord.outputs["Object"], vor.inputs["Vector"])
+    _over_time(nt, vor.inputs["W"], speed)
+    mr = nt.nodes.new("ShaderNodeMapRange")
+    mr.inputs["From Min"].default_value = 0.0
+    mr.inputs["From Max"].default_value = 0.075
+    mr.inputs["To Min"].default_value = 1.0
+    mr.inputs["To Max"].default_value = 0.0
+    nt.links.new(vor.outputs["Distance"], mr.inputs["Value"])
+    return mr.outputs["Result"]
+
+
+def _math(nt, op: str, a, b):
+    n = nt.nodes.new("ShaderNodeMath")
+    n.operation = op
+    for i, v in enumerate((a, b)):
+        if isinstance(v, (int, float)):
+            n.inputs[i].default_value = v
+        else:
+            nt.links.new(v, n.inputs[i])
+    return n.outputs[0]
+
+
+def _mix(nt, fac, a, b, blend: str = "MIX"):
+    n = nt.nodes.new("ShaderNodeMix")
+    n.data_type, n.blend_type = "RGBA", blend
+    for sock, v in ((n.inputs["Factor"], fac), (n.inputs[6], a), (n.inputs[7], b)):
+        if isinstance(v, (int, float, tuple)):
+            sock.default_value = v
+        else:
+            nt.links.new(v, sock)
+    return n.outputs[2]
+
+
+def _water_material(kind: str, color: str | None = None):
+    top, deep, alpha, caustic, glow = WATERS[kind]
+    if color:  # one colour given: the surface is a lighter, the bottom a darker shade of it
+        top_c, deep_c = _shift(color, 0.35), _shift(color, -0.45)
+    else:
+        top_c, deep_c = look.hex_rgba(top), look.hex_rgba(deep)
+    m = bpy.data.materials.new(f"layer_{kind}")
+    m.use_nodes = True
+    nt = m.node_tree
+    p = nt.nodes["Principled BSDF"]
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(coord.outputs["Generated"], sep.inputs[0])
+    ramp = nt.nodes.new("ShaderNodeValToRGB")  # bottom -> top of the layer
+    el = ramp.color_ramp.elements
+    el[0].position, el[0].color = 0.0, deep_c
+    el[1].position, el[1].color = 0.82, top_c
+    edge = el.new(0.975)
+    edge.color = top_c
+    rim = el.new(1.0)
+    rim.color = _shift(top, 0.45)
+    el[-1].position = 1.0
+    nt.links.new(sep.outputs["Z"], ramp.inputs["Fac"])
+    col = ramp.outputs["Color"]
+    if caustic > 0:
+        light = _caustics(nt, coord, 2.4)
+        # stronger near the surface, fading with depth
+        depth = nt.nodes.new("ShaderNodeMapRange")
+        depth.inputs["To Min"].default_value = 0.25
+        depth.inputs["To Max"].default_value = 1.0
+        nt.links.new(sep.outputs["Z"], depth.inputs["Value"])
+        amount = _math(
+            nt, "MULTIPLY", _math(nt, "MULTIPLY", light, depth.outputs["Result"]), 0.55 * caustic
+        )
+        col = _mix(nt, amount, col, (0.92, 1.0, 1.0, 1.0))
+    nt.links.new(col, p.inputs["Base Color"])
+    p.inputs["Roughness"].default_value = 0.04
+    p.inputs["Alpha"].default_value = alpha
+    if "Specular IOR Level" in p.inputs:
+        p.inputs["Specular IOR Level"].default_value = 0.45  # more would mirror the white sky
+    nt.links.new(col, p.inputs["Emission Color"])  # lit from within: never grey in a dark pit
+    p.inputs["Emission Strength"].default_value = glow
+    noise = nt.nodes.new("ShaderNodeTexNoise")  # small ripples on the surface
+    noise.inputs["Scale"].default_value = 5.0
+    nt.links.new(coord.outputs["Object"], noise.inputs["Vector"])
+    if kind != "ice":
+        noise.noise_dimensions = "4D"
+        _over_time(nt, noise.inputs["W"], 0.25)
+    bump = nt.nodes.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = 0.1
+    nt.links.new(noise.outputs["Fac"], bump.inputs["Height"])
+    nt.links.new(bump.outputs["Normal"], p.inputs["Normal"])
+    m["_clear"] = True
+    if hasattr(m, "surface_render_method"):  # dithered: blended ones re-sort and swap order
+        m.surface_render_method = "DITHERED"
+    if hasattr(m, "use_transparency_overlap"):
+        m.use_transparency_overlap = False
+    m.diffuse_color = top_c
+    return m
+
+
+def _aquifer_material(color: str | None = None):
+    """Groundwater: a band of round stones with water shining in every gap between them (what a
+    well reaches). The stones are drawn (cells of a noise), their surface is the library's gravel
+    when it has it: a photo of gravel does not separate stones from gaps well enough."""
+    import os
+
+    water = look.hex_rgba(color or "#0f86cf")
+    m = bpy.data.materials.new("layer_aquifer")
+    m.use_nodes = True
+    nt = m.node_tree
+    p = nt.nodes["Principled BSDF"]
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    warp = nt.nodes.new("ShaderNodeTexNoise")  # irregular, not honeycomb stones
+    warp.inputs["Scale"].default_value = 3.0
+    nt.links.new(coord.outputs["Object"], warp.inputs["Vector"])
+    vec = nt.nodes.new("ShaderNodeMix")
+    vec.data_type = "VECTOR"
+    vec.inputs["Factor"].default_value = 0.12
+    nt.links.new(coord.outputs["Object"], vec.inputs[4])
+    nt.links.new(warp.outputs["Color"], vec.inputs[5])
+    vor = nt.nodes.new("ShaderNodeTexVoronoi")
+    vor.inputs["Scale"].default_value = 5.0
+    nt.links.new(vec.outputs[1], vor.inputs["Vector"])
+    edge = 0.5
+    stone_f = nt.nodes.new("ShaderNodeMapRange")  # 1 inside a stone, 0 in the gaps
+    stone_f.inputs["From Min"].default_value = edge - 0.03
+    stone_f.inputs["From Max"].default_value = edge
+    stone_f.inputs["To Min"].default_value = 1.0
+    stone_f.inputs["To Max"].default_value = 0.0
+    nt.links.new(vor.outputs["Distance"], stone_f.inputs["Value"])
+    dome = nt.nodes.new("ShaderNodeMapRange")  # rounded: lighter middle, darker rim
+    dome.inputs["From Max"].default_value = edge
+    dome.inputs["To Min"].default_value = 1.0
+    dome.inputs["To Max"].default_value = 0.7
+    nt.links.new(vor.outputs["Distance"], dome.inputs["Value"])
+    diff = os.path.join(look.TEX_DIR or "", "gravel_stones_diff.jpg")
+    if look.TEX_DIR and os.path.exists(diff):
+        mp = nt.nodes.new("ShaderNodeMapping")
+        mp.inputs["Scale"].default_value = (1 / 0.6, 1 / 0.6, 1 / 0.6)
+        nt.links.new(coord.outputs["Object"], mp.inputs["Vector"])
+        img = nt.nodes.new("ShaderNodeTexImage")
+        img.image = bpy.data.images.load(diff, check_existing=True)
+        img.projection, img.projection_blend = "BOX", 0.25
+        nt.links.new(mp.outputs["Vector"], img.inputs["Vector"])
+        surface = _mix(nt, 1.0, img.outputs["Color"], (1.7, 1.7, 1.75, 1.0), "MULTIPLY")
+    else:
+        surface = _mix(nt, 0.0, (0.5, 0.48, 0.45, 1.0), (0.5, 0.48, 0.45, 1.0))
+    tint = _mix(nt, 0.35, surface, vor.outputs["Color"], "OVERLAY")  # stones differ a bit
+    rock = _mix(nt, 1.0, tint, dome.outputs["Result"], "MULTIPLY")
+    light = _caustics(nt, coord, 3.0, 0.5)
+    shine = _mix(nt, _math(nt, "MULTIPLY", light, 0.25), water, (0.6, 0.92, 1.0, 1.0))
+    col = _mix(nt, stone_f.outputs["Result"], shine, rock)
+    nt.links.new(col, p.inputs["Base Color"])
+    nt.links.new(shine, p.inputs["Emission Color"])
+    wet = _math(nt, "SUBTRACT", 1.0, stone_f.outputs["Result"])
+    nt.links.new(_math(nt, "MULTIPLY", wet, 0.3), p.inputs["Emission Strength"])
+    rough = nt.nodes.new("ShaderNodeMapRange")  # wet stones shine too
+    rough.inputs["To Min"].default_value = 0.05
+    rough.inputs["To Max"].default_value = 0.4
+    nt.links.new(stone_f.outputs["Result"], rough.inputs["Value"])
+    nt.links.new(rough.outputs["Result"], p.inputs["Roughness"])
+    bump = nt.nodes.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = 0.5
+    nt.links.new(dome.outputs["Result"], bump.inputs["Height"])
+    nt.links.new(bump.outputs["Normal"], p.inputs["Normal"])
+    m.diffuse_color = water
+    return m
+
+
+LAYER_TEX = {  # fills that have a real texture in the library: (texture, metres per repeat)
+    "wood": ("wood_planks", 1.0), "rust": ("rusty_metal_02", 0.8), "brick": ("red_brick_03", 1.0),
+    "gravel": ("gravel_stones", 0.8), "stone": ("stacked_stone_wall", 1.4), "concrete": ("concrete_wall_003", 1.5),
+    "soil": ("brown_mud_02", 1.5), "snow": ("snow_02", 2.0), "clay": ("cracked_red_ground", 1.5),
+    "sand": ("gravelly_sand", 1.2),
 }  # fmt: skip
 
 
 def _layer_material(kind: str, color: str | None = None):
+    import os
+
+    if kind == "strata" and bpy.data.materials.get("set.strata"):  # the ground itself (a dig)
+        return bpy.data.materials["set.strata"]
+
+    if kind in WATERS:
+        return _water_material(kind, color)
+    if kind == "aquifer":
+        return _aquifer_material(color)
+    if kind in LAYER_TEX and look.TEX_DIR:
+        tex, tile = LAYER_TEX[kind]
+        if os.path.exists(os.path.join(look.TEX_DIR, f"{tex}_diff.jpg")):
+            return look.pbr(tex, color, tile, fallback=color or LAYER_MATS[kind][0])
     col, rough, alpha, emit = LAYER_MATS.get(kind, LAYER_MATS["soil"])
     col = color or col
     if alpha >= 1.0 and kind not in ("gravel", "asphalt", "concrete", "stone"):
@@ -1374,8 +1599,13 @@ def _layer_material(kind: str, color: str | None = None):
     p.inputs["Alpha"].default_value = alpha
     if "Specular IOR Level" in p.inputs:
         p.inputs["Specular IOR Level"].default_value = 0.8 if alpha < 1 else 0.3
-    if hasattr(m, "surface_render_method") and alpha < 1:
-        m.surface_render_method = "BLENDED"
+    if alpha < 1:
+        m["_clear"] = True
+        # dithered, not blended: blended surfaces are re-sorted every frame and swap order
+        if hasattr(m, "surface_render_method"):
+            m.surface_render_method = "DITHERED"
+        if hasattr(m, "use_transparency_overlap"):
+            m.use_transparency_overlap = False
     coord = nt.nodes.new("ShaderNodeTexCoord")
     if kind in ("gravel", "asphalt", "concrete", "stone"):  # stones / aggregate in the bump
         vor = nt.nodes.new("ShaderNodeTexVoronoi")
@@ -1508,13 +1738,24 @@ def layer(name, o, p):
             so = dup.modifiers.new("skin", "SOLIDIFY")
             so.thickness = float(o.get("t", 0.05))
             so.offset = -1.0
+        # every layer is cut at the section; on one plane they would fight for the same pixels
+        # (the flicker at the bottom of a well): each one starts a hair behind the last, shells
+        # first, see-through ones furthest back
+        y0 = 0.002 * (1 + int(o.get("_order", 0))) + (0.01 if m.get("_clear") else 0.0)
         slab = shapes.rbox(
-            f"{name}.slab", (80, 40, max(0.01, z1 - z0)), m, (0, 20.0, (z0 + z1) / 2), 0.0
+            f"{name}.slab", (80, 40, max(0.01, z1 - z0)), m, (0, y0 + 20.0, (z0 + z1) / 2), 0.0
         )
         bo = dup.modifiers.new("slab", "BOOLEAN")
         bo.operation = "INTERSECT"
         bo.object = slab
         bo.solver = "EXACT"
+        # `except`: other pits that cut through this layer (a well through the groundwater band)
+        for other in o.get("except") or []:
+            for oc in PITS.get(other, []):
+                cut = dup.modifiers.new(f"except.{other}", "BOOLEAN")
+                cut.operation = "DIFFERENCE"
+                cut.object = oc
+                cut.solver = "EXACT"
         bpy.context.view_layer.update()
         dg = bpy.context.evaluated_depsgraph_get()
         me = bpy.data.meshes.new_from_object(dup.evaluated_get(dg))
@@ -1535,7 +1776,87 @@ def layer(name, o, p):
             for poly in ob.data.polygons:
                 poly.use_smooth = kind in ("water", "green_water", "murky", "oil", "ice")
         o["at"] = (origin.x, origin.y, origin.z)
+        if kind in ("murky", "sludge") and o.get("grains", True):
+            _grains(name, parts, origin, r)
+        elif kind in ("water", "green_water") and o.get("bubbles", True) and z1 - z0 > 0.25:
+            _bubbles(name, parts, origin, r)
     return r
+
+
+def _bounds(parts, origin):
+    from mathutils import Vector
+
+    pts = [ob.matrix_world @ v.co + origin for ob in parts for v in ob.data.vertices]
+    if not pts:
+        return None
+    lo = Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts)))
+    hi = Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
+    return lo, hi
+
+
+def _bubbles(name: str, parts, origin, parent) -> None:
+    """Small air bubbles rising through the water and popping at the surface, on a loop, right
+    on the section face so they read through the water."""
+    import random
+
+    from mathutils import Vector
+
+    from .anim import _fcurves
+
+    b = _bounds(parts, origin)
+    if b is None:
+        return
+    lo, hi = b
+    rng = random.Random(len(name) * 17 + 3)
+    fps = bpy.context.scene.render.fps or 30
+    mat = look.mat("#effdff", rough=0.05, emit=1.4, spec=0.9)
+    n = max(6, min(22, int((hi.x - lo.x) * 9)))
+    for k in range(n):
+        x = rng.uniform(lo.x + 0.06, hi.x - 0.06)
+        z0, z1 = lo.z + 0.05, hi.z - 0.03
+        g = shapes.sphere(f"{name}.bubble{k}", rng.uniform(0.012, 0.03), mat,
+                          Vector((x, 0.004, z0)) - origin, parent=parent, segments=8, rings=6)  # fmt: skip
+        period = int(fps * rng.uniform(1.6, 3.2))
+        start = rng.randint(0, period)
+        g.location.z = z0 - origin.z
+        g.keyframe_insert("location", index=2, frame=start)
+        g.location.z = z1 - origin.z
+        g.keyframe_insert("location", index=2, frame=start + period)
+        for fc in _fcurves(g.animation_data.action):
+            for kp in fc.keyframe_points:
+                kp.interpolation = "LINEAR"
+            fc.modifiers.new("CYCLES")
+        g.keyframe_insert("location", index=0, frame=1)
+        for fc in _fcurves(g.animation_data.action):
+            if fc.array_index == 0:
+                nm = fc.modifiers.new("NOISE")
+                nm.scale, nm.strength, nm.phase = 8, 0.04, k * 2.3
+
+
+def _grains(name: str, parts, origin, parent) -> None:
+    """Sand and silt hanging in cloudy water, drifting slowly (reads as dirty, not as a blob)."""
+    import random
+
+    from mathutils import Vector
+
+    pts = [ob.matrix_world @ v.co + origin for ob in parts for v in ob.data.vertices]
+    if not pts:
+        return
+    lo = Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts)))
+    hi = Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
+    rng = random.Random(len(name) * 31)
+    grain = look.mat("#c9b48a", rough=0.8)
+    for k in range(70):
+        p = Vector((rng.uniform(lo.x + 0.08, hi.x - 0.08), rng.uniform(0.004, 0.03),
+                    rng.uniform(lo.z + 0.05, hi.z - 0.05)))  # fmt: skip
+        g = shapes.sphere(f"{name}.grain{k}", rng.uniform(0.006, 0.016), grain, p - origin, parent=parent,
+                          segments=6, rings=4)  # fmt: skip
+        g.keyframe_insert("location", frame=1)
+        from .anim import _fcurves
+
+        for fc in _fcurves(g.animation_data.action):
+            nm = fc.modifiers.new("NOISE")
+            nm.scale, nm.strength, nm.phase = 40, 0.05, k * 1.7 + fc.array_index
 
 
 def pipe(name, o, p):
@@ -1632,7 +1953,12 @@ def tank(name, o, p):
     """A buried or standing box / drum (a filter, a septic tank, a water tank) with a label."""
     r = _root(name, p)
     w, d, h = ([*list(o.get("size", (0.8, 0.6, 0.6))), 0.6])[:3]
-    m = look.mat(o.get("color", "#3f6b4a"), rough=0.5)
+    # `material`: a real surface (concrete slab, wooden box, rusty drum) instead of a flat colour
+    m = (
+        _layer_material(o["material"], o.get("color"))
+        if o.get("material")
+        else look.mat(o.get("color", "#3f6b4a"), rough=0.5)
+    )
     if o.get("shape", "box") == "drum":
         shapes.cylinder(f"{name}.body", w / 2, h, m, (0, 0, h / 2), segments=32, parent=r)
     else:
@@ -1646,7 +1972,14 @@ def tank(name, o, p):
 def hand_pump(name, o, p):
     """A cast-iron hand pump: a column, a spout towards -X, a lever on top (`color`)."""
     r = _root(name, p)
-    iron = look.mat(o.get("color", "#2f5d3a"), rough=0.45, metal=0.4)
+    iron = (
+        look.pbr("green_metal_rust", o.get("color"), 0.6, fallback="#2f5d3a")
+        if look.TEX_DIR
+        and __import__("os").path.exists(
+            __import__("os").path.join(look.TEX_DIR, "green_metal_rust_diff.jpg")
+        )
+        else look.mat(o.get("color", "#2f5d3a"), rough=0.45, metal=0.4)
+    )
     shapes.cylinder(f"{name}.base", 0.16, 0.08, iron, (0, 0, 0.04), parent=r, segments=24)
     shapes.cylinder(f"{name}.col", 0.09, 0.95, iron, (0, 0, 0.5), parent=r, segments=24)
     shapes.sphere(f"{name}.cap", 0.11, iron, (0, 0, 0.98), (1, 1, 0.6), r, segments=16, rings=8)
@@ -1691,6 +2024,12 @@ KIT = {  # kind -> library assets (one is picked per placement, the same one for
     "bookshelf": ["wooden_bookshelf_worn"], "laptop": ["classic_laptop"], "desk_lamp": ["desk_lamp_arm_01"],
     "cctv_camera": ["security_camera_01"], "bollard": ["Prop_Bollard"], "ac_unit": ["Prop_ACUnit"],
     "planter": ["Prop_Planter_Single", "Sidewalk_Planter"], "manhole": ["Prop_ManholeCover"],
+    "bucket": ["wooden_bucket_01"], "barrel": ["Barrel_01"], "spade": ["rusted_spade_01"],
+    "pickaxe": ["picke_dirty_01"], "watering_can": ["watering_can_metal_01"], "compost_bags": ["compost_bags"],
+    "roots": ["root_cluster_01", "root_cluster_02"], "grass_tuft": ["grass_medium_01"],
+    "rocks": ["rock_moss_set_01"], "boulder": ["boulder_01"], "crate": ["wooden_crate_01"],
+    "stump": ["tree_stump_01"], "utility_box": ["utility_box_01"], "manhole_cover": ["water_manhole_cover"],
+    "ladder": ["wooden_ladder"], "planter_box": ["planter_box_01"],
 }  # fmt: skip
 FALLBACK = {  # without the library, a library-only kind is drawn as its nearest own build
     "taxi": "car", "police_car": "car", "sports_car": "car", "suv": "car", "big_tree": "tree",
@@ -1698,6 +2037,10 @@ FALLBACK = {  # without the library, a library-only kind is drawn as its nearest
     "rock": "box", "armchair": "chair", "coffee_table": "desk", "dining_table": "desk", "bookshelf": "box",
     "fire_hydrant": "box", "trash_can": "box", "bollard": "box", "ac_unit": "box", "planter": "plant",
     "manhole": "box", "desk_lamp": "cup", "cctv_camera": "box",
+    "bucket": "cup", "barrel": "box", "spade": "box", "pickaxe": "box", "watering_can": "cup",
+    "compost_bags": "box", "roots": "plant", "grass_tuft": "plant", "rocks": "box", "boulder": "box",
+    "crate": "box", "stump": "box", "utility_box": "box", "manhole_cover": "box", "ladder": "box",
+    "planter_box": "plant",
 }  # fmt: skip
 TEXT_KEYS = ("text", "hours", "masthead", "month")  # a prop with writing stays the kit's own build
 _world_loaded = False

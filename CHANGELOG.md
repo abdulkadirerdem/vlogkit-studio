@@ -2,6 +2,37 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Sürümleme: [SemVer](https://semver.org/).
 
+## [0.22.0] - 2026-11-08
+
+### Değişti
+- **Yeni kanal sesi: VoxCPM2 (Apache-2.0, yerel).** Türkçe TTS Arena'da ticari kullanıma izin veren ve Mac'te çalışan en iyi model. Kulakla seçilen tek bir bariton anlatıcı sabit referans olarak klonlanır (`assets/voice/kanal-vox.wav`): ses hiç değişmez, her cümle kendi tonuyla okunur. Ton noktalamadan ve ilk kelimeden çıkar ("?" merak, "!" vurgu, "…" gerilim, "Ama…" gerilimli, "Buna…" sır verir gibi); beat'e `ton` yazılarak elle verilir. Apple Silicon'da MLX sürümü (iki kat hızlı), diğer makinelerde PyTorch (NVIDIA kartla çok hızlı). Kurulu değilse eski Qwen sesi kullanılır. Kurulum ekranındaki "Türkçe ses modeli" ve `3d install-voice` bunu kurar (~5 GB).
+- **3B kütüphane 3:** gerçek PBR dokular (Poly Haven, CC0): kesitin toprak katmanları (üst toprak, çatlak kil, kumlu çakıl, taşlı toprak, kaya tabakası), kuyu taşı, çakıl, sıva, tuğla, kiremit, ahşap, beton, kar, paslı metal. Kesit artık bunlarla çizilir, ev sıvalı, kaidesi tuğla, çatısı kiremitli. Yeni modeller: kova, varil, kürek, kazma, sulama kabı, çuval, sandık, merdiven, kütük, kayalar, kökler, çim tutamı, elektrik kutusu, rögar kapağı, saksı kasası. Kesit kökler, çim tutamları, gömülü kayalar ve bahçe eşyalarıyla döşenir.
+
+### Eklendi
+- **Üç yeni 3B formatı**, her biri belgesi ve çalışılmış örneğiyle (`3d new PROJE --format …`), Stüdyo'daki format kartlarında:
+  - **Hayatta kalma günlüğü** (`hayatta`): bir kural, bir ödül, günler; gün sayacı, büyüyen sorunlar, sonda numaralı "sen ne yapardın?" (örnek: 30 gün odadan çıkmamak).
+  - **Oyun reklamı tarzı soru** (`oyun`): "Sadece %1'i doğru yapar"; seçenekler, seçilen satırın kırmızı/yeşil yanması, YANLIŞ/DOĞRU damgası, yanlışın sonucu ekranda (örnek: tavada yağ yangını).
+  - **Uzay ve ölçek** (`olcek`): tahmin seçenekleri, sayaçla gelen gerçek sayılar, ekranda dizilen kanıt (örnek: Dünya ile Ay arasına 30 Dünya).
+- **Damga kartı** `"stamp"` ve seçeneklerde `"pick"` (seçilen satır, dokunma halkası).
+- Küçük Dünya küreleri doğru dokulu (doku yalnızca büyük kürede doğru sarılıyordu); ateş artık turuncu alev dilleri (soluk pembe lekeler yerine).
+- **Gerçekten olan sorun anları:** `collapse` (çukurun duvarları çöker, topraklar kopup düşer, dip dolar, toz kalkar), `burst` (boru/tank patlar: çatlak, fışkıran su, sızıntı), ipten sarkan ve ipi peşinden sürükleyen eşya (`rope`), kolu iniş çıkış yapan el pompası (`pump`), gerçek yüzeyli tank/tabla (`material`).
+- **Stüdyo:** "3B animasyon" seçilince altında format kartları (Peki ya?, Kesitten inşa); seçim işin talimatına geçer.
+- Bir katmanı başka bir çukurun oyması (`except`: yeraltı suyu bandının içinden geçen kuyu).
+- **Canlı su:** kesitteki su artık gri saydam bir blok değil: yüzeyde açık turkuaz, dipte koyu mavi, içinden aydınlanan bir gövde; üstünde oynayan ışık desenleri, yüzeyde parlak çizgi, yükselen kabarcıklar. Bulanık suda süzülen kum zerreleri. Yeni `aquifer` malzemesi: yuvarlak taşlar ve aralarında parlayan yeraltı suyu. Her kesit videosunda kendiliğinden.
+- **Dalış açılışı:** `"move": "dive"`: kamera yüzeyden (`from`: çalışan pompa) kesitin içine, yer altındaki ödüle iner; başlık inişle gelir (`hook.at`).
+- **Önce/sonra perdesi:** bir plana `"wipe": {"labels": ["BULANIK", "BERRAK"]}`: önceki durum ile yenisi ortadan bölünmüş yan yana durur, sonra yenisi kareyi alır.
+- **Sorun anı vurgusu:** kesit formatında her "Ama…" cümlesinin fiilinde kendiliğinden kamera sarsıntısı ve çarpma sesi (`"punch": false` kapatır). Format daha sıkı: 45-65 sn, 12-22 cümle.
+- **Terim kartı:** `"term"`: "Buna ___ denir" anında terim büyük sarı kart olarak belirir (sahnedeki 3B tabela okunmuyordu). Kamerada `"level": true`: yer altı yakın planları dümdüz (aşağıdan bakan kamera evi çarpıtıyordu).
+- **Kesitte minyatür görünümü:** sığ odak (konu net, arkadaki ev yumuşak), sıcak ana ışık ve serin dolgu. **Sayaç kartı** `"count"`: kazılan derinlik gibi olayla birlikte artan sayı.
+- **Doğal yağmur ve kar:** her damla kendi hızında yukarıdan yere döngüyle düşer; damlalar artık havada asılı ya da yerde saplı kalmıyor.
+- **Numaralı kapanış sorusu:** `"choices"`: soru kelimesinde 2-4 numaralı seçenek tek tek belirir, "numarasını yoruma yaz"; yorum yazmak bir tuş kadar kolay.
+- **Kazı ve dökülme:** `dig` (çukur yukarıdan aşağı açılır, toprak parçaları savrulur), `drop` (çakıl/taş çukura dökülüp dipte birikir).
+
+### Düzeltildi
+- **3B render 3,5 kat hızlı:** ölçünce sürenin çoğunu örnek sayısı ve gölge haritaları yiyordu. Normal kalite 24 yerine 12 örnek (yan yana aynı görüntü), gölge haritası dioramaya uygun yoğunlukta, dolgu ışıkları gölge hesaplamıyor, her plan tek seferde render ediliyor. 60 saniyelik bir kesit videosu M4 Mac'te tam çözünürlükte ~2,5 saat yerine ~40 dakika.
+- **Kesitteki titreme:** katmanların ön yüzleri aynı düzlemde olduğu için kareden kareye yer değiştiriyordu (kuyunun dibi); her katman hafif geride başlar, saydamlar her karede yeniden sıralanmaz.
+- Taşınan (carry) eşyanın kelimeye bağlı pompa ayarı sonraki cümlelere geçip planı durduruyordu.
+
 ## [0.21.0] - 2026-11-07
 
 ### Eklendi

@@ -326,16 +326,21 @@ def fire(ctx: Ctx, e: dict, i: int) -> None:
     c = ctx.where(e)
     f0 = ctx.frame(e["t"])
     f1 = ctx.frame(e["t"] + float(e["dur"])) if e.get("dur") else None
-    for k, (col, h, r) in enumerate(
-        (("#ff5a14", 1.0, 0.42), ("#ff8a1f", 0.8, 0.32), ("#ffd04a", 0.55, 0.2))
+    # tongues of flame: tapered cones, red outside, orange, a yellow core; moderate glow so the
+    # view transform keeps them orange (a strong glow went pale pink)
+    for k, (col, h, r, glow) in enumerate(
+        (("#e8380c", 1.15, 0.3, 2.2), ("#ff7a12", 0.9, 0.22, 3.0), ("#ffc531", 0.6, 0.13, 4.0))
     ):
-        for j in range(3):
-            m = _mat(col, emit=6.0 + 4 * k, alpha=0.85, blended=True, name=f"fire{i}.{k}{j}")
-            off = Vector((ctx.rng.uniform(-0.25, 0.25), ctx.rng.uniform(-0.15, 0.15), 0)) * size
-            ob = shapes.sphere(
-                f"fire{i}.{k}{j}", r * size, m, c + off + Vector((0, 0, h * 0.45 * size)),
-                scale=(1, 1, 2.1), segments=16, rings=10,
+        for j in range(4 - k):
+            m = _mat(col, emit=glow, alpha=0.9, blended=True, name=f"fire{i}.{k}{j}")
+            off = Vector((ctx.rng.uniform(-0.22, 0.22), ctx.rng.uniform(-0.12, 0.12), 0)) * size
+            hh = h * size * ctx.rng.uniform(0.75, 1.15)
+            ob = shapes.cylinder(
+                f"fire{i}.{k}{j}", r * size, hh, m, c + off + Vector((0, 0, hh / 2)),
+                segments=14, radius2=0.0,
             )  # fmt: skip
+            for poly in ob.data.polygons:
+                poly.use_smooth = True
             _show(ob, f0, f1)
             ob.keyframe_insert("scale", frame=f0)
             from .anim import _fcurves
@@ -495,12 +500,16 @@ def pour(ctx: Ctx, e: dict, i: int) -> None:
 RAIN = {  # item -> (color(s), size (w, h), fall speed m/s, sway)
     "money": (["#7fb56b", "#6aa45a", "#8cc27a"], (0.16, 0.07), 1.3, 0.5),
     "confetti": (["#ff4d6d", "#ffd23f", "#3ec1d3", "#9b5de5", "#00f5d4"], (0.05, 0.03), 1.6, 0.35),
-    "water": (["#a8d8ea"], (0.008, 0.25), 9.0, 0.0),
+    "water": (["#c4e6f5"], (0.014, 0.34), 9.0, 0.0),  # streaks: a drop as motion blur shows it
     "snow": (["#ffffff"], (0.03, 0.03), 0.8, 0.3),
 }
 
 
 def rain(ctx: Ctx, e: dict, i: int) -> None:
+    """Things falling from the sky over `area` [x0, y0, x1, y1]. Rain and snow keep falling: every
+    drop loops from the top to the ground for as long as it rains (none hangs in the air before
+    its turn or stays stuck on the ground); money and confetti fall once and stay where they land.
+    """
     item = e.get("item", "money")
     colors, (w, h), speed, sway = RAIN.get(item, RAIN["money"])
     if e.get("color"):
@@ -511,10 +520,41 @@ def rain(ctx: Ctx, e: dict, i: int) -> None:
     dur = float(e.get("dur", (ctx.span / ctx.fps) - t0))
     n = int(e.get("n", {"money": 70, "confetti": 160, "water": 220, "snow": 160}.get(item, 80)))
     mats = [
-        _mat(col, alpha=0.6 if item == "water" else 1.0, rough=0.5, name=f"rain{i}.{k}")
+        _mat(col, alpha=0.55 if item == "water" else 1.0, rough=0.2 if item == "water" else 0.5,
+             emit=0.6 if item in ("water", "snow") else 0.0, name=f"rain{i}.{k}")
         for k, col in enumerate(colors)
-    ]
+    ]  # fmt: skip
     from .anim import _fcurves
+
+    if item in ("water", "snow"):
+        ground = float(e.get("ground", 0.0))
+        f_on = ctx.frame(t0)
+        f_off = ctx.frame(t0 + dur) if e.get("dur") else None
+        for k in range(n):
+            top = ctx.rng.uniform(4.5, 7.5)
+            # each its own speed (a sheet of identical drops reads as a pattern)
+            v = speed * ctx.rng.uniform(0.85, 1.2)
+            period = max(4, round((top - ground) / v * ctx.fps))
+            phase = ctx.rng.randint(0, period - 1)  # mid-fall when the rain starts
+            p = Vector((ctx.rng.uniform(x0, x1), ctx.rng.uniform(y0, y1), top))
+            ob = shapes.plane(f"rain{i}.{k}", (w, h), mats[k % len(mats)], p, (90, 0, 0))
+            if item == "snow":
+                ob.rotation_euler = (R(90), 0, ctx.rng.uniform(0, 6))
+            fa = f_on - phase
+            for f, z in ((fa, top), (fa + period, ground + h / 2)):
+                ob.location.z = z
+                ob.keyframe_insert("location", index=2, frame=f)
+            _linear(ob)
+            for fc in _fcurves(ob.animation_data.action):
+                fc.modifiers.new("CYCLES")
+            if sway:  # snow drifts
+                ob.keyframe_insert("location", index=0, frame=fa)
+                for fc in _fcurves(ob.animation_data.action):
+                    if fc.data_path == "location" and fc.array_index == 0:
+                        nm = fc.modifiers.new("NOISE")
+                        nm.scale, nm.strength, nm.phase = 18, sway, k * 3.1
+            _show(ob, f_on, f_off)
+        return
 
     for k in range(n):
         top = ctx.rng.uniform(4.5, 7.5)
@@ -522,8 +562,6 @@ def rain(ctx: Ctx, e: dict, i: int) -> None:
         start = t0 + ctx.rng.uniform(-fall * 0.8, max(0.0, dur - fall * 0.5))
         p = Vector((ctx.rng.uniform(x0, x1), ctx.rng.uniform(y0, y1), top))
         ob = shapes.plane(f"rain{i}.{k}", (w, h), mats[k % len(mats)], p, (90, 0, 0))
-        if item == "snow":
-            ob.rotation_euler = (R(90), 0, 0)
         fa, fb = 1 + round(start * ctx.fps), 1 + round((start + fall) * ctx.fps)
         if fb < 1 or fa > ctx.span:
             bpy.data.objects.remove(ob)
@@ -531,22 +569,14 @@ def rain(ctx: Ctx, e: dict, i: int) -> None:
         for f, z in ((fa, top), (fb, 0.01)):
             ob.location.z = z
             ob.keyframe_insert("location", index=2, frame=f)
-        if item != "water":
-            ob.rotation_euler = (
-                ctx.rng.uniform(0, 6),
-                ctx.rng.uniform(0, 6),
-                ctx.rng.uniform(0, 6),
-            )
-            ob.keyframe_insert("rotation_euler", frame=fa)
-            ob.rotation_euler = (
-                ctx.rng.uniform(6, 14),
-                ctx.rng.uniform(6, 14),
-                ctx.rng.uniform(0, 6),
-            )
-            ob.keyframe_insert("rotation_euler", frame=fb)
-            ob.keyframe_insert("location", index=0, frame=fa)
-            ob.keyframe_insert("location", index=1, frame=fa)
+        ob.rotation_euler = (ctx.rng.uniform(0, 6), ctx.rng.uniform(0, 6), ctx.rng.uniform(0, 6))
+        ob.keyframe_insert("rotation_euler", frame=fa)
+        ob.rotation_euler = (ctx.rng.uniform(6, 14), ctx.rng.uniform(6, 14), ctx.rng.uniform(0, 6))
+        ob.keyframe_insert("rotation_euler", frame=fb)
+        ob.keyframe_insert("location", index=0, frame=fa)
+        ob.keyframe_insert("location", index=1, frame=fa)
         _linear(ob)
+        _show(ob, max(1, fa))  # not hanging in the sky before its turn
         if sway:
             for fc in _fcurves(ob.animation_data.action):
                 if fc.data_path == "location" and fc.array_index < 2:
@@ -745,10 +775,155 @@ def vanish(ctx: Ctx, e: dict, i: int) -> None:
     sparks(ctx, {**e, "on": e["target"], "n": 14, "size": 0.6}, i)
 
 
+def _pit_box(cutters) -> tuple[Vector, Vector]:
+    bpy.context.view_layer.update()
+    pts = [c.matrix_world @ Vector(b) for c in cutters for b in c.bound_box]
+    lo = Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts)))
+    hi = Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
+    return lo, hi
+
+
+def collapse(ctx: Ctx, e: dict, i: int) -> None:
+    """A pit's walls give way: clods break off the sides and fall, loose soil piles up from the
+    bottom to `to` (m), dust rises, the ground shakes. `target`: the pit's id."""
+    from . import props
+
+    cutters = props.PITS.get(e.get("target", ""))
+    if not cutters:
+        return
+    lo, hi = _pit_box(cutters)
+    bottom = lo.z
+    top_fill = float(e.get("to", bottom + (min(0.0, hi.z) - bottom) * 0.25))
+    f0 = ctx.frame(e["t"])
+    dur = float(e.get("dur", 1.4))
+    soil = bpy.data.materials.get("set.strata") or _mat("#5a3b24", rough=0.95, name=f"clod{i}")
+    yb = max(0.05, min(hi.y, 0.9))
+    for k in range(int(e.get("n", 34))):
+        side = ctx.rng.choice((-1, 1))
+        x = (lo.x + 0.08) if side < 0 else (hi.x - 0.08)
+        z = ctx.rng.uniform(max(bottom + 0.6, -3.2), -0.15)
+        y = ctx.rng.uniform(0.05, yb)
+        ob = _chunk(f"clod{i}.{k}", ctx.rng.uniform(0.05, 0.16), soil, ctx.rng)
+        start = f0 + round(ctx.rng.uniform(0.0, dur * 0.6) * ctx.fps)
+        _show(ob, start)
+        v = Vector(
+            (
+                -side * ctx.rng.uniform(0.3, 1.2),
+                ctx.rng.uniform(-0.1, 0.1),
+                ctx.rng.uniform(-0.5, 0.4),
+            )
+        )
+        _ballistic(ctx, ob, Vector((x, y, z)), v, start, 2.5, bounce=0.15, spin=5.0,
+                   floor=bottom + 0.05, every=2)  # fmt: skip
+    # the loose soil piling up from the bottom
+    o = {"pit": e["target"], "material": "soil", "from": bottom, "to": top_fill, "_order": 40}
+    root = props.layer(f"collapse{i}", o, None)
+    root.location = o.get("at", (0, 0, bottom))
+    for f, k in (
+        (1, 0.01),
+        (f0 + round(0.25 * ctx.fps), 0.01),
+        (min(ctx.span, f0 + round(dur * ctx.fps)), 1.0),
+    ):
+        root.scale = (1, 1, k)
+        root.keyframe_insert("scale", index=2, frame=max(1, f))
+    _ease(root, "out")
+    mid = (lo + hi) / 2
+    smoke(ctx, {"t": e["t"] + 0.15, "pos": [mid.x, 0.15, bottom + 0.4], "size": 0.7, "dur": 2.0,
+                "color": "#9b8a72", "n": 7}, 100 + i)  # fmt: skip
+    shake(ctx, {"t": e["t"], "amount": e.get("amount", 0.035), "dur": 0.7}, i)
+
+
+def dig(ctx: Ctx, e: dict, i: int) -> None:
+    """A pit being dug: the soil in it empties from the top down while clods fly out over the
+    edge and land on the lawn (`target`: the pit's id, `dur` seconds)."""
+    from . import props
+
+    cutters = props.PITS.get(e.get("target", ""))
+    if not cutters:
+        return
+    lo, hi = _pit_box(cutters)
+    f0 = ctx.frame(e["t"])
+    dur = float(e.get("dur", 1.8))
+    f1 = min(ctx.span, f0 + round(dur * ctx.fps))
+    o = {"pit": e["target"], "material": "strata", "from": lo.z, "to": 0.0, "_order": 41}
+    root = props.layer(f"dig{i}", o, None)
+    root.location = o.get("at", (0, 0, lo.z))
+    for f, k in ((1, 1.0), (f0, 1.0), (f1, 0.001)):
+        root.scale = (1, 1, k)
+        root.keyframe_insert("scale", index=2, frame=max(1, f))
+    _ease(root, "inout")
+    _show(root, 1, min(ctx.span, f1 + 1))
+    soil = bpy.data.materials.get("set.strata") or _mat("#5a3b24", rough=0.95, name=f"spoil{i}")
+    n = int(e.get("n", 26))
+    for k in range(n):
+        start = f0 + round(dur * ctx.fps * k / n)
+        ob = _chunk(f"spoil{i}.{k}", ctx.rng.uniform(0.04, 0.1), soil, ctx.rng)
+        _show(ob, start)
+        side = ctx.rng.choice((-1, 1))
+        v = Vector(
+            (side * ctx.rng.uniform(0.8, 1.8), ctx.rng.uniform(0.2, 0.9), ctx.rng.uniform(3.0, 4.2))
+        )
+        p0 = Vector((ctx.rng.uniform(lo.x + 0.2, hi.x - 0.2), ctx.rng.uniform(0.1, 0.5), -0.1))
+        _ballistic(ctx, ob, p0, v, start, 2.0, bounce=0.1, spin=6.0, floor=0.02, every=2)
+
+
+def drop(ctx: Ctx, e: dict, i: int) -> None:
+    """Something poured into a pit from above (gravel, sand, stones): pieces fall in a stream
+    and land on the rising surface (`target` pit, `material`, `to`: where the pile ends)."""
+    from . import props
+
+    cutters = props.PITS.get(e.get("target", ""))
+    if not cutters:
+        return
+    lo, hi = _pit_box(cutters)
+    f0 = ctx.frame(e["t"])
+    dur = float(e.get("dur", 1.4))
+    top = float(e.get("to", lo.z + 0.5))
+    m = props._layer_material(e.get("material", "gravel"))
+    n = int(e.get("n", 46))
+    cx = (lo.x + hi.x) / 2
+    for k in range(n):
+        start = f0 + round(dur * ctx.fps * k / n)
+        ob = _chunk(f"drop{i}.{k}", ctx.rng.uniform(0.02, 0.05), m, ctx.rng)
+        _show(ob, start)
+        p0 = Vector(
+            (
+                cx + ctx.rng.uniform(-0.25, 0.25),
+                ctx.rng.uniform(0.1, 0.45),
+                0.6 + ctx.rng.uniform(0, 0.3),
+            )
+        )
+        v = Vector((ctx.rng.uniform(-0.4, 0.4), 0, -ctx.rng.uniform(0.5, 1.5)))
+        floor = lo.z + (top - lo.z) * (k / n)
+        _ballistic(ctx, ob, p0, v, start, 2.0, bounce=0.05, spin=4.0, floor=floor, every=2)
+
+
+def burst(ctx: Ctx, e: dict, i: int) -> None:
+    """Something under pressure bursts (a frozen pipe, a tank): a crack opens at `pos`, a spray
+    of droplets, then a steady leak."""
+    c = ctx.where(e, default_z=0.0)
+    color = e.get("color", "#cfeefa")
+    crack(ctx, {"t": e["t"], "pos": [c.x, c.y - 0.04, c.z], "wall": True, "size": float(e.get("size", 0.35)),
+                "dur": 0.2, "debris": False, "n": 5, "color": "#1d2328"}, i)  # fmt: skip
+    f0 = ctx.frame(e["t"])
+    m = _mat(color, alpha=0.75, rough=0.05, name=f"spray{i}")
+    for k, d in enumerate(_burst_dirs(ctx, int(e.get("n", 40)), up=0.5)):
+        ob = shapes.sphere(f"spray{i}.{k}", ctx.rng.uniform(0.008, 0.02), m, c, segments=8, rings=6)
+        life = ctx.rng.uniform(0.4, 0.9)
+        _show(ob, f0, min(ctx.span, f0 + round(life * ctx.fps)))
+        v = Vector((d.x, -abs(d.y) - 0.6, d.z)) * ctx.rng.uniform(1.5, 3.2)
+        _ballistic(ctx, ob, c.copy(), v, f0, life, bounce=0.1, spin=0, floor=-50)
+    if e.get("leak", True):
+        pour(ctx, {"t": e["t"] + 0.2, "pos": [c.x, c.y - 0.05, c.z], "dur": float(e.get("dur", 2.0)),
+                   "size": 0.35, "color": color}, 200 + i)  # fmt: skip
+    shake(ctx, {"t": e["t"], "amount": 0.02, "dur": 0.35}, i)
+
+
 EFFECTS = {
     "crack": crack, "debris": debris, "shatter": shatter, "explosion": explosion, "smoke": smoke,
     "fire": fire, "sparks": sparks, "flood": flood, "pour": pour, "rain": rain, "flash": flash,
     "shake": shake, "beam": beam, "split": split, "pop": pop, "vanish": vanish,
+    "collapse": collapse, "burst": burst, "dig": dig, "drop": drop,
 }  # fmt: skip
 
 

@@ -29,7 +29,7 @@ from vlogkit.export.encode import SHORTS
 from vlogkit.graphics.elements import EndCard, caption
 from vlogkit.graphics.style import VERTICAL, tr_upper
 from vlogkit.project import Edit
-from vlogkit.scene3d import blender, framing, plan
+from vlogkit.scene3d import blender, cards, framing, plan
 from vlogkit.scene3d import spec as specmod
 from vlogkit.scene3d.hud import Hud
 from vlogkit.video.graph import PRORES_HQ
@@ -139,12 +139,19 @@ class Scene3DEdit(Edit):
             shutil.rmtree(seq)
         seq.mkdir(parents=True)
         n = 0
+        last = None  # the previous shot's last frame (a wipe compares with it)
         for shot in p["shots"]:
             have = plan.frames_on_disk(Path(shot["out"]), shot["frames"])
+            nw = cards.wipe_frames(shot["wipe"], FPS) if shot.get("wipe") and last else 0
             for f in range(1, shot["frames"] + 1):
                 src = Path(shot["out"]) / f"{plan.source_frame(f, shot['frames'], have):05d}.png"
                 dst = seq / f"{n:06d}.png"
-                if shot.get("look"):  # the security camera, the news, the phone: drawn on top
+                if f <= nw:  # before | after, side by side, then the new one takes over
+                    from PIL import Image
+
+                    now = looked(shot, f, src) if shot.get("look") else Image.open(src)
+                    cards.wipe_frame(Image.open(last), now, (f - 1) / FPS, shot["wipe"]).save(dst)
+                elif shot.get("look"):  # the security camera, the news, the phone: drawn on top
                     looked(shot, f, src).save(dst)
                 else:
                     try:
@@ -152,6 +159,7 @@ class Scene3DEdit(Edit):
                     except OSError:  # another drive, a file system without hard links
                         shutil.copyfile(src, dst)
                 n += 1
+            last = seq / f"{n - 1:06d}.png"
         from vlogkit.ff import ffmpeg
 
         ffmpeg(
@@ -180,19 +188,96 @@ class Scene3DEdit(Edit):
 
         mode = formats.caption_mode(self.spec)
         for b in self.beats:
+            cn = b.raw.get("count")
+            if cn:  # a number running up with what happens (the depth while digging)
+                t0 = self.when(b, cn.get("at"), b.speech_at)
+                dur = float(cn.get("dur", 1.5))
+                els.append(
+                    cards.Counter(
+                        float(cn["from"]), float(cn["to"]), t0, dur,
+                        max(t0 + dur + 0.8, b.t1), self.layout,
+                        cn.get("unit", ""), cn.get("label", ""),
+                    )
+                )  # fmt: skip
+            tm = b.raw.get("term")
+            if tm:  # the word the video teaches, as a big card
+                t0 = self.when(b, tm.get("at"), b.speech_at)
+                els.append(
+                    cards.Term(
+                        tm["text"],
+                        t0,
+                        max(t0 + 1.6, b.t1),
+                        self.layout,
+                        tm.get("tag", "BUNA DENİR"),
+                    )
+                )
+            ch = b.raw.get("choices")
+            ch_at = self.when(b, ch.get("at"), b.speech_at) if ch else None
+            if ch:  # the closing question as numbered answers; it replaces the captions
+                t_end = b.t1 - (
+                    float(end.get("seconds", 2.0)) if end and b is self.beats[-1] else 0
+                )
+                if ch.get("dur"):  # shown for a while only (a question mid-video)
+                    t_end = min(t_end, ch_at + float(ch["dur"]))
+                pk = ch.get("pick")
+                pick = (
+                    {"n": int(pk["n"]), "ok": bool(pk.get("ok")),
+                     "t": self.when(b, pk.get("at"), ch_at + 0.6)}
+                    if pk else None
+                )  # fmt: skip
+                els.append(
+                    cards.Choices(
+                        ch.get("title") or "SENCE?",
+                        list(ch["items"]),
+                        ch_at,
+                        max(ch_at + 1.0, t_end),
+                        self.layout,
+                        ch.get("ask", "CEVABINI YORUMA YAZ"),
+                        pick,
+                    )
+                )
+            st = b.raw.get("stamp")
+            if st:  # the verdict: YANLIŞ / DOĞRU slammed on the frame
+                t0 = self.when(b, st.get("at"), b.speech_at)
+                els.append(
+                    cards.Stamp(
+                        st["text"], t0, min(b.t1, t0 + float(st.get("dur", 1.3))), self.layout,
+                        st.get("color", "#2ecc71" if st.get("ok") else "#ff3b30"),
+                    )
+                )  # fmt: skip
             if mode != "off" and b.raw.get("caption", True):
                 # word mode: one word at a time, bigger (the build-up formats)
                 groups = plan.word_groups(b.words) if mode == "word" else plan.chunks(b.words)
+                if ch_at is not None and ch.get("dur"):  # captions pause while it is up
+                    ch_end = ch_at + float(ch["dur"])
+                    groups = [g for g in groups if not (ch_at - 0.05 <= g[1] < ch_end)]
+                elif ch_at is not None:
+                    groups = [g for g in groups if g[1] < ch_at - 0.05]
+                    if groups:
+                        groups[-1] = (groups[-1][0], groups[-1][1], min(groups[-1][2], ch_at))
                 for k, (text, t0, t1) in enumerate(groups):
                     # each group stays until the next one starts (no two on screen at once); the
                     # last one holds a beat after the line so it can be read
                     until = groups[k + 1][1] if k + 1 < len(groups) else min(b.t1, t1 + 0.35)
+                    if ch_at is not None and t0 < ch_at:
+                        until = min(until, ch_at)
                     els.append(
                         caption(
                             tr_upper(text),
                             t0,
                             until,
                             size=CAPTION_SIZE if mode != "word" else WORD_SIZE,
+                            # a word is up for ~0.3 s: no fade, a quick pop, a heavy outline
+                            **(
+                                {
+                                    "pop": 0.07,
+                                    "fade": 0.01,
+                                    "s0": 0.86,
+                                    "stroke": round(WORD_SIZE * 0.1),
+                                }
+                                if mode == "word"
+                                else {}
+                            ),
                             cy=CAPTION_Y,
                             layout=self.layout,
                         )
@@ -201,9 +286,16 @@ class Scene3DEdit(Edit):
         if hook and hook.get("text"):  # the promise as a headline over the first seconds
             from vlogkit.graphics.captions import HookTitle
 
+            # `at`: seconds in, so a dive can land first and the headline arrives with it
+            t0 = float(hook.get("at", 0.0))
+            # a counter at the top from the first beat (GÜN 1): the headline goes under it
+            first_hud = self.spec.get("hud") and (self.beats[0].raw.get("hud") is not None)
             els.append(
-                HookTitle(tr_upper(hook["text"]), 0.0, float(hook.get("seconds", 2.6)), self.layout)
-            )
+                HookTitle(
+                    tr_upper(hook["text"]), t0, t0 + float(hook.get("seconds", 2.6)), self.layout,
+                    cy=600 * self.layout.scale if first_hud else None,
+                )
+            )  # fmt: skip
         hud = self.spec.get("hud")
         if hud:
             keys = []
@@ -317,12 +409,14 @@ class Scene3DEdit(Edit):
             if tts.pick_engine(
                 os.environ.get("VLOGKIT_TTS")
                 or (self.spec.get("voice") or {}).get("engine", "auto")
-            ) in ("pocket", "qwen"):
+            ) in ("pocket", "qwen", "voxcpm"):
                 eng = tts.pick_engine(
                     os.environ.get("VLOGKIT_TTS")
                     or (self.spec.get("voice") or {}).get("engine", "auto")
                 )
-                L = tts.QWEN_LICENSE if eng == "qwen" else tts.POCKET_LICENSE
+                L = {"qwen": tts.QWEN_LICENSE, "voxcpm": tts.VOX_LICENSE}.get(
+                    eng, tts.POCKET_LICENSE
+                )
                 out[".ses-lisans.md"] = (
                     f"# Seslendirme\n\n- {L['title']}: {L['author']}\n- Lisans: {L['license']}\n- {L['page']}\n"
                 )

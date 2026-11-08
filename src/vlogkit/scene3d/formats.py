@@ -8,6 +8,8 @@ agent in docs/formats/<id>.md; this module holds the parts the code needs.
 - `carry`: the scene builds up: every beat starts with the props of the beats before it (moved
   where their `anim` left them; `hide` drops one, the beat's `remove` list drops by id) and with
   the last beat's set and set_opts, so a beat only writes what it adds or changes.
+- `punch`: every problem line ("Ama ...") hits: the camera shakes and an impact sounds on its last
+  word (the Turkish verb: "çöker", "donar"), unless the beat already has its own.
 - `beats`: the scenario length range (docs/senaryo.md), `seconds`: the target length.
 """
 
@@ -31,8 +33,39 @@ FORMATS: dict[str, dict] = {
         "doc": "docs/formats/kesit.md",
         "captions": "word",
         "carry": True,
-        "beats": (14, 28),
-        "seconds": (55, 80),
+        "punch": True,
+        "beats": (12, 22),
+        "seconds": (45, 65),
+    },
+    "hayatta": {
+        "title": "Hayatta kalma günlüğü",
+        "line": "Bir kural, bir ödül, günler: her gün yeni bir sorun ve bir çözüm, sonda 'sen ne yapardın?'",
+        "doc": "docs/formats/hayatta.md",
+        "captions": "chunk",
+        "carry": False,
+        "punch": True,
+        "beats": (8, 16),
+        "seconds": (35, 60),
+    },
+    "oyun": {
+        "title": "Oyun reklamı tarzı soru",
+        "line": "'Sadece %1'i doğru yapar': seçenekler, yanlış seçimin sonucu, doğrusu ve neden",
+        "doc": "docs/formats/oyun.md",
+        "captions": "chunk",
+        "carry": False,
+        "punch": False,
+        "beats": (6, 12),
+        "seconds": (25, 45),
+    },
+    "olcek": {
+        "title": "Uzay ve ölçek",
+        "line": "Akıl almaz bir ölçek sorusu: tahmin, gerçek sayılar sayaçla, ekranda dizilen kanıt",
+        "doc": "docs/formats/olcek.md",
+        "captions": "chunk",
+        "carry": False,
+        "punch": False,
+        "beats": (7, 14),
+        "seconds": (30, 55),
     },
 }
 DEFAULT = "pekiya"
@@ -73,12 +106,40 @@ def _settle(p: dict) -> dict | None:
     p["at"] = at
     if p.get("open"):
         p["open"] = {**p["open"], "at": 0, "dur": 0.01}
-    p.pop("hand", None)
+    for k in ("hand", "pump"):  # timed to the beat that wrote them: they do not carry over
+        p.pop(k, None)
     return p
+
+
+PROBLEM = ("ama ", "fakat ", "ancak ")
+
+
+def _punch(b: dict) -> None:
+    """A problem line lands on its verb: a short camera shake and an impact there."""
+    import re
+
+    if b.get("punch") is False:  # an "Ama" that turns things for the better
+        return
+    say = re.sub(r"[\[\]]", "", b.get("say", "")).strip()
+    if not say.lower().startswith(PROBLEM):
+        return
+    words = re.findall(r"[\wçğıöşüÇĞİÖŞÜ']+", say)
+    if not words:
+        return
+    verb = words[-1]
+    fx_all = [*(b.get("fx") or []), *(f for s in b.get("shots") or [] for f in s.get("fx") or [])]
+    if not any(f.get("kind") == "shake" for f in fx_all):
+        b["fx"] = [*(b.get("fx") or []), {"kind": "shake", "at": verb, "dur": 0.45, "amount": 0.05}]
+    if not any(s.get("id") == "impact" for s in b.get("sfx") or []):
+        b["sfx"] = [*(b.get("sfx") or []), {"id": "impact", "at": verb}]
 
 
 def expand(spec: dict) -> dict:
     """The scene with every beat written out in full (carry formats build up beat by beat)."""
+    if get(spec).get("punch") and spec.get("punch", True):
+        spec = copy.deepcopy(spec)
+        for b in spec.get("beats") or []:
+            _punch(b)
     if not (spec.get("carry") if "carry" in spec else get(spec)["carry"]):
         return spec
     out = copy.deepcopy(spec)

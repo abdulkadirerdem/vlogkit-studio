@@ -116,6 +116,10 @@ def setup_render(
             r.engine = "BLENDER_EEVEE_NEXT"
         ee = sc.eevee
         ee.taa_render_samples = samples
+        # shadow maps are most of the cost of a sample (1.8 s -> 1.06 s a frame at 0.25); for a
+        # diorama seen from a few metres a quarter of the default texel density is invisible
+        if hasattr(ee, "shadow_resolution_scale"):
+            ee.shadow_resolution_scale = 0.5 if samples >= 32 else 0.25
         for attr, val in (
             ("use_shadows", True),
             ("use_raytracing", True),
@@ -225,11 +229,20 @@ def sun(
 
 
 def area(
-    loc, target=(0, 0, 1), energy: float = 400, size: float = 4.0, color="#ffffff", name="area"
+    loc,
+    target=(0, 0, 1),
+    energy: float = 400,
+    size: float = 4.0,
+    color="#ffffff",
+    name="area",
+    shadow: bool | None = None,
 ) -> bpy.types.Object:
+    """An area light. Fill and rim lights cast no shadow by default: theirs are soft enough not
+    to be seen and every shadow-casting light costs render time on every sample."""
     from mathutils import Vector
 
     data = bpy.data.lights.new(name, "AREA")
+    data.use_shadow = shadow if shadow is not None else name not in ("fill", "rim")
     data.energy = energy
     data.size = size
     data.color = hex_rgba(color)[:3]

@@ -46,8 +46,10 @@ from vlogkit.speech import tts
 
 QUALITY = {  # samples, motion blur
     "draft": {"samples": 8, "motion_blur": False},
-    "normal": {"samples": 24, "motion_blur": True},
-    "high": {"samples": 64, "motion_blur": True},
+    # measured on an M4 (1080x1920 kesit shot): 24 samples 4.75 s a frame, 12 samples with the
+    # lighter shadows below 1.37 s, side by side the same picture (EEVEE converges early)
+    "normal": {"samples": 12, "motion_blur": True},
+    "high": {"samples": 32, "motion_blur": True},
 }
 _TOP = {
     "title",
@@ -65,6 +67,7 @@ _TOP = {
     "cut_whoosh",
     "format",
     "carry",
+    "punch",
     "hook",
 }
 _BEAT = {
@@ -84,10 +87,28 @@ _BEAT = {
     "crowd",
     "look",
     "remove",
+    "ton",
+    "choices",
+    "punch",
+    "term",
+    "count",
+    "stamp",
 }
-_SHOT = {"cue", "set", "set_opts", "actors", "props", "camera", "fx", "crowd", "look", "notes"}
+_SHOT = {
+    "cue",
+    "set",
+    "set_opts",
+    "actors",
+    "props",
+    "camera",
+    "fx",
+    "crowd",
+    "look",
+    "notes",
+    "wipe",
+}
 _FX = {"kind", "at", "pos", "on", "to", "size", "dur", "color", "n", "level", "item", "area",
-       "target", "amount", "wall", "axis", "gap"}  # fmt: skip
+       "target", "amount", "wall", "axis", "gap", "material", "leak", "debris"}  # fmt: skip
 _PROP_ANIM = {"at", "to", "by", "rot", "tilt", "scale", "dur", "ease", "hide", "show", "spin"}
 _CROWD = {"count", "area", "do", "facing", "seed", "at", "cheap", "spread", "speed"}
 _ACTOR = {"who", "at", "facing", "face", "do", "path", "talk", "look", "size", "faces"}
@@ -105,6 +126,9 @@ _CAMERA = {
     "fstop",
     "shake",
     "ease",
+    "from",
+    "from_zoom",
+    "level",
 }
 _CAST = {
     "body",
@@ -169,7 +193,10 @@ def _check_fx(where: str, say: str, items, ids: set[str], out: list[str]) -> Non
         for k in set(f) - _FX:
             out.append(f"{fw}: bilinmeyen alan '{k}' (olanlar: {_names(_FX)})")
         _cue_ok(fw, say, f.get("at"), out)
-        if f["kind"] in ("split", "pop", "vanish") and f.get("target") not in ids:
+        if (
+            f["kind"] in ("split", "pop", "vanish", "collapse", "dig", "drop")
+            and f.get("target") not in ids
+        ):
             out.append(
                 f"{fw}: '{f['kind']}' için target: bu planda bir eşyanın id'si ({_names(ids) or 'yok'})"
             )
@@ -205,6 +232,8 @@ def _check_props(where: str, say: str, props, actors: set[str], out: list[str]) 
             _cue_ok(f"{pw} anim {k}", say, m.get("at"), out)
         if p.get("open"):
             _cue_ok(f"{pw} open", say, p["open"].get("at"), out)
+        if p.get("pump"):
+            _cue_ok(f"{pw} pump", say, p["pump"].get("at"), out)
         hand = p.get("hand")
         steps = [{"who": hand}] if isinstance(hand, str) else hand or []
         for st in steps:
@@ -388,7 +417,48 @@ def validate(spec: dict) -> list[str]:
             if not shots
             else [(f"{w} plan {k}", {**b, **sh}, sh) for k, sh in enumerate(shots, 1)]
         )
+        cn = b.get("count")
+        if cn is not None:
+            if not isinstance(cn, dict) or not all(
+                isinstance(cn.get(k), (int, float)) for k in ("from", "to")
+            ):
+                out.append(f"{w}: count {{from, to, at, dur, unit, label}} olmalı (from/to sayı)")
+            else:
+                _cue_ok(f"{w} count", say, cn.get("at"), out)
+        stp = b.get("stamp")
+        if stp is not None:
+            if not isinstance(stp, dict) or not str(stp.get("text", "")).strip():
+                out.append(f"{w}: stamp {{text, at, ok}} olmalı")
+            else:
+                _cue_ok(f"{w} stamp", say, stp.get("at"), out)
+        tm = b.get("term")
+        if tm is not None:
+            if not isinstance(tm, dict) or not str(tm.get("text", "")).strip():
+                out.append(f"{w}: term {{text, at}} olmalı")
+            else:
+                _cue_ok(f"{w} term", say, tm.get("at"), out)
+        ch = b.get("choices")
+        if ch is not None:
+            items = ch.get("items") if isinstance(ch, dict) else None
+            if not isinstance(items, list) or not 2 <= len(items) <= 4:
+                out.append(f"{w}: choices.items 2-4 seçenek olmalı")
+            elif any(len(str(x)) > 18 for x in items):
+                out.append(f"{w}: choices seçenekleri kısa olmalı (en çok 18 harf)")
+            if isinstance(ch, dict):
+                _cue_ok(f"{w} choices", say, ch.get("at"), out)
+                pk = ch.get("pick")
+                if pk is not None:
+                    n = pk.get("n") if isinstance(pk, dict) else None
+                    if not isinstance(n, int) or not 1 <= n <= len(items or []):
+                        out.append(f"{w}: choices.pick.n seçeneklerden birinin numarası olmalı")
+                    else:
+                        _cue_ok(f"{w} choices.pick", say, pk.get("at"), out)
         for k, sh in enumerate(shots, 1):
+            wp = sh.get("wipe")
+            if wp is not None and k == 1 and i == 1:
+                out.append(f"{w} plan 1: wipe önceki planla karşılaştırır, ilk planda olamaz")
+            if isinstance(wp, dict) and set(wp) - {"labels", "hold"}:
+                out.append(f"{w} plan {k}: wipe alanları labels, hold")
             for x in set(sh) - _SHOT:
                 out.append(f"{w} plan {k}: bilinmeyen alan '{x}' (olanlar: {_names(_SHOT)})")
             if k > 1 and sh.get("cue") is None:

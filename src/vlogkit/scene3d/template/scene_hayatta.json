@@ -1,0 +1,879 @@
+{
+ "title": "30 gün bu odadan çıkmasan?",
+ "format": "hayatta",
+ "output": "3d/hayatta-ornek",
+ "quality": "normal",
+ "cast": {
+  "deniz": {
+   "sex": "male",
+   "body": "adult",
+   "top": "hoodie",
+   "shirt": "#2f6f8f",
+   "bottom": "jeans",
+   "pants": "#2b3442",
+   "hair": "short",
+   "hair_color": "#1d1711",
+   "shoes": "#efefef"
+  }
+ },
+ "hud": {
+  "label": "GÜN"
+ },
+ "hook": {
+  "text": "30 GÜN ODADAN ÇIKMA\n[1 MİLYON] SENİN",
+  "seconds": 2.4
+ },
+ "end": {
+  "tag": "SIRADAKİ",
+  "title": "30 GÜN TELEFONSUZ",
+  "seconds": 1.6
+ },
+ "beats": [
+  {
+   "say": "Bu odadan 30 gün çıkmazsan [1 milyon] lira senin.",
+   "set": "room",
+   "props": [
+    {
+     "kind": "bed",
+     "id": "yatak",
+     "at": [
+      -1.6,
+      1.4
+     ]
+    },
+    {
+     "kind": "fridge",
+     "id": "dolap",
+     "at": [
+      1.8,
+      1.6
+     ]
+    },
+    {
+     "kind": "door",
+     "id": "kapi",
+     "at": [
+      0.4,
+      2.4
+     ]
+    },
+    {
+     "kind": "calendar",
+     "id": "takvim",
+     "at": [
+      -0.6,
+      2.35
+     ],
+     "text": "1"
+    }
+   ],
+   "actors": [
+    {
+     "who": "deniz",
+     "at": [
+      0,
+      0.4
+     ],
+     "facing": 0,
+     "face": "surprised",
+     "do": [
+      {
+       "do": "shock",
+       "to": 0.5
+      },
+      {
+       "do": "cheer"
+      }
+     ]
+    }
+   ],
+   "fx": [
+    {
+     "kind": "rain",
+     "item": "money",
+     "at": 0.05,
+     "area": [
+      -2.5,
+      -0.5,
+      2.5,
+      2
+     ]
+    }
+   ],
+   "hud": {
+    "value": 1
+   },
+   "shots": [
+    {
+     "camera": {
+      "frame": "full",
+      "on": "deniz",
+      "move": "push"
+     }
+    },
+    {
+     "cue": "lira",
+     "camera": {
+      "frame": "wide",
+      "on": "deniz",
+      "angle": -20,
+      "move": "pull"
+     }
+    }
+   ],
+   "sfx": [
+    "whoosh"
+   ]
+  },
+  {
+   "say": "Gün 1: Kolay görünüyor. Yatak, internet, dolu bir buzdolabı.",
+   "set": "room",
+   "props": [
+    {
+     "kind": "bed",
+     "id": "yatak",
+     "at": [
+      -1.6,
+      1.4
+     ]
+    },
+    {
+     "kind": "fridge",
+     "id": "dolap",
+     "at": [
+      1.8,
+      1.6
+     ]
+    },
+    {
+     "kind": "door",
+     "id": "kapi",
+     "at": [
+      0.4,
+      2.4
+     ]
+    },
+    {
+     "kind": "calendar",
+     "id": "takvim",
+     "at": [
+      -0.6,
+      2.35
+     ],
+     "text": "1"
+    }
+   ],
+   "actors": [
+    {
+     "who": "deniz",
+     "at": [
+      -1.2,
+      0.6
+     ],
+     "facing": 20,
+     "face": "grin",
+     "do": [
+      {
+       "do": "sit"
+      }
+     ]
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "wide",
+      "on": "deniz",
+      "angle": 15,
+      "move": "push"
+     }
+    },
+    {
+     "cue": "buzdolabı",
+     "camera": {
+      "frame": "medium",
+      "on": "dolap",
+      "angle": -20,
+      "move": "push"
+     }
+    }
+   ]
+  },
+  {
+   "say": "Ama 5. gün internet kesiliyor.",
+   "set": "room",
+   "props": [
+    {
+     "kind": "bed",
+     "id": "yatak",
+     "at": [
+      -1.6,
+      1.4
+     ]
+    },
+    {
+     "kind": "fridge",
+     "id": "dolap",
+     "at": [
+      1.8,
+      1.6
+     ]
+    },
+    {
+     "kind": "door",
+     "id": "kapi",
+     "at": [
+      0.4,
+      2.4
+     ]
+    },
+    {
+     "kind": "calendar",
+     "id": "takvim",
+     "at": [
+      -0.6,
+      2.35
+     ],
+     "text": "5"
+    }
+   ],
+   "actors": [
+    {
+     "who": "deniz",
+     "at": [
+      0,
+      0.4
+     ],
+     "facing": 0,
+     "face": "shock",
+     "do": [
+      {
+       "do": "phone"
+      }
+     ]
+    }
+   ],
+   "hud": {
+    "value": 5,
+    "at": "5."
+   },
+   "fx": [
+    {
+     "kind": "flash",
+     "at": "kesiliyor"
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "medium",
+      "on": "deniz",
+      "move": "push"
+     }
+    },
+    {
+     "cue": "internet",
+     "camera": {
+      "frame": "close",
+      "on": "deniz",
+      "angle": 15,
+      "move": "push"
+     }
+    }
+   ]
+  },
+  {
+   "say": "Sıkıntıdan tavandaki lekeleri saymaya başlıyorsun.",
+   "set": "room",
+   "props": [
+    {
+     "kind": "bed",
+     "id": "yatak",
+     "at": [
+      -1.6,
+      1.4
+     ]
+    },
+    {
+     "kind": "fridge",
+     "id": "dolap",
+     "at": [
+      1.8,
+      1.6
+     ]
+    },
+    {
+     "kind": "door",
+     "id": "kapi",
+     "at": [
+      0.4,
+      2.4
+     ]
+    },
+    {
+     "kind": "calendar",
+     "id": "takvim",
+     "at": [
+      -0.6,
+      2.35
+     ],
+     "text": "8"
+    }
+   ],
+   "actors": [
+    {
+     "who": "deniz",
+     "at": [
+      -1.6,
+      1.4
+     ],
+     "facing": 0,
+     "face": "confused",
+     "do": [
+      {
+       "do": "lie"
+      }
+     ]
+    }
+   ],
+   "hud": {
+    "value": 8,
+    "at": "Sıkıntıdan"
+   },
+   "shots": [
+    {
+     "camera": {
+      "frame": "wide",
+      "on": "deniz",
+      "angle": -25,
+      "move": "push"
+     }
+    },
+    {
+     "cue": "lekeleri",
+     "camera": {
+      "frame": "top",
+      "on": "deniz",
+      "move": "push"
+     }
+    }
+   ]
+  },
+  {
+   "say": "Ama 12. gün buzdolabı boşalıyor.",
+   "set": "room",
+   "props": [
+    {
+     "kind": "bed",
+     "id": "yatak",
+     "at": [
+      -1.6,
+      1.4
+     ]
+    },
+    {
+     "kind": "fridge",
+     "id": "dolap",
+     "at": [
+      1.8,
+      1.6
+     ]
+    },
+    {
+     "kind": "door",
+     "id": "kapi",
+     "at": [
+      0.4,
+      2.4
+     ]
+    },
+    {
+     "kind": "calendar",
+     "id": "takvim",
+     "at": [
+      -0.6,
+      2.35
+     ],
+     "text": "12"
+    }
+   ],
+   "actors": [
+    {
+     "who": "deniz",
+     "at": [
+      1.4,
+      0.8
+     ],
+     "facing": 30,
+     "face": "sad",
+     "do": [
+      {
+       "do": "facepalm"
+      }
+     ]
+    }
+   ],
+   "hud": {
+    "value": 12,
+    "at": "12."
+   },
+   "shots": [
+    {
+     "camera": {
+      "frame": "medium",
+      "on": "dolap",
+      "angle": -25,
+      "move": "push"
+     }
+    },
+    {
+     "cue": "boşalıyor",
+     "camera": {
+      "frame": "close",
+      "on": "deniz",
+      "angle": -10,
+      "move": "push"
+     }
+    }
+   ]
+  },
+  {
+   "say": "Kalan son ekmeği 3 güne bölüyorsun.",
+   "set": "room",
+   "props": [
+    {
+     "kind": "bed",
+     "id": "yatak",
+     "at": [
+      -1.6,
+      1.4
+     ]
+    },
+    {
+     "kind": "fridge",
+     "id": "dolap",
+     "at": [
+      1.8,
+      1.6
+     ]
+    },
+    {
+     "kind": "door",
+     "id": "kapi",
+     "at": [
+      0.4,
+      2.4
+     ]
+    },
+    {
+     "kind": "calendar",
+     "id": "takvim",
+     "at": [
+      -0.6,
+      2.35
+     ],
+     "text": "13"
+    },
+    {
+     "kind": "burger",
+     "id": "ekmek",
+     "at": [
+      0.2,
+      0.2
+     ],
+     "z": 0.9
+    }
+   ],
+   "actors": [
+    {
+     "who": "deniz",
+     "at": [
+      0,
+      0.6
+     ],
+     "facing": 0,
+     "face": "neutral",
+     "do": [
+      {
+       "do": "hold"
+      }
+     ]
+    }
+   ],
+   "hud": {
+    "value": 13,
+    "at": "Kalan"
+   },
+   "shots": [
+    {
+     "camera": {
+      "frame": "medium",
+      "on": "deniz",
+      "move": "push"
+     }
+    },
+    {
+     "cue": "3",
+     "camera": {
+      "frame": "hands",
+      "on": "deniz",
+      "move": "push"
+     }
+    }
+   ]
+  },
+  {
+   "say": "Ama 20. gün uykun tamamen kaçıyor.",
+   "set": "bedroom_night",
+   "actors": [
+    {
+     "who": "deniz",
+     "at": [
+      0,
+      0.4
+     ],
+     "facing": 0,
+     "face": "scared",
+     "do": [
+      {
+       "do": "scared"
+      }
+     ]
+    }
+   ],
+   "hud": {
+    "value": 20,
+    "at": "20."
+   },
+   "shots": [
+    {
+     "camera": {
+      "frame": "full",
+      "on": "deniz",
+      "move": "push"
+     }
+    },
+    {
+     "cue": "uykun",
+     "camera": {
+      "frame": "face",
+      "on": "deniz",
+      "move": "push"
+     }
+    }
+   ],
+   "look": "nightvision"
+  },
+  {
+   "say": "Ama 29. gün kapı çalıyor.",
+   "set": "room",
+   "props": [
+    {
+     "kind": "door",
+     "id": "kapi",
+     "at": [
+      0.4,
+      2.4
+     ],
+     "open": {
+      "at": "çalıyor",
+      "dur": 0.8
+     }
+    },
+    {
+     "kind": "bed",
+     "id": "yatak",
+     "at": [
+      -1.6,
+      1.4
+     ]
+    },
+    {
+     "kind": "fridge",
+     "id": "dolap",
+     "at": [
+      1.8,
+      1.6
+     ]
+    },
+    {
+     "kind": "calendar",
+     "id": "takvim",
+     "at": [
+      -0.6,
+      2.35
+     ],
+     "text": "29"
+    }
+   ],
+   "actors": [
+    {
+     "who": "deniz",
+     "at": [
+      0,
+      0.4
+     ],
+     "facing": 0,
+     "face": "surprised",
+     "do": [
+      {
+       "do": "shock"
+      }
+     ]
+    }
+   ],
+   "hud": {
+    "value": 29,
+    "at": "29."
+   },
+   "shots": [
+    {
+     "camera": {
+      "frame": "wide",
+      "on": "kapi",
+      "angle": 10,
+      "move": "push"
+     }
+    },
+    {
+     "cue": "çalıyor",
+     "camera": {
+      "frame": "close",
+      "on": "deniz",
+      "angle": -15,
+      "move": "push"
+     }
+    }
+   ]
+  },
+  {
+   "say": "Biri 'süre doldu, çıkabilirsin' diyor.",
+   "set": "room",
+   "props": [
+    {
+     "kind": "bed",
+     "id": "yatak",
+     "at": [
+      -1.6,
+      1.4
+     ]
+    },
+    {
+     "kind": "fridge",
+     "id": "dolap",
+     "at": [
+      1.8,
+      1.6
+     ]
+    },
+    {
+     "kind": "door",
+     "id": "kapi",
+     "at": [
+      0.4,
+      2.4
+     ]
+    },
+    {
+     "kind": "calendar",
+     "id": "takvim",
+     "at": [
+      -0.6,
+      2.35
+     ],
+     "text": "29"
+    }
+   ],
+   "actors": [
+    {
+     "who": "deniz",
+     "at": [
+      0,
+      0.4
+     ],
+     "facing": 0,
+     "face": "grin",
+     "do": [
+      {
+       "do": "walk_formal",
+       "to": 0.6
+      }
+     ],
+     "path": [
+      [
+       0,
+       0.4
+      ],
+      [
+       0.3,
+       1.6
+      ]
+     ]
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "full",
+      "on": "deniz",
+      "angle": -20,
+      "move": "follow"
+     }
+    }
+   ]
+  },
+  {
+   "say": "Ama takvime bakıyorsun: daha bir gün var.",
+   "set": "room",
+   "props": [
+    {
+     "kind": "bed",
+     "id": "yatak",
+     "at": [
+      -1.6,
+      1.4
+     ]
+    },
+    {
+     "kind": "fridge",
+     "id": "dolap",
+     "at": [
+      1.8,
+      1.6
+     ]
+    },
+    {
+     "kind": "door",
+     "id": "kapi",
+     "at": [
+      0.4,
+      2.4
+     ]
+    },
+    {
+     "kind": "calendar",
+     "id": "takvim",
+     "at": [
+      -0.6,
+      2.35
+     ],
+     "text": "29"
+    }
+   ],
+   "punch": false,
+   "actors": [
+    {
+     "who": "deniz",
+     "at": [
+      0.1,
+      1.4
+     ],
+     "facing": 200,
+     "face": "shock",
+     "do": [
+      {
+       "do": "shock"
+      }
+     ]
+    }
+   ],
+   "shots": [
+    {
+     "camera": {
+      "frame": "medium",
+      "on": "takvim",
+      "angle": 10,
+      "move": "push"
+     }
+    },
+    {
+     "cue": "daha",
+     "camera": {
+      "frame": "face",
+      "on": "deniz",
+      "angle": -10,
+      "move": "push"
+     }
+    }
+   ],
+   "sfx": [
+    {
+     "id": "impact",
+     "at": "daha"
+    }
+   ]
+  },
+  {
+   "say": "Sen olsan kapıyı açar mıydın?",
+   "set": "room",
+   "props": [
+    {
+     "kind": "bed",
+     "id": "yatak",
+     "at": [
+      -1.6,
+      1.4
+     ]
+    },
+    {
+     "kind": "fridge",
+     "id": "dolap",
+     "at": [
+      1.8,
+      1.6
+     ]
+    },
+    {
+     "kind": "door",
+     "id": "kapi",
+     "at": [
+      0.4,
+      2.4
+     ]
+    },
+    {
+     "kind": "calendar",
+     "id": "takvim",
+     "at": [
+      -0.6,
+      2.35
+     ],
+     "text": "29"
+    }
+   ],
+   "hold": 2.2,
+   "actors": [
+    {
+     "who": "deniz",
+     "at": [
+      0.1,
+      1.4
+     ],
+     "facing": 0,
+     "face": "neutral",
+     "do": [
+      {
+       "do": "shrug"
+      }
+     ]
+    }
+   ],
+   "choices": {
+    "at": "Sen",
+    "title": "KAPIYI AÇAR MIYDIN?",
+    "items": [
+     "AÇARDIM",
+     "AÇMAZDIM",
+     "GÖZETLERDİM"
+    ],
+    "ask": "NUMARASINI YORUMA YAZ"
+   },
+   "camera": {
+    "frame": "wide",
+    "on": "deniz",
+    "angle": -15,
+    "move": "pull"
+   }
+  }
+ ]
+}

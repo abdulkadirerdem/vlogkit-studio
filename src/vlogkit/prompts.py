@@ -20,7 +20,15 @@ from vlogkit.config import REPO_ROOT
 GUIDE = REPO_ROOT / "docs" / "prompts.md"
 
 _HEAD = re.compile(r"^(#{1,4})\s+(.*?)(?:\s+\{#([\w-]+)\})?\s*$")
-STAGE_CODE = {"kesif": "K", "short": "S", "uzun": "U", "revizyon": "R", "ucb": "B", "yayin": "Y", "sistem": "G"}
+STAGE_CODE = {
+    "kesif": "K",
+    "short": "S",
+    "uzun": "U",
+    "revizyon": "R",
+    "ucb": "B",
+    "yayin": "Y",
+    "sistem": "G",
+}
 PLACEHOLDER = re.compile(r"<[^<>\n]+>")
 
 
